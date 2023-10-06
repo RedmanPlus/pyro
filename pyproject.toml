@@ -1,0 +1,101 @@
+[tool.poetry]
+name = "pyro"
+version = "0.1.0"
+description = ""
+authors = ["Antony Redman <RumataYounger@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.0.292"
+flake8 = "^6.1.0"
+pytest = "^7.4.2"
+isort = "^5.12.0"
+autoflake = "^2.2.1"
+black = "^23.9.1"
+
+[tool.autoflake]
+remove-all-unused-imports = true
+ignore-init-module-imports = true
+expand-star-imports = true
+remove-duplicate-keys = true
+
+[tool.black]
+line-length = 100
+target-version = ['py39']
+exclude = '''
+(
+  \.eggs
+  |\.git
+  |\.hg
+  |\.mypy_cache
+  |\.nox
+  |\.tox
+  |\.venv
+  |\.pyc
+  |\.pyi
+  |_build
+  |buck-out
+  |build
+  |dist
+)
+'''
+
+[tool.isort]
+line_length = 100
+sections = ["FUTURE", "STDLIB", "DJANGO", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
+multi_line_output = 3
+known_django = "django"
+profile = "black"
+src_paths = "."
+lines_after_imports = 2
+
+[tool.ruff]
+line-length = 120
+target-version = "py39"
+ignore = ["E501"]
+fix = true
+select = [
+    "F",   # pyflakes
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "UP",  # pyupgrade
+    "C90", # mccabe
+    "N",   # pep8-naming
+    "DJ",  # flake8-django
+    "C4",  # flake8-comprehensions
+    "B",   # flake8-bugbear
+    "BLE", # flake8-blind-except
+    "T20", # flake8-print
+    "Q",   # flake8-quotes
+]
+exclude = [
+    "eggs",
+    ".git",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".tox",
+    ".venv",
+    ".pyc",
+    ".pyi",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "migrations",
+]
+
+[tool.ruff.mccabe]
+# Настройка максимальной сложности
+max-complexity = 10
+
+[tool.mypy]
+explicit_package_bases = true
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
