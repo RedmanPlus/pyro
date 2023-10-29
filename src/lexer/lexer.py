@@ -1,10 +1,14 @@
 from collections.abc import Generator
 
+from src.exceptions.no_match_error import NoMatchError
 from src.exceptions.token_error import TokenError
-from src.lexer.tokens import Token, TokenType
+from src.lexer.grammar import Grammar
+from src.lexer.tokens import Token
 
 
 class Lexer:
+    _grammar: Grammar = Grammar("grammar.bnf")
+
     def __init__(self, code: str):
         self.code: str = code
         self.line: int = 0
@@ -49,16 +53,8 @@ class Lexer:
         return buffer
 
     def match_substr(self, substr: str) -> Token:
-        if substr[0].isdigit():
-            if not substr.isdigit():
-                raise TokenError(substr)
-
-            return Token(TokenType.INT, value=substr, position=(self.line, self.pos))
-
-        if substr[0].isalnum():
-            return Token(TokenType.IDENT, value=substr, position=(self.line, self.pos))
-
-        if substr[0] == "=":
-            return Token(TokenType.EQ, value=None, position=(self.line, self.pos))
-
-        raise TokenError("No token match description")
+        try:
+            token = self._grammar(substr, self.line, self.pos)
+            return token
+        except NoMatchError as e:
+            raise TokenError("No token match description") from e

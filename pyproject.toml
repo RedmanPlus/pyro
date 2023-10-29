@@ -7,6 +7,7 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.11"
+aenum = "^3.1.15"
 
 
 [tool.poetry.group.dev.dependencies]
@@ -16,6 +17,7 @@ pytest = "^7.4.2"
 isort = "^5.12.0"
 autoflake = "^2.2.1"
 black = "^23.9.1"
+autopep8 = "^2.0.4"
 
 [tool.autoflake]
 remove-all-unused-imports = true
@@ -25,7 +27,7 @@ remove-duplicate-keys = true
 
 [tool.black]
 line-length = 100
-target-version = ['py39']
+target-version = ['py311']
 exclude = '''
 (
   \.eggs
@@ -46,9 +48,8 @@ exclude = '''
 
 [tool.isort]
 line_length = 100
-sections = ["FUTURE", "STDLIB", "DJANGO", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
+sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
 multi_line_output = 3
-known_django = "django"
 profile = "black"
 src_paths = "."
 lines_after_imports = 2
