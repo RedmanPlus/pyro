@@ -90,6 +90,23 @@ exclude = [
     "migrations",
 ]
 
+[tool.pytest.ini_options]
+pythonpath = [
+  "."
+]
+addopts = """
+--disable-warnings
+"""
+markers = [
+    "slow: slow test",
+    "tokenizer: tokenizer tests",
+    "parser: parser tests",
+    "integration: integration of multiple components"
+]
+python_files = "test_*.py"
+test_paths = "test"
+junit_duration_report = "total"
+
 [tool.ruff.mccabe]
 # Настройка максимальной сложности
 max-complexity = 10
