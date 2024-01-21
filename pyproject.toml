@@ -101,6 +101,7 @@ markers = [
     "slow: slow test",
     "tokenizer: tokenizer tests",
     "parser: parser tests",
+    "int_rep: intermediate representation tests",
     "integration: integration of multiple components"
 ]
 python_files = "test_*.py"
