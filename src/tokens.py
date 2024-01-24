@@ -7,6 +7,8 @@ class TokenType(Enum):
     IDENT = auto()
     NUMBER = auto()
     EQ = auto()
+    PLUS = auto()
+    NEWLINE = auto()
 
 
 class Token:
@@ -25,6 +27,7 @@ class Tokenizer:
         r"^[a-zA-Z_$][\w$]*$": TokenType.IDENT,
         r"^[0-9]*$": TokenType.NUMBER,
         r"=": TokenType.EQ,
+        r"\+": TokenType.PLUS,
     }
 
     def __init__(self, code: str):
@@ -45,6 +48,9 @@ class Tokenizer:
                     content=elem if token_type in [TokenType.IDENT, TokenType.NUMBER] else None,
                 )
                 self.tokens.append(token)
+            self.tokens.append(
+                Token(token_type=TokenType.NEWLINE, line=i + 1, pos=len(line), content=None)
+            )
 
     def _match_token(self, elem: str) -> TokenType:
         for rejex in self.token_rejexes:
