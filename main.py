@@ -7,10 +7,7 @@ from src.tokens import Tokenizer
 
 
 def main():
-    code = """x = 69
-y = 420
-z = 1337
-"""
+    code = """x = 69"""
     tokenizer = Tokenizer(code=code)
     parser = Parser(tokens=tokenizer.tokens)
     rep = InterRepBuilder(ast=parser.core_node)

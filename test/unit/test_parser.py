@@ -14,11 +14,18 @@ def test_parse_simple_case():
             pos=3,
         ),
         Token(token_type=TokenType.NUMBER, line=1, pos=5, content="5"),
+        Token(
+            token_type=TokenType.NEWLINE,
+            line=1,
+            pos=7,
+        ),
     ]
     parser = Parser(tokens=tokens)
     assert parser.core_node.node_type == NodeType.NODE_PROG
     assert len(parser.core_node.children) == 1
-    assert parser.core_node.children[0].node_type == NodeType.NODE_EXPR
+    assert parser.core_node.children[0].node_type == NodeType.NODE_STMT
     assert len(parser.core_node.children[0].children) == 2
-    assert parser.core_node.children[0].children[0].node_type == NodeType.NODE_IDENT
-    assert parser.core_node.children[0].children[1].node_type == NodeType.NODE_VALUE
+    assert parser.core_node.children[0].children[0].node_type == NodeType.NODE_TERM
+    assert parser.core_node.children[0].children[0].children[0].node_type == NodeType.NODE_IDENT
+    assert parser.core_node.children[0].children[1].node_type == NodeType.NODE_TERM
+    assert parser.core_node.children[0].children[1].children[0].node_type == NodeType.NODE_VALUE

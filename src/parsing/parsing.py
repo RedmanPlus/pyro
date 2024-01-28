@@ -9,6 +9,7 @@ from src.tokens import Token, TokenType
 class NodeType(Enum):
     NODE_IDENT = auto()
     NODE_VALUE = auto()
+    NODE_TERM = auto()
     NODE_EXPR = auto()
     NODE_BIN_EXPR = auto()
     NODE_STMT = auto()
@@ -31,48 +32,137 @@ class Parser:
         self.tokens = tokens
         self.core_node = Node(node_type=NodeType.NODE_PROG, children=[])
         self.pattern_matcher = PatternMatcher(
-            declaration=Pattern(
-                TokenType.IDENT,
-                TokenType.EQ,
-                Union(TokenType.IDENT, TokenType.NUMBER),
-            ),
-            expr=Pattern(
-                Union(TokenType.IDENT, TokenType.NUMBER),
-                TokenType.PLUS,
-                Union(TokenType.IDENT, TokenType.NUMBER),
-            ),
-            ident=Pattern(
-                Union(TokenType.IDENT, TokenType.NUMBER),
-                TokenType.NEWLINE,
-            ),
+            {
+                NodeType.NODE_STMT: Pattern(
+                    TokenType.IDENT,
+                    TokenType.EQ,
+                    Union(TokenType.IDENT, TokenType.NUMBER),
+                ),
+                NodeType.NODE_BIN_EXPR: Pattern(
+                    Union(TokenType.IDENT, TokenType.NUMBER),
+                    TokenType.PLUS,
+                    Union(TokenType.IDENT, TokenType.NUMBER),
+                ),
+                NodeType.NODE_EXPR: Pattern(
+                    Union(TokenType.IDENT, TokenType.NUMBER),
+                    TokenType.NEWLINE,
+                ),
+            }
         )
         self._traverse_tokens()
 
     def _traverse_tokens(self):
-        token_buffer: list[Token] = []
         while len(self.tokens) != 0:
-            curr_token = self.tokens.pop(0)
-            token_buffer.append(curr_token)
-            token_type_buffer = [token.token_type for token in token_buffer]
-            result_pattern = self.pattern_matcher(token_type_buffer)
-            pattern_type = self.pattern_matcher[str(result_pattern)]
-            match pattern_type:
-                case "declaration":
-                    testing_matcher: PatternMatcher = PatternMatcher(
-                        expr=Pattern(
-                            Union(TokenType.IDENT, TokenType.NUMBER),
-                            TokenType.PLUS,
-                            Union(TokenType.IDENT, TokenType.NUMBER),
-                        ),
-                        ident=Pattern(Union(TokenType.IDENT, TokenType.NUMBER), TokenType.NEWLINE),
-                    )
-                    self._try_parse(testing_matcher, curr_token)
-                case "expr":
-                    ...
-                case "ident":
-                    ...
-                case _:
-                    raise Exception(f"Unknown pattern type {pattern_type}")
+            current_token: Token = self.tokens.pop(0)
+            self._try_parse(self.pattern_matcher, current_token)
 
-    def _try_parse(self, matcher: PatternMatcher, current_token: TokenType) -> NodeType | None:
-        ...
+    def _try_parse(self, matcher: PatternMatcher, current_token: Token) -> Node | None:
+        token_buffer: list[Token] = [current_token]
+        while len(self.tokens) >= 0:
+            pattern = matcher([token.token_type for token in token_buffer])
+            if pattern is None:
+                if len(self.tokens) == 0:
+                    return None
+                current_token = self.tokens.pop(0)
+                token_buffer.append(current_token)
+                continue
+            node_type = matcher[str(pattern)]
+
+            match node_type:
+                case NodeType.NODE_STMT:
+                    var_name: str | None = token_buffer[0].content
+                    if var_name is None:
+                        raise Exception("Unreachable")
+                    node_ident: Node = Node(
+                        node_type=NodeType.NODE_IDENT, children=[], value=var_name
+                    )
+                    node_term: Node = Node(
+                        node_type=NodeType.NODE_TERM, children=[node_ident], value=None
+                    )
+                    new_matcher = PatternMatcher(
+                        {
+                            NodeType.NODE_BIN_EXPR: Pattern(
+                                Union(TokenType.IDENT, TokenType.NUMBER),
+                                TokenType.PLUS,
+                                Union(TokenType.IDENT, TokenType.PLUS),
+                            ),
+                            NodeType.NODE_EXPR: Pattern(
+                                Union(TokenType.IDENT, TokenType.NUMBER), TokenType.NEWLINE
+                            ),
+                        }
+                    )
+                    nodes = self._try_parse(new_matcher, current_token)
+                    if nodes is None:
+                        raise Exception("Unreachable")
+                    node = Node(
+                        node_type=NodeType.NODE_STMT, children=[node_term, nodes], value=None
+                    )
+                    if node is None:
+                        continue
+                    self.core_node.children.append(node)
+                    token_buffer = []
+
+                case NodeType.NODE_BIN_EXPR:
+                    term_a: Token = token_buffer[0]
+                    node_bin_expt: Node = Node(
+                        node_type=NodeType.NODE_BIN_EXPR,
+                        children=[
+                            Node(
+                                node_type=NodeType.NODE_TERM,
+                                children=[
+                                    Node(
+                                        node_type=NodeType.NODE_IDENT
+                                        if term_a.token_type == TokenType.IDENT
+                                        else NodeType.NODE_VALUE,
+                                        children=[],
+                                        value=term_a.content,
+                                    )
+                                ],
+                                value=None,
+                            ),
+                            Node(
+                                node_type=NodeType.NODE_PLUS,
+                                children=[],
+                                value=None,
+                            ),
+                        ],
+                    )
+                    new_matcher = PatternMatcher(
+                        {
+                            NodeType.NODE_BIN_EXPR: Pattern(
+                                Union(TokenType.IDENT, TokenType.NUMBER),
+                                TokenType.PLUS,
+                                Union(TokenType.IDENT, TokenType.PLUS),
+                            ),
+                            NodeType.NODE_EXPR: Pattern(
+                                Union(TokenType.IDENT, TokenType.NUMBER), TokenType.NEWLINE
+                            ),
+                        }
+                    )
+                    nodes = self._try_parse(new_matcher, current_token)
+                    if nodes is None:
+                        raise Exception("Unreachable")
+                    node_bin_expt.children.append(nodes)
+                    return node_bin_expt
+
+                case NodeType.NODE_EXPR:
+                    term: Token = token_buffer[0]
+                    node_term = Node(
+                        node_type=NodeType.NODE_TERM,
+                        children=[
+                            Node(
+                                node_type=NodeType.NODE_IDENT
+                                if term.token_type == TokenType.IDENT
+                                else NodeType.NODE_VALUE,
+                                children=[],
+                                value=term.content,
+                            )
+                        ],
+                        value=None,
+                    )
+                    return node_term
+
+                case _:
+                    raise Exception("No patterns are satisfied by the structure of the tokens")
+
+        return None

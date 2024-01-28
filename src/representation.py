@@ -7,6 +7,7 @@ from src.parsing import Node, NodeType
 
 class CommandType(Enum):
     COMMAND_DECLARE = auto()
+    COMMAND_SUM = auto()
 
 
 @dataclass

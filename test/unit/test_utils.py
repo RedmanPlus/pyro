@@ -27,7 +27,7 @@ def test_pattern_match_full():
     for elem in sequence:
         pattern(elem)
 
-    assert pattern.is_fulfilled
+    assert pattern.status
 
 
 def test_pattern_match_fail():
@@ -41,17 +41,19 @@ def test_pattern_match_fail():
     for elem in sequence:
         pattern(elem)
 
-    assert not pattern.is_fulfilled
+    assert not pattern.status
 
 
 def test_pattern_matcher_one_result():
     matcher = PatternMatcher(
-        a=Pattern(
-            Union(TokenType.IDENT, TokenType.NUMBER),
-            TokenType.EQ,
-            Union(TokenType.IDENT, TokenType.NUMBER),
-        ),
-        b=Pattern(TokenType.IDENT, TokenType.PLUS, TokenType.EQ),
+        {
+            "a": Pattern(
+                Union(TokenType.IDENT, TokenType.NUMBER),
+                TokenType.EQ,
+                Union(TokenType.IDENT, TokenType.NUMBER),
+            ),
+            "b": Pattern(TokenType.IDENT, TokenType.PLUS, TokenType.EQ),
+        }
     )
 
     sequence: list[TokenType] = [TokenType.IDENT, TokenType.EQ, TokenType.NUMBER]

@@ -53,6 +53,7 @@ multi_line_output = 3
 profile = "black"
 src_paths = "."
 lines_after_imports = 2
+skip = "__init__.py"
 
 [tool.ruff]
 line-length = 120
@@ -66,7 +67,6 @@ select = [
     "UP",  # pyupgrade
     "C90", # mccabe
     "N",   # pep8-naming
-    "DJ",  # flake8-django
     "C4",  # flake8-comprehensions
     "B",   # flake8-bugbear
     "BLE", # flake8-blind-except

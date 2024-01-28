@@ -24,50 +24,67 @@ class Union:
 @dataclass
 class Pattern:
     tokens: tuple[TokenType | Union, ...]
+    matches: list[bool]
     pos: int = 0
-    is_fulfilled: bool = False
-    _has_negative: bool = False
 
     def __init__(self, *args: TokenType | Union):
         self.tokens = args
+        self.matches = [False for _ in self.tokens]
         self.pos = 0
-        self.is_fulfilled = False
-        self._has_negative = False
 
-    def __call__(self, token_type: TokenType) -> bool:
-        if self.pos >= len(self.tokens) and self.is_fulfilled:
-            self.is_fulfilled = False
-            return False
-        if self.tokens[self.pos] == token_type:
-            self.pos += 1
-            if self.pos == len(self.tokens) and not self._has_negative:
-                self.is_fulfilled = True
-            return True
-        else:
-            self._has_negative = True
-        return False
+    def __call__(self, token_type: TokenType) -> None:
+        if self.pos >= len(self.tokens):
+            self.matches = [False for _ in self.tokens]
+            return None
+        pos_result: bool = self.tokens[self.pos] == token_type
+        self.matches[self.pos] = pos_result
+        self.pos += 1
+        return None
+
+    @property
+    def status(self) -> bool:
+        return all(self.matches)
+
+    def drop(self):
+        self.pos = 0
+        self.matches = [False for _ in self.tokens]
 
     def __repr__(self) -> str:
-        return f"Pattern {'-> '.join(str(elem) for elem in self.tokens)}"
+        elem_buffer: list[str] = []
+        for token, status in zip(self.tokens, self.matches):
+            elem_buffer.append(f"{token} [{'⃝' if status else '❌'}]")
+        return f"Pattern <{' '.join(elem_buffer)}>"
+
+    def __str__(self) -> str:
+        return f"Pattern <{' '.join(str(token) for token in self.tokens)}>"
 
 
 class PatternMatcher:
-    def __init__(self, **kwargs: Pattern):
-        self.patterns: list[Pattern] = list(kwargs.values())
-        self.results: dict[str, str] = {str(v): k for k, v in kwargs.items()}
+    def __init__(self, items: dict[Enum, Pattern]):
+        self.patterns: list[Pattern] = list(items.values())
+        self.results: dict[str, Enum] = {str(v): k for k, v in items.items()}
 
-    def __call__(self, checked: list[TokenType] | tuple[TokenType, ...]) -> Pattern:
+    def __call__(self, checked: list[TokenType] | tuple[TokenType, ...]) -> Pattern | None:
+        if not checked:
+            return None
         patterns = self.patterns
-        for elem in checked:
-            patterns = list(filter(lambda n: n(elem), patterns))
+        for i, elem in enumerate(checked):
+            [pattern(elem) for pattern in patterns]  # type: ignore
+            if i + 1 == len(checked):
+                patterns = list(filter(lambda n: n.status, patterns))
 
         if len(patterns) > 1:
             raise Exception("Multiple variants satisfy the pattern")
 
         if len(patterns) == 0:
-            raise Exception("No patterns satisfied")
+            for pattern in self.patterns:
+                pattern.drop()
+            return None
 
         return patterns[0]
 
-    def __getitem__(self, item: str) -> str:
+    def __getitem__(self, item: str) -> Enum:
         return self.results[item]
+
+    def __str__(self) -> str:
+        return f"PatternMatcher: {self.patterns}"
