@@ -1,68 +1,93 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum, auto
-from typing import Optional
 
 from src.parsing import Node, NodeType
 
 
 class CommandType(Enum):
-    COMMAND_DECLARE = auto()
-    COMMAND_SUM = auto()
+    PUSH = auto()
+    POP = auto()
+    SUM = auto()
+    STORE = auto()
 
 
 @dataclass
 class Command:
-    command_id: int
     command_type: CommandType
-    command_args: tuple
+    command_args: tuple[str, ...]
 
     def __repr__(self) -> str:
-        return f"{self.command_id}) {self.command_type} -> ARGS: {self.command_args}"
+        return f"{self.command_type} {self.command_args}"
 
 
-@dataclass
-class Representation:
-    commands: dict[int, Command] = field(default_factory=dict)
-    command_pointer: int = 0
-    variable_table: dict[str, str] = field(default_factory=dict)
-
-    def __iter__(self):
-        self.command_pointer = 0
-        return self
-
-    def __next__(self):
-        return self.commands[self.command_pointer]
-
-
-class InterRepBuilder:
+class IRBuilder:
     def __init__(self, ast: Node):
-        self._rep: Representation = Representation(commands={})
-        self._traverse_tree(ast)
+        self.ast: Node = ast
+        self.commands: list[Command] = []
+        self._parse_prog(self.ast)
 
-    @property
-    def representation(self) -> Representation:
-        return self._rep
+    def _parse_prog(self, node: Node):
+        for child in node.children:
+            match child.node_type:
+                case NodeType.NODE_STMT:
+                    self._parse_stmt(child)
+                case _:
+                    raise Exception("Unreachable")
 
-    def _traverse_tree(self, node: Node) -> Optional[Command]:
-        match node.node_type:
-            case NodeType.NODE_PROG:
-                for child in node.children:
-                    command = self._traverse_tree(child)
-                    if command is not None:
-                        self._rep.commands[self._rep.command_pointer] = command
-                        self._rep.command_pointer += 1
-                return None
-            case NodeType.NODE_EXPR:
-                var_name = node.children[0].value
-                var_value = node.children[1].value
-                if var_name is None or var_value is None:
-                    raise Exception(f"Values for node {node} are missing")
-                command = Command(
-                    command_id=self._rep.command_pointer,
-                    command_type=CommandType.COMMAND_DECLARE,
-                    command_args=(var_name, var_value),
+    def _parse_stmt(self, node: Node):
+        node_term: Node = node.children[0]
+        if node_term.node_type != NodeType.NODE_TERM:
+            raise Exception("Unreachable")
+
+        node_dec: Node = node.children[1]
+        match node_dec.node_type:
+            case NodeType.NODE_BIN_EXPR:
+                self._parse_bin_expr(node_dec)
+            case NodeType.NODE_TERM:
+                command_term = Command(
+                    command_type=CommandType.PUSH,
+                    command_args=(node_dec.children[0].value,)
+                    if node_dec.children[0].value is not None
+                    else (),
                 )
-                self._rep.variable_table[var_name] = var_value
-                return command
+                self.commands.append(command_term)
+
+        command_store: Command = Command(
+            command_type=CommandType.STORE,
+            command_args=(node_term.children[0].value,)
+            if node_term.children[0].value is not None
+            else (),
+        )
+        self.commands.append(command_store)
+
+    def _parse_bin_expr(self, node: Node):
+        node_term_a: Node = node.children[0]
+        command_term_a: Command = Command(
+            command_type=CommandType.PUSH,
+            command_args=(node_term_a.children[0].value,)
+            if node_term_a.children[0].value is not None
+            else (),
+        )
+        self.commands.append(command_term_a)
+        node_op: Node = node.children[1]
+        node_term_b: Node = node.children[2]
+        match node_term_b.node_type:
+            case NodeType.NODE_BIN_EXPR:
+                self._parse_bin_expr(node_term_b)
+            case NodeType.NODE_TERM:
+                command_term_b: Command = Command(
+                    command_type=CommandType.PUSH,
+                    command_args=(node_term_b.children[0].value,)
+                    if node_term_b.children[0].value is not None
+                    else (),
+                )
+                self.commands.append(command_term_b)
             case _:
-                return None
+                raise Exception("Unreachable")
+
+        match node_op.node_type:
+            case NodeType.NODE_PLUS:
+                command_sum: Command = Command(command_type=CommandType.SUM, command_args=())
+                self.commands.append(command_sum)
+            case _:
+                raise Exception("Unreachable")

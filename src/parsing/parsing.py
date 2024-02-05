@@ -26,6 +26,23 @@ class Node:
     def __repr__(self) -> str:
         return f"{self.node_type}: {self.value if self.value is not None else self.children}"
 
+    def pprint(self, depth: int = 0) -> str:
+        if self.value is not None:
+            data = f"{''.join(' ' for _ in range(depth * 4))}{self.node_type}: {self.value} "
+        else:
+            data = f"{''.join(' ' for _ in range(depth * 4))}{self.node_type} "
+        data += "{"
+        children_pprints: list[str] = []
+        if self.children:
+            data += "\n"
+            for child in self.children:
+                children_pprints.append(child.pprint(depth=depth + 1))
+            data += "\n".join(children_pprints)
+            data += "".join(" " for _ in range(depth * 4)) + "}\n"
+        else:
+            data += "}\n"
+        return data
+
 
 class Parser:
     def __init__(self, tokens: list[Token]):
@@ -84,7 +101,7 @@ class Parser:
                             NodeType.NODE_BIN_EXPR: Pattern(
                                 Union(TokenType.IDENT, TokenType.NUMBER),
                                 TokenType.PLUS,
-                                Union(TokenType.IDENT, TokenType.PLUS),
+                                Union(TokenType.IDENT, TokenType.NUMBER),
                             ),
                             NodeType.NODE_EXPR: Pattern(
                                 Union(TokenType.IDENT, TokenType.NUMBER), TokenType.NEWLINE
@@ -132,7 +149,7 @@ class Parser:
                             NodeType.NODE_BIN_EXPR: Pattern(
                                 Union(TokenType.IDENT, TokenType.NUMBER),
                                 TokenType.PLUS,
-                                Union(TokenType.IDENT, TokenType.PLUS),
+                                Union(TokenType.IDENT, TokenType.NUMBER),
                             ),
                             NodeType.NODE_EXPR: Pattern(
                                 Union(TokenType.IDENT, TokenType.NUMBER), TokenType.NEWLINE

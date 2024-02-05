@@ -1,8 +1,8 @@
-from src.representation import CommandType, Representation
+from src.representation import Command, CommandType
 
 
 class Generation:
-    def __init__(self, rep: Representation):
+    def __init__(self, rep: list[Command]):
         self.rep = rep
         self.code_chunks: list[str] = []
 
@@ -14,9 +14,9 @@ _start:""",
     mov rdi, 0
     syscall""",
         ]
-        for command in self.rep.commands.values():
+        for command in self.rep:
             match command.command_type:
-                case CommandType.COMMAND_DECLARE:
+                case CommandType.PUSH:
                     code = f"""    mov rax, {command.command_args[1]}
     push rax"""
                     self.code_chunks.append(code)
