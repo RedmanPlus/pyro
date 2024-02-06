@@ -1,3 +1,4 @@
+from src.generation.generation import Generation
 from src.parsing import Parser
 from src.representation import IRBuilder
 from src.tokens import Tokenizer
@@ -8,8 +9,9 @@ def main():
 y = 420"""
     tokenizer = Tokenizer(code=code)
     parser = Parser(tokens=tokenizer.tokens)
-    IRBuilder(ast=parser.core_node)
-    # result = Generation(rep=rep.commands)
+    rep = IRBuilder(ast=parser.core_node)
+    result = Generation(rep=rep.commands)
+    result()
 
     # code = result()
     # with open("out.asm", "w") as f:
