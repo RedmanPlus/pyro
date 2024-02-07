@@ -31,8 +31,8 @@ class DataMoveInstruction(ASMInstruction):
 
     def to_asm(self) -> str:
         if self.data is None:
-            return f"    {self.instruction_type} {self.register}"
-        return f"    {self.instruction_type} {self.register}, {self.data}"
+            return f"    {self.instruction_type.value} {self.register}"
+        return f"    {self.instruction_type.value} {self.register}, {self.data}"
 
 
 @dataclass
@@ -41,7 +41,7 @@ class MathLogicInstruction(ASMInstruction):
     registers: tuple[str, ...]
 
     def to_asm(self) -> str:
-        return f"    {self.instruction_type} {self.registers[0]}, {self.registers[1]}"
+        return f"    {self.instruction_type.value} {self.registers[0]}, {self.registers[1]}"
 
 
 @dataclass
