@@ -1,17 +1,20 @@
 from dataclasses import dataclass
 from enum import Enum
+from typing import Generic, TypeVar
 
-from src.tokens import TokenType
+
+EnumVal = TypeVar("EnumVal", bound=Enum)
+ResultVal = TypeVar("ResultVal", bound=Enum)
 
 
 @dataclass
-class Union:
-    objects: list[Enum]
+class Union(Generic[EnumVal]):
+    objects: list[EnumVal]
 
-    def __init__(self, *args):
+    def __init__(self, *args: EnumVal):
         self.objects = list(args)
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: object) -> bool:
         for obj in self.objects:
             if obj == other:
                 return True
@@ -22,21 +25,27 @@ class Union:
 
 
 @dataclass
-class Pattern:
-    tokens: tuple[TokenType | Union, ...]
+class Any(Generic[EnumVal]):
+    def __eq__(self, other: object) -> bool:
+        return True
+
+
+@dataclass
+class Pattern(Generic[EnumVal]):
+    tokens: tuple[EnumVal | Union[EnumVal] | Any[EnumVal], ...]
     matches: list[bool]
     pos: int = 0
 
-    def __init__(self, *args: TokenType | Union):
+    def __init__(self, *args: EnumVal | Union[EnumVal] | Any[EnumVal]):
         self.tokens = args
         self.matches = [False for _ in self.tokens]
         self.pos = 0
 
-    def __call__(self, token_type: TokenType) -> None:
+    def __call__(self, value: EnumVal) -> None:
         if self.pos >= len(self.tokens):
             self.matches = [False for _ in self.tokens]
             return None
-        pos_result: bool = self.tokens[self.pos] == token_type
+        pos_result: bool = self.tokens[self.pos] == value
         self.matches[self.pos] = pos_result
         self.pos += 1
         return None
@@ -59,12 +68,12 @@ class Pattern:
         return f"Pattern <{' '.join(str(token) for token in self.tokens)}>"
 
 
-class PatternMatcher:
-    def __init__(self, items: dict[Enum, Pattern]):
-        self.patterns: list[Pattern] = list(items.values())
-        self.results: dict[str, Enum] = {str(v): k for k, v in items.items()}
+class PatternMatcher(Generic[EnumVal, ResultVal]):
+    def __init__(self, items: dict[ResultVal, Pattern[EnumVal]]):
+        self.patterns: list[Pattern[EnumVal]] = list(items.values())
+        self.results: dict[str, ResultVal] = {str(v): k for k, v in items.items()}
 
-    def __call__(self, checked: list[TokenType] | tuple[TokenType, ...]) -> Pattern | None:
+    def __call__(self, checked: list[EnumVal] | tuple[EnumVal, ...]) -> Pattern[EnumVal] | None:
         if not checked:
             return None
         patterns = self.patterns
@@ -83,7 +92,7 @@ class PatternMatcher:
 
         return patterns[0]
 
-    def __getitem__(self, item: str) -> Enum:
+    def __getitem__(self, item: str) -> ResultVal:
         return self.results[item]
 
     def __str__(self) -> str:

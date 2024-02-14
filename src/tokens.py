@@ -8,6 +8,9 @@ class TokenType(Enum):
     NUMBER = auto()
     EQ = auto()
     PLUS = auto()
+    MINUS = auto()
+    MUL = auto()
+    DIV = auto()
     NEWLINE = auto()
 
 
@@ -28,6 +31,9 @@ class Tokenizer:
         r"^[0-9]*$": TokenType.NUMBER,
         r"=": TokenType.EQ,
         r"\+": TokenType.PLUS,
+        r"\-": TokenType.MINUS,
+        r"\*": TokenType.MUL,
+        r"\/": TokenType.DIV,
     }
 
     def __init__(self, code: str):

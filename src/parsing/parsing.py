@@ -14,6 +14,9 @@ class NodeType(Enum):
     NODE_BIN_EXPR = auto()
     NODE_STMT = auto()
     NODE_PLUS = auto()
+    NODE_MINUS = auto()
+    NODE_MULTI = auto()
+    NODE_DIV = auto()
     NODE_PROG = auto()
 
 
@@ -48,7 +51,7 @@ class Parser:
     def __init__(self, tokens: list[Token]):
         self.tokens = tokens
         self.core_node = Node(node_type=NodeType.NODE_PROG, children=[])
-        self.pattern_matcher = PatternMatcher(
+        self.pattern_matcher: PatternMatcher[TokenType, NodeType] = PatternMatcher(
             {
                 NodeType.NODE_STMT: Pattern(
                     TokenType.IDENT,
@@ -57,7 +60,7 @@ class Parser:
                 ),
                 NodeType.NODE_BIN_EXPR: Pattern(
                     Union(TokenType.IDENT, TokenType.NUMBER),
-                    TokenType.PLUS,
+                    Union(TokenType.PLUS, TokenType.MINUS, TokenType.MUL, TokenType.DIV),
                     Union(TokenType.IDENT, TokenType.NUMBER),
                 ),
                 NodeType.NODE_EXPR: Pattern(
@@ -73,7 +76,9 @@ class Parser:
             current_token: Token = self.tokens.pop(0)
             self._try_parse(self.pattern_matcher, current_token)
 
-    def _try_parse(self, matcher: PatternMatcher, current_token: Token) -> Node | None:
+    def _try_parse(
+        self, matcher: PatternMatcher[TokenType, NodeType], current_token: Token
+    ) -> Node | None:
         token_buffer: list[Token] = [current_token]
         while len(self.tokens) >= 0:
             pattern = matcher([token.token_type for token in token_buffer])
@@ -84,6 +89,7 @@ class Parser:
                 token_buffer.append(current_token)
                 continue
             node_type = matcher[str(pattern)]
+            new_matcher: PatternMatcher[TokenType, NodeType]
 
             match node_type:
                 case NodeType.NODE_STMT:
@@ -100,7 +106,9 @@ class Parser:
                         {
                             NodeType.NODE_BIN_EXPR: Pattern(
                                 Union(TokenType.IDENT, TokenType.NUMBER),
-                                TokenType.PLUS,
+                                Union(
+                                    TokenType.PLUS, TokenType.MINUS, TokenType.MUL, TokenType.DIV
+                                ),
                                 Union(TokenType.IDENT, TokenType.NUMBER),
                             ),
                             NodeType.NODE_EXPR: Pattern(
@@ -121,6 +129,19 @@ class Parser:
 
                 case NodeType.NODE_BIN_EXPR:
                     term_a: Token = token_buffer[0]
+                    operand: Token = token_buffer[1]
+                    operand_type: NodeType
+                    match operand.token_type:
+                        case TokenType.PLUS:
+                            operand_type = NodeType.NODE_PLUS
+                        case TokenType.MINUS:
+                            operand_type = NodeType.NODE_MINUS
+                        case TokenType.MUL:
+                            operand_type = NodeType.NODE_MULTI
+                        case TokenType.DIV:
+                            operand_type = NodeType.NODE_DIV
+                        case _:
+                            raise Exception("Unreachable")
                     node_bin_expt: Node = Node(
                         node_type=NodeType.NODE_BIN_EXPR,
                         children=[
@@ -138,7 +159,7 @@ class Parser:
                                 value=None,
                             ),
                             Node(
-                                node_type=NodeType.NODE_PLUS,
+                                node_type=operand_type,
                                 children=[],
                                 value=None,
                             ),
@@ -148,7 +169,9 @@ class Parser:
                         {
                             NodeType.NODE_BIN_EXPR: Pattern(
                                 Union(TokenType.IDENT, TokenType.NUMBER),
-                                TokenType.PLUS,
+                                Union(
+                                    TokenType.PLUS, TokenType.MINUS, TokenType.MUL, TokenType.DIV
+                                ),
                                 Union(TokenType.IDENT, TokenType.NUMBER),
                             ),
                             NodeType.NODE_EXPR: Pattern(

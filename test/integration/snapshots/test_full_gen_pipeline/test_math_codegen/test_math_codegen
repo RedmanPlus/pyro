@@ -6,12 +6,12 @@ _start:
     mov rbx, 35
     add rax, rbx
     push rax
-    mov rcx, 150
-    mov rdx, 150
-    mov r11, 20
-    add rcx, rdx
-    add rcx, r11
-    push rcx
+    mov rax, 150
+    mov rbx, 20
+    add rax, rbx
+    mov rbx, 150
+    add rax, rbx
+    push rax
     mov rax, 60
     mov rdi, 0
     syscall
