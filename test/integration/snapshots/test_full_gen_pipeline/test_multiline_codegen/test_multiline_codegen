@@ -4,10 +4,10 @@ global _start
 _start:
     mov rax, 1
     push rax
-    mov rbx, 2
-    push rbx
-    mov rcx, 3
-    push rcx
+    mov rax, 2
+    push rax
+    mov rax, 3
+    push rax
     mov rax, 60
     mov rdi, 0
     syscall

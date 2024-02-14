@@ -7,7 +7,7 @@ from src.tokens import Tokenizer
 
 
 def main():
-    code = """x = 34 + 34 + 1
+    code = """x = 34 * 34 + 1
 y = 420"""
     tokenizer = Tokenizer(code=code)
     parser = Parser(tokens=tokenizer.tokens)

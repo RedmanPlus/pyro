@@ -1,6 +1,14 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
-from enum import Enum
+from dataclasses import dataclass
+from enum import Enum, auto
+
+
+class OperationType(Enum):
+    SUM = auto()
+    SUBTRACT = auto()
+    MULTIPLY = auto()
+    DIVIDE = auto()
+    DECLARE = auto()
 
 
 class InstructionType(Enum):
@@ -8,6 +16,9 @@ class InstructionType(Enum):
     PUSH = "push"
     POP = "pop"
     ADD = "add"
+    SUB = "sub"
+    IMUL = "imul"
+    IDIV = "idiv"
     SYSCALL = "syscall"
 
 
@@ -41,6 +52,8 @@ class MathLogicInstruction(ASMInstruction):
     registers: tuple[str, ...]
 
     def to_asm(self) -> str:
+        if len(self.registers) == 1:
+            return f"    {self.instruction_type.value} {self.registers[0]}"
         return f"    {self.instruction_type.value} {self.registers[0]}, {self.registers[1]}"
 
 
@@ -50,36 +63,3 @@ class SyscallInstruction(ASMInstruction):
 
     def to_asm(self) -> str:
         return "    syscall"
-
-
-@dataclass
-class Register:
-    name: str
-
-    def __str__(self) -> str:
-        return f"Register {self.name}"
-
-
-@dataclass
-class RegisterRegistry:
-    used_call_registers: list[Register] = field(default_factory=list)
-    free_call_registers: list[Register] = field(default_factory=list)
-    used_logic_registers: list[Register] = field(default_factory=list)
-    free_logic_registers: list[Register] = field(default_factory=list)
-
-    def get_register(self) -> str:
-        register_in_use: Register = self.free_logic_registers.pop(0)
-        self.used_logic_registers.append(register_in_use)
-        return register_in_use.name
-
-    def get_register_call(self) -> str:
-        register_in_use: Register = self.free_call_registers.pop(0)
-        self.used_call_registers.append(register_in_use)
-        return register_in_use.name
-
-    def free_register(self, register: Register):
-        if register not in self.used_logic_registers:
-            raise Exception(f"Unknown register {register.name}")
-
-        self.used_logic_registers.remove(register)
-        self.free_logic_registers.append(register)
