@@ -7,9 +7,9 @@ _start:
     add rax, rbx
     push rax
     mov rax, 150
-    mov rbx, 20
-    add rax, rbx
     mov rbx, 150
+    add rax, rbx
+    mov rbx, 20
     add rax, rbx
     push rax
     mov rax, 60

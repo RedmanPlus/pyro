@@ -1,13 +1,13 @@
 import subprocess
 
 from src.generation.generation import Generation
-from src.parsing import Parser
+from src.parsing.parsing import Parser
 from src.representation import IRBuilder
 from src.tokens import Tokenizer
 
 
 def main():
-    code = """x = 1 + 2 * 3 - 4
+    code = """x = 1 + 2 * 3 - 4 * 5
 y = 420"""
     tokenizer = Tokenizer(code=code)
     parser = Parser(tokens=tokenizer.tokens)
