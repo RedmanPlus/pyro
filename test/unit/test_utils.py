@@ -1,4 +1,4 @@
-from src.parsing.parsing import Pattern, PatternMatcher, Union
+from src.parsing.utils import Pattern, PatternMatcher, Union
 from src.tokens import TokenType
 
 

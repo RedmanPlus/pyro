@@ -8,37 +8,105 @@ from src.generation.utils import (
 )
 from src.parsing import Pattern, PatternMatcher, Union
 from src.parsing.utils import Any
-from src.representation import Command, CommandType
+from src.representation import Command, CommandType, NewCommand, Representation
 
 
 command_patterns: PatternMatcher[CommandType, OperationType] = PatternMatcher(
     {
         OperationType.SUM: Pattern(
-            Union(
-                CommandType.PUSH, CommandType.SUB, CommandType.SUM, CommandType.MUL, CommandType.DIV
-            ),
+            CommandType.PUSH,
             CommandType.PUSH,
             CommandType.SUM,
         ),
         OperationType.SUBTRACT: Pattern(
-            Union(
-                CommandType.PUSH, CommandType.SUB, CommandType.SUM, CommandType.MUL, CommandType.DIV
-            ),
+            CommandType.PUSH,
             CommandType.PUSH,
             CommandType.SUB,
         ),
         OperationType.MULTIPLY: Pattern(
-            Union(
-                CommandType.PUSH, CommandType.SUB, CommandType.SUM, CommandType.MUL, CommandType.DIV
-            ),
+            CommandType.PUSH,
             CommandType.PUSH,
             CommandType.MUL,
         ),
         OperationType.DIVIDE: Pattern(
+            CommandType.PUSH,
+            CommandType.PUSH,
+            CommandType.DIV,
+        ),
+        OperationType.SUB_SUM: Pattern(
             Union(
-                CommandType.PUSH, CommandType.SUB, CommandType.SUM, CommandType.MUL, CommandType.DIV
+                CommandType.SUM,
+                CommandType.SUB,
+                CommandType.MUL,
+                CommandType.DIV,
             ),
             CommandType.PUSH,
+            CommandType.SUM,
+        ),
+        OperationType.SUB_SUBTRACT: Pattern(
+            Union(
+                CommandType.SUM,
+                CommandType.SUB,
+                CommandType.MUL,
+                CommandType.DIV,
+            ),
+            CommandType.PUSH,
+            CommandType.SUB,
+        ),
+        OperationType.SUB_MULTIPLY: Pattern(
+            Union(
+                CommandType.SUM,
+                CommandType.SUB,
+                CommandType.MUL,
+                CommandType.DIV,
+            ),
+            CommandType.PUSH,
+            CommandType.MUL,
+        ),
+        OperationType.SUB_DIVIDE: Pattern(
+            Union(
+                CommandType.SUM,
+                CommandType.SUB,
+                CommandType.MUL,
+                CommandType.DIV,
+            ),
+            CommandType.PUSH,
+            CommandType.DIV,
+        ),
+        OperationType.MERGE_SUM: Pattern(
+            Union(
+                CommandType.SUM,
+                CommandType.SUB,
+                CommandType.MUL,
+                CommandType.DIV,
+            ),
+            CommandType.SUM,
+        ),
+        OperationType.MERGE_SUBTRACT: Pattern(
+            Union(
+                CommandType.SUM,
+                CommandType.SUB,
+                CommandType.MUL,
+                CommandType.DIV,
+            ),
+            CommandType.SUB,
+        ),
+        OperationType.MERGE_MULTIPLY: Pattern(
+            Union(
+                CommandType.SUM,
+                CommandType.SUB,
+                CommandType.MUL,
+                CommandType.DIV,
+            ),
+            CommandType.MUL,
+        ),
+        OperationType.MERGE_DIVIDE: Pattern(
+            Union(
+                CommandType.SUM,
+                CommandType.SUB,
+                CommandType.MUL,
+                CommandType.DIV,
+            ),
             CommandType.DIV,
         ),
         OperationType.DECLARE: Pattern(Any(), CommandType.STORE),
@@ -114,14 +182,13 @@ class Generation:
             case OperationType.SUM:
                 command_operand_a: Command = command_buffer[0]  # type: ignore
                 command_operand_b: Command = command_buffer[1]  # type: ignore
-                if command_operand_a.command_type == CommandType.PUSH:
-                    instruction_buffer.append(
-                        DataMoveInstruction(
-                            instruction_type=InstructionType.MOV,
-                            register="rax",
-                            data=command_operand_a.command_args[0],
-                        )
+                instruction_buffer.append(
+                    DataMoveInstruction(
+                        instruction_type=InstructionType.MOV,
+                        register="rax",
+                        data=command_operand_a.command_args[0],
                     )
+                )
                 instruction_buffer.append(
                     DataMoveInstruction(
                         instruction_type=InstructionType.MOV,
@@ -135,17 +202,38 @@ class Generation:
                         registers=("rax", "rbx"),
                     )
                 )
+            case OperationType.SUB_SUM:
+                command_operand_b: Command = command_buffer[1]  # type: ignore
+                instruction_buffer.append(
+                    DataMoveInstruction(
+                        instruction_type=InstructionType.MOV,
+                        register="rbx",
+                        data=command_operand_b.command_args[0],
+                    )
+                )
+                instruction_buffer.append(
+                    MathLogicInstruction(
+                        instruction_type=InstructionType.ADD,
+                        registers=("rax", "rbx"),
+                    )
+                )
+            case OperationType.MERGE_SUM:
+                instruction_buffer.append(
+                    MathLogicInstruction(
+                        instruction_type=InstructionType.ADD,
+                        registers=("rax", "rbx"),
+                    )
+                )
             case OperationType.SUBTRACT:
                 command_operand_a: Command = command_buffer[0]  # type: ignore
                 command_operand_b: Command = command_buffer[1]  # type: ignore
-                if command_operand_a.command_type == CommandType.PUSH:
-                    instruction_buffer.append(
-                        DataMoveInstruction(
-                            instruction_type=InstructionType.MOV,
-                            register="rax",
-                            data=command_operand_a.command_args[0],
-                        )
+                instruction_buffer.append(
+                    DataMoveInstruction(
+                        instruction_type=InstructionType.MOV,
+                        register="rax",
+                        data=command_operand_a.command_args[0],
                     )
+                )
                 instruction_buffer.append(
                     DataMoveInstruction(
                         instruction_type=InstructionType.MOV,
@@ -159,17 +247,38 @@ class Generation:
                         registers=("rax", "rbx"),
                     )
                 )
+            case OperationType.SUB_SUBTRACT:
+                command_operand_b: Command = command_buffer[1]  # type: ignore
+                instruction_buffer.append(
+                    DataMoveInstruction(
+                        instruction_type=InstructionType.MOV,
+                        register="rbx",
+                        data=command_operand_b.command_args[0],
+                    )
+                )
+                instruction_buffer.append(
+                    MathLogicInstruction(
+                        instruction_type=InstructionType.SUB,
+                        registers=("rax", "rbx"),
+                    )
+                )
+            case OperationType.MERGE_SUBTRACT:
+                instruction_buffer.append(
+                    MathLogicInstruction(
+                        instruction_type=InstructionType.SUB,
+                        registers=("rax", "rbx"),
+                    )
+                )
             case OperationType.MULTIPLY:
                 command_operand_a: Command = command_buffer[0]  # type: ignore
                 command_operand_b: Command = command_buffer[1]  # type: ignore
-                if command_operand_a.command_type == CommandType.PUSH:
-                    instruction_buffer.append(
-                        DataMoveInstruction(
-                            instruction_type=InstructionType.MOV,
-                            register="rax",
-                            data=command_operand_a.command_args[0],
-                        )
+                instruction_buffer.append(
+                    DataMoveInstruction(
+                        instruction_type=InstructionType.MOV,
+                        register="rax",
+                        data=command_operand_a.command_args[0],
                     )
+                )
                 instruction_buffer.append(
                     DataMoveInstruction(
                         instruction_type=InstructionType.MOV,
@@ -183,17 +292,38 @@ class Generation:
                         registers=("rax", "rbx"),
                     )
                 )
+            case OperationType.SUB_MULTIPLY:
+                command_operand_b: Command = command_buffer[1]  # type: ignore
+                instruction_buffer.append(
+                    DataMoveInstruction(
+                        instruction_type=InstructionType.MOV,
+                        register="rbx",
+                        data=command_operand_b.command_args[0],
+                    )
+                )
+                instruction_buffer.append(
+                    MathLogicInstruction(
+                        instruction_type=InstructionType.IMUL,
+                        registers=("rax", "rbx"),
+                    )
+                )
+            case OperationType.MERGE_MULTIPLY:
+                instruction_buffer.append(
+                    MathLogicInstruction(
+                        instruction_type=InstructionType.IMUL,
+                        registers=("rax", "rbx"),
+                    )
+                )
             case OperationType.DIVIDE:
                 command_operand_a: Command = command_buffer[0]  # type: ignore
                 command_operand_b: Command = command_buffer[1]  # type: ignore
-                if command_operand_a.command_type == CommandType.PUSH:
-                    instruction_buffer.append(
-                        DataMoveInstruction(
-                            instruction_type=InstructionType.MOV,
-                            register="rax",
-                            data=command_operand_a.command_args[0],
-                        )
+                instruction_buffer.append(
+                    DataMoveInstruction(
+                        instruction_type=InstructionType.MOV,
+                        register="rax",
+                        data=command_operand_a.command_args[0],
                     )
+                )
                 instruction_buffer.append(
                     DataMoveInstruction(
                         instruction_type=InstructionType.MOV,
@@ -212,6 +342,28 @@ class Generation:
                     MathLogicInstruction(
                         instruction_type=InstructionType.IDIV,
                         registers=("rbx",),
+                    )
+                )
+            case OperationType.SUB_DIVIDE:
+                command_operand_b: Command = command_buffer[1]  # type: ignore
+                instruction_buffer.append(
+                    DataMoveInstruction(
+                        instruction_type=InstructionType.MOV,
+                        register="rbx",
+                        data=command_operand_b.command_args[0],
+                    )
+                )
+                instruction_buffer.append(
+                    MathLogicInstruction(
+                        instruction_type=InstructionType.IDIV,
+                        registers=("rax", "rbx"),
+                    )
+                )
+            case OperationType.MERGE_DIVIDE:
+                instruction_buffer.append(
+                    MathLogicInstruction(
+                        instruction_type=InstructionType.IDIV,
+                        registers=("rax", "rbx"),
                     )
                 )
             case OperationType.DECLARE:
@@ -234,3 +386,29 @@ class Generation:
                 raise Exception("Unreachable")
 
         return instruction_buffer
+
+
+class NewGeneration:
+    def __init__(self, representation: Representation):
+        self.representation = representation
+        self.code_chunks: list[ASMInstruction] = []
+
+    def __call__(self) -> str:
+        for command in self.representation.commands:
+            match command.operation:
+                case CommandType.STORE:
+                    ...
+                case CommandType.SUM:
+                    ...
+                case CommandType.SUB:
+                    ...
+                case CommandType.MUL:
+                    ...
+                case CommandType.DIV:
+                    ...
+                case _:
+                    raise Exception("Unreachable")
+        return ""
+
+    def _generate_store(self, command: NewCommand) -> list[ASMInstruction]:
+        return []

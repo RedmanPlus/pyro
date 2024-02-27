@@ -1,0 +1,3 @@
+main:
+   r0 = SUM 1, 1
+   x = STORE r0

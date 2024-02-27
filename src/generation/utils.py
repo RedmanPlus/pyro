@@ -8,6 +8,14 @@ class OperationType(Enum):
     SUBTRACT = auto()
     MULTIPLY = auto()
     DIVIDE = auto()
+    SUB_SUM = auto()
+    SUB_SUBTRACT = auto()
+    SUB_MULTIPLY = auto()
+    SUB_DIVIDE = auto()
+    MERGE_SUM = auto()
+    MERGE_SUBTRACT = auto()
+    MERGE_MULTIPLY = auto()
+    MERGE_DIVIDE = auto()
     DECLARE = auto()
 
 

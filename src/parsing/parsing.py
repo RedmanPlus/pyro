@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum, auto
 from typing import Optional
 
@@ -22,7 +22,7 @@ class NodeType(Enum):
 @dataclass
 class Node:
     node_type: NodeType
-    children: list["Node"]
+    children: list["Node"] = field(default_factory=list)
     value: Optional[str] = None
 
     def __repr__(self) -> str:
