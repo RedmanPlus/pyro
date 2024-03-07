@@ -1,2 +1,2 @@
-main:
+main: 
    x = STORE 1
