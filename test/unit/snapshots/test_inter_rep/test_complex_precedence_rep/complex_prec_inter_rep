@@ -1,0 +1,6 @@
+main: 
+   r0 = MUL 2, 3
+   r0 = SUM 1, r0
+   r1 = MUL 4, 5
+   r0 = SUB r0, r1
+   x = STORE r0

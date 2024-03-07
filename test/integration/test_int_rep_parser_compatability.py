@@ -1,12 +1,12 @@
 import pytest
 
 from src.parsing import Parser
-from src.representation import CommandType, IRBuilder
+from src.representation import IRBuilder
 from src.tokens import Token, TokenType
 
 
 @pytest.mark.integration
-def test_int_rep_from_tokens():
+def test_int_rep_from_tokens(snapshot):
     tokens = [
         Token(TokenType.IDENT, line=1, pos=1, content="x"),
         Token(
@@ -23,8 +23,4 @@ def test_int_rep_from_tokens():
     ]
     parser = Parser(tokens=tokens)
     int_rep = IRBuilder(ast=parser.core_node)
-    assert len(int_rep.commands) == 2
-    assert int_rep.commands[0].command_type == CommandType.PUSH
-    assert int_rep.commands[0].command_args == ("1",)
-    assert int_rep.commands[1].command_type == CommandType.STORE
-    assert int_rep.commands[1].command_args == ("x",)
+    snapshot.assert_match(int_rep.commands.pprint(), "int_rep_parser_compatibility")

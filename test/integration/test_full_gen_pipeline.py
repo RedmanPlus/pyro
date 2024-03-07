@@ -12,7 +12,7 @@ def test_simple_codegen(snapshot):
     tokenizer = Tokenizer(code=code)
     parser = Parser(tokens=tokenizer.tokens)
     int_rep = IRBuilder(ast=parser.core_node)
-    code = Generation(rep=int_rep.commands)
+    code = Generation(representation=int_rep.commands)
     snapshot.assert_match(code(), "test_simple_codegen")
 
 
@@ -24,7 +24,7 @@ z = 3"""
     tokenizer = Tokenizer(code=code)
     parser = Parser(tokens=tokenizer.tokens)
     int_rep = IRBuilder(ast=parser.core_node)
-    code = Generation(rep=int_rep.commands)
+    code = Generation(representation=int_rep.commands)
     snapshot.assert_match(code(), "test_multiline_codegen")
 
 
@@ -35,5 +35,5 @@ y = 150 + 150 + 20"""
     tokenizer = Tokenizer(code=code)
     parser = Parser(tokens=tokenizer.tokens)
     int_rep = IRBuilder(ast=parser.core_node)
-    code = Generation(rep=int_rep.commands)
+    code = Generation(representation=int_rep.commands)
     snapshot.assert_match(code(), "test_math_codegen")

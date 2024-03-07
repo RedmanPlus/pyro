@@ -1,8 +1,7 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum, auto
 from typing import Optional
 
-from src.parsing.utils import Pattern, PatternMatcher, Union
 from src.tokens import Token, TokenType
 
 
@@ -23,7 +22,7 @@ class NodeType(Enum):
 @dataclass
 class Node:
     node_type: NodeType
-    children: list["Node"]
+    children: list["Node"] = field(default_factory=list)
     value: Optional[str] = None
 
     def __repr__(self) -> str:
@@ -51,158 +50,134 @@ class Parser:
     def __init__(self, tokens: list[Token]):
         self.tokens = tokens
         self.core_node = Node(node_type=NodeType.NODE_PROG, children=[])
-        self.pattern_matcher: PatternMatcher[TokenType, NodeType] = PatternMatcher(
-            {
-                NodeType.NODE_STMT: Pattern(
-                    TokenType.IDENT,
-                    TokenType.EQ,
-                    Union(TokenType.IDENT, TokenType.NUMBER),
-                ),
-                NodeType.NODE_BIN_EXPR: Pattern(
-                    Union(TokenType.IDENT, TokenType.NUMBER),
-                    Union(TokenType.PLUS, TokenType.MINUS, TokenType.MUL, TokenType.DIV),
-                    Union(TokenType.IDENT, TokenType.NUMBER),
-                ),
-                NodeType.NODE_EXPR: Pattern(
-                    Union(TokenType.IDENT, TokenType.NUMBER),
-                    TokenType.NEWLINE,
-                ),
-            }
-        )
         self._traverse_tokens()
 
     def _traverse_tokens(self):
         while len(self.tokens) != 0:
-            current_token: Token = self.tokens.pop(0)
-            self._try_parse(self.pattern_matcher, current_token)
+            if len(self.tokens) == 1 and self.tokens[0].token_type == TokenType.NEWLINE:
+                break
+            stmt = self._parse_stmt()
+            self.core_node.children.append(stmt)
 
-    def _try_parse(
-        self, matcher: PatternMatcher[TokenType, NodeType], current_token: Token
-    ) -> Node | None:
-        token_buffer: list[Token] = [current_token]
-        while len(self.tokens) >= 0:
-            pattern = matcher([token.token_type for token in token_buffer])
-            if pattern is None:
-                if len(self.tokens) == 0:
-                    return None
-                current_token = self.tokens.pop(0)
-                token_buffer.append(current_token)
-                continue
-            node_type = matcher[str(pattern)]
-            new_matcher: PatternMatcher[TokenType, NodeType]
+    def _parse_stmt(self) -> Node:
+        token_ident = self._consume()
+        if token_ident.token_type != TokenType.IDENT:
+            raise Exception(f"Illegal declaration: {token_ident}")
 
-            match node_type:
-                case NodeType.NODE_STMT:
-                    var_name: str | None = token_buffer[0].content
-                    if var_name is None:
-                        raise Exception("Unreachable")
-                    node_ident: Node = Node(
-                        node_type=NodeType.NODE_IDENT, children=[], value=var_name
-                    )
-                    node_term: Node = Node(
-                        node_type=NodeType.NODE_TERM, children=[node_ident], value=None
-                    )
-                    new_matcher = PatternMatcher(
-                        {
-                            NodeType.NODE_BIN_EXPR: Pattern(
-                                Union(TokenType.IDENT, TokenType.NUMBER),
-                                Union(
-                                    TokenType.PLUS, TokenType.MINUS, TokenType.MUL, TokenType.DIV
-                                ),
-                                Union(TokenType.IDENT, TokenType.NUMBER),
-                            ),
-                            NodeType.NODE_EXPR: Pattern(
-                                Union(TokenType.IDENT, TokenType.NUMBER), TokenType.NEWLINE
-                            ),
-                        }
-                    )
-                    nodes = self._try_parse(new_matcher, current_token)
-                    if nodes is None:
-                        raise Exception("Unreachable")
-                    node = Node(
-                        node_type=NodeType.NODE_STMT, children=[node_term, nodes], value=None
-                    )
-                    if node is None:
-                        continue
-                    self.core_node.children.append(node)
-                    token_buffer = []
+        if self._peek(0).token_type != TokenType.EQ:
+            raise Exception(f"Illegal declaration: {token_ident} -> missing '='")
 
-                case NodeType.NODE_BIN_EXPR:
-                    term_a: Token = token_buffer[0]
-                    operand: Token = token_buffer[1]
-                    operand_type: NodeType
-                    match operand.token_type:
-                        case TokenType.PLUS:
-                            operand_type = NodeType.NODE_PLUS
-                        case TokenType.MINUS:
-                            operand_type = NodeType.NODE_MINUS
-                        case TokenType.MUL:
-                            operand_type = NodeType.NODE_MULTI
-                        case TokenType.DIV:
-                            operand_type = NodeType.NODE_DIV
-                        case _:
-                            raise Exception("Unreachable")
-                    node_bin_expt: Node = Node(
-                        node_type=NodeType.NODE_BIN_EXPR,
-                        children=[
-                            Node(
-                                node_type=NodeType.NODE_TERM,
-                                children=[
-                                    Node(
-                                        node_type=NodeType.NODE_IDENT
-                                        if term_a.token_type == TokenType.IDENT
-                                        else NodeType.NODE_VALUE,
-                                        children=[],
-                                        value=term_a.content,
-                                    )
-                                ],
-                                value=None,
-                            ),
-                            Node(
-                                node_type=operand_type,
-                                children=[],
-                                value=None,
-                            ),
-                        ],
-                    )
-                    new_matcher = PatternMatcher(
-                        {
-                            NodeType.NODE_BIN_EXPR: Pattern(
-                                Union(TokenType.IDENT, TokenType.NUMBER),
-                                Union(
-                                    TokenType.PLUS, TokenType.MINUS, TokenType.MUL, TokenType.DIV
-                                ),
-                                Union(TokenType.IDENT, TokenType.NUMBER),
-                            ),
-                            NodeType.NODE_EXPR: Pattern(
-                                Union(TokenType.IDENT, TokenType.NUMBER), TokenType.NEWLINE
-                            ),
-                        }
-                    )
-                    nodes = self._try_parse(new_matcher, current_token)
-                    if nodes is None:
-                        raise Exception("Unreachable")
-                    node_bin_expt.children.append(nodes)
-                    return node_bin_expt
+        self._consume()
+        node_expr = self._parse_expr()
+        if len(self.tokens) != 0:
+            if self._peek(0).token_type == TokenType.NEWLINE:
+                self._consume()
+        return Node(
+            node_type=NodeType.NODE_STMT,
+            children=[
+                Node(
+                    node_type=NodeType.NODE_TERM,
+                    children=[Node(NodeType.NODE_IDENT, children=[], value=token_ident.content)],
+                ),
+                node_expr,
+            ],
+        )
 
-                case NodeType.NODE_EXPR:
-                    term: Token = token_buffer[0]
-                    node_term = Node(
-                        node_type=NodeType.NODE_TERM,
-                        children=[
-                            Node(
-                                node_type=NodeType.NODE_IDENT
-                                if term.token_type == TokenType.IDENT
-                                else NodeType.NODE_VALUE,
-                                children=[],
-                                value=term.content,
-                            )
-                        ],
-                        value=None,
-                    )
-                    return node_term
+    def _parse_expr(self) -> Node:
+        if self._peek(1).token_type == TokenType.NEWLINE:
+            node = self._parse_leaf()
+            self._consume()
+            return node
 
-                case _:
-                    raise Exception("No patterns are satisfied by the structure of the tokens")
+        return self._parse_bin_expr()
 
-        return None
+    def _parse_bin_expr(self, min_prec: int = -1) -> Node:
+        left_operand: Node = self._parse_leaf()
+
+        while True:
+            node = self._parse_increasing_precedence(left_operand, min_prec)
+            if node == left_operand:
+                break
+            left_operand = node
+
+        return left_operand
+
+    def _parse_increasing_precedence(self, left_operand: Node, min_prec: int) -> Node:
+        next = self._peek(0)
+        if not self._is_binop(next):
+            return left_operand
+
+        next_prec = self._get_precedence(next)
+        if next_prec <= min_prec:
+            return left_operand
+        self._consume()
+        right_operand = self._parse_bin_expr(next_prec)
+        return self._make_binary(left_operand, self._to_operator(next), right_operand)
+
+    def _parse_leaf(self) -> Node:
+        token = self._consume()
+
+        return Node(
+            node_type=NodeType.NODE_TERM,
+            children=[
+                Node(
+                    node_type=NodeType.NODE_VALUE
+                    if token.token_type == TokenType.NUMBER
+                    else NodeType.NODE_IDENT,
+                    children=[],
+                    value=token.content,
+                )
+            ],
+        )
+
+    def _consume(self) -> Token:
+        return self.tokens.pop(0)
+
+    def _peek(self, distance: int = 1) -> Token:
+        return self.tokens[distance]
+
+    @staticmethod
+    def _make_binary(left_operand: Node, operator: Node, right_operand: Node) -> Node:
+        return Node(
+            node_type=NodeType.NODE_BIN_EXPR,
+            children=[
+                left_operand,
+                operator,
+                right_operand,
+            ],
+        )
+
+    @staticmethod
+    def _is_binop(token: Token) -> bool:
+        return token.token_type in (TokenType.PLUS, TokenType.MINUS, TokenType.MUL, TokenType.DIV)
+
+    @staticmethod
+    def _get_precedence(token: Token) -> int:
+        match token.token_type:
+            case TokenType.PLUS:
+                return 0
+            case TokenType.MINUS:
+                return 0
+            case TokenType.MUL:
+                return 1
+            case TokenType.DIV:
+                return 1
+            case _:
+                raise Exception("Unreachable")
+
+    @staticmethod
+    def _to_operator(token: Token) -> Node:
+        node_type: NodeType
+        match token.token_type:
+            case TokenType.PLUS:
+                node_type = NodeType.NODE_PLUS
+            case TokenType.MINUS:
+                node_type = NodeType.NODE_MINUS
+            case TokenType.MUL:
+                node_type = NodeType.NODE_MULTI
+            case TokenType.DIV:
+                node_type = NodeType.NODE_DIV
+            case _:
+                raise Exception("Unreachable")
+
+        return Node(node_type=node_type, children=[])
