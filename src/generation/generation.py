@@ -1,162 +1,41 @@
 from src.generation.utils import (
+    X86_64_REGISTER_SCHEMA,
     ASMInstruction,
     DataMoveInstruction,
     InstructionType,
     MathLogicInstruction,
-    OperationType,
     SyscallInstruction,
 )
-from src.parsing import Pattern, PatternMatcher, Union
-from src.parsing.utils import Any
-from src.representation import Command, CommandType, NewCommand, Representation
-
-
-command_patterns: PatternMatcher[CommandType, OperationType] = PatternMatcher(
-    {
-        OperationType.SUM: Pattern(
-            CommandType.PUSH,
-            CommandType.PUSH,
-            CommandType.SUM,
-        ),
-        OperationType.SUBTRACT: Pattern(
-            CommandType.PUSH,
-            CommandType.PUSH,
-            CommandType.SUB,
-        ),
-        OperationType.MULTIPLY: Pattern(
-            CommandType.PUSH,
-            CommandType.PUSH,
-            CommandType.MUL,
-        ),
-        OperationType.DIVIDE: Pattern(
-            CommandType.PUSH,
-            CommandType.PUSH,
-            CommandType.DIV,
-        ),
-        OperationType.SUB_SUM: Pattern(
-            Union(
-                CommandType.SUM,
-                CommandType.SUB,
-                CommandType.MUL,
-                CommandType.DIV,
-            ),
-            CommandType.PUSH,
-            CommandType.SUM,
-        ),
-        OperationType.SUB_SUBTRACT: Pattern(
-            Union(
-                CommandType.SUM,
-                CommandType.SUB,
-                CommandType.MUL,
-                CommandType.DIV,
-            ),
-            CommandType.PUSH,
-            CommandType.SUB,
-        ),
-        OperationType.SUB_MULTIPLY: Pattern(
-            Union(
-                CommandType.SUM,
-                CommandType.SUB,
-                CommandType.MUL,
-                CommandType.DIV,
-            ),
-            CommandType.PUSH,
-            CommandType.MUL,
-        ),
-        OperationType.SUB_DIVIDE: Pattern(
-            Union(
-                CommandType.SUM,
-                CommandType.SUB,
-                CommandType.MUL,
-                CommandType.DIV,
-            ),
-            CommandType.PUSH,
-            CommandType.DIV,
-        ),
-        OperationType.MERGE_SUM: Pattern(
-            Union(
-                CommandType.SUM,
-                CommandType.SUB,
-                CommandType.MUL,
-                CommandType.DIV,
-            ),
-            CommandType.SUM,
-        ),
-        OperationType.MERGE_SUBTRACT: Pattern(
-            Union(
-                CommandType.SUM,
-                CommandType.SUB,
-                CommandType.MUL,
-                CommandType.DIV,
-            ),
-            CommandType.SUB,
-        ),
-        OperationType.MERGE_MULTIPLY: Pattern(
-            Union(
-                CommandType.SUM,
-                CommandType.SUB,
-                CommandType.MUL,
-                CommandType.DIV,
-            ),
-            CommandType.MUL,
-        ),
-        OperationType.MERGE_DIVIDE: Pattern(
-            Union(
-                CommandType.SUM,
-                CommandType.SUB,
-                CommandType.MUL,
-                CommandType.DIV,
-            ),
-            CommandType.DIV,
-        ),
-        OperationType.DECLARE: Pattern(Any(), CommandType.STORE),
-    }
-)
-
-
-class OpMatcher:
-    def __init__(self, commands: list[Command]):
-        self.commands: list[Command] = commands
-        self.command_buffer: list[Command] = []
-        self.operation_types: PatternMatcher[CommandType, OperationType] = command_patterns
-
-    def __call__(self) -> OperationType:
-        while len(self.commands) > 0:
-            if len(self.commands) != 0:
-                current_command: Command = self.commands.pop(0)
-                self.command_buffer.append(current_command)
-            op_type: Pattern[CommandType] | None = self.operation_types(
-                [command.command_type for command in self.command_buffer]
-            )
-            if op_type is not None:
-                return self.operation_types[str(op_type)]
-            if len(self.commands) == 0:
-                break
-
-        raise Exception(f"Unknown command pattern: {self.command_buffer}")
-
-    def clean(self) -> None:
-        last_command = self.command_buffer[-1]
-        if last_command.command_type != CommandType.STORE:
-            self.commands.insert(0, last_command)
-        self.command_buffer = []
+from src.representation import Command, CommandType, Representation
+from src.representation.utils import PseudoRegister, is_operand_a_register
 
 
 class Generation:
-    def __init__(self, rep: list[Command]):
-        self.rep = rep
-        self.operation_matcher: OpMatcher = OpMatcher(commands=self.rep)
+    def __init__(self, representation: Representation):
+        self.representation = representation
         self.code_chunks: list[ASMInstruction] = []
 
     def __call__(self) -> str:
         asm_header: str = "section .text\nglobal _start\n\n_start:\n"
-        while len(self.rep) > 0:
-            current_op = self.operation_matcher()
-            operations_asm = self._match_operations(
-                current_op, self.operation_matcher.command_buffer
-            )
-            self.code_chunks += operations_asm
-            self.operation_matcher.clean()
+        for command in self.representation.commands:
+            match command.operation:
+                case CommandType.STORE:
+                    instructions = self._generate_store(command)
+                    self.code_chunks += instructions
+                case CommandType.SUM:
+                    instructions = self._generate_sum(command)
+                    self.code_chunks += instructions
+                case CommandType.SUB:
+                    instructions = self._generate_sub(command)
+                    self.code_chunks += instructions
+                case CommandType.MUL:
+                    instructions = self._generate_imul(command)
+                    self.code_chunks += instructions
+                case CommandType.DIV:
+                    instructions = self._generate_idiv(command)
+                    self.code_chunks += instructions
+                case _:
+                    raise Exception("Unreachable")
         asm_body: str = asm_header + "\n".join(chunk.to_asm() for chunk in self.code_chunks)
         exit_chunk: list[ASMInstruction] = [
             DataMoveInstruction(
@@ -174,241 +53,111 @@ class Generation:
         result_asm: str = asm_body + "\n" + "\n".join(chunk.to_asm() for chunk in exit_chunk)
         return result_asm
 
-    def _match_operations(
-        self, operation_type: OperationType, command_buffer: list[Command]
+    def _generate_store(self, command: Command) -> list[ASMInstruction]:
+        instructions: list[ASMInstruction] = []
+        saved_value: PseudoRegister | str = command.operand_a
+        if isinstance(saved_value, str):
+            instructions += [
+                DataMoveInstruction(
+                    instruction_type=InstructionType.MOV,
+                    register="rax",
+                    data=saved_value,
+                ),
+                DataMoveInstruction(
+                    instruction_type=InstructionType.PUSH,
+                    register="rax",
+                ),
+            ]
+        if isinstance(saved_value, PseudoRegister):
+            instructions += [
+                DataMoveInstruction(
+                    instruction_type=InstructionType.PUSH,
+                    register=X86_64_REGISTER_SCHEMA[saved_value.name],
+                )
+            ]
+        return instructions
+
+    def _generate_sum(self, command: Command) -> list[ASMInstruction]:
+        return self._generate_binop(command=command, math_op_type=InstructionType.ADD)
+
+    def _generate_sub(self, command: Command) -> list[ASMInstruction]:
+        return self._generate_binop(command=command, math_op_type=InstructionType.SUB)
+
+    def _generate_imul(self, command: Command) -> list[ASMInstruction]:
+        return self._generate_binop(command=command, math_op_type=InstructionType.IMUL)
+
+    def _generate_idiv(self, command: Command) -> list[ASMInstruction]:
+        instructions = self._generate_binop(command=command, math_op_type=InstructionType.IDIV)
+        instructions.insert(
+            0,
+            DataMoveInstruction(
+                instruction_type=InstructionType.MOV,
+                register="rdx",
+                data="0",
+            ),
+        )
+        return instructions
+
+    def _generate_binop(
+        self, command: Command, math_op_type: InstructionType
     ) -> list[ASMInstruction]:
-        instruction_buffer: list[ASMInstruction] = []
-        match operation_type:
-            case OperationType.SUM:
-                command_operand_a: Command = command_buffer[0]  # type: ignore
-                command_operand_b: Command = command_buffer[1]  # type: ignore
-                instruction_buffer.append(
-                    DataMoveInstruction(
-                        instruction_type=InstructionType.MOV,
-                        register="rax",
-                        data=command_operand_a.command_args[0],
-                    )
+        if is_operand_a_register(command.operand_a) and is_operand_a_register(command.operand_b):
+            register_a = X86_64_REGISTER_SCHEMA[command.operand_a.name]  # type: ignore
+            register_b = X86_64_REGISTER_SCHEMA[command.operand_b.name]  # type: ignore
+            return [
+                MathLogicInstruction(
+                    instruction_type=math_op_type,
+                    registers=(register_a, register_b),
                 )
-                instruction_buffer.append(
-                    DataMoveInstruction(
-                        instruction_type=InstructionType.MOV,
-                        register="rbx",
-                        data=command_operand_b.command_args[0],
-                    )
-                )
-                instruction_buffer.append(
-                    MathLogicInstruction(
-                        instruction_type=InstructionType.ADD,
-                        registers=("rax", "rbx"),
-                    )
-                )
-            case OperationType.SUB_SUM:
-                command_operand_b: Command = command_buffer[1]  # type: ignore
-                instruction_buffer.append(
-                    DataMoveInstruction(
-                        instruction_type=InstructionType.MOV,
-                        register="rbx",
-                        data=command_operand_b.command_args[0],
-                    )
-                )
-                instruction_buffer.append(
-                    MathLogicInstruction(
-                        instruction_type=InstructionType.ADD,
-                        registers=("rax", "rbx"),
-                    )
-                )
-            case OperationType.MERGE_SUM:
-                instruction_buffer.append(
-                    MathLogicInstruction(
-                        instruction_type=InstructionType.ADD,
-                        registers=("rax", "rbx"),
-                    )
-                )
-            case OperationType.SUBTRACT:
-                command_operand_a: Command = command_buffer[0]  # type: ignore
-                command_operand_b: Command = command_buffer[1]  # type: ignore
-                instruction_buffer.append(
-                    DataMoveInstruction(
-                        instruction_type=InstructionType.MOV,
-                        register="rax",
-                        data=command_operand_a.command_args[0],
-                    )
-                )
-                instruction_buffer.append(
-                    DataMoveInstruction(
-                        instruction_type=InstructionType.MOV,
-                        register="rbx",
-                        data=command_operand_b.command_args[0],
-                    )
-                )
-                instruction_buffer.append(
-                    MathLogicInstruction(
-                        instruction_type=InstructionType.SUB,
-                        registers=("rax", "rbx"),
-                    )
-                )
-            case OperationType.SUB_SUBTRACT:
-                command_operand_b: Command = command_buffer[1]  # type: ignore
-                instruction_buffer.append(
-                    DataMoveInstruction(
-                        instruction_type=InstructionType.MOV,
-                        register="rbx",
-                        data=command_operand_b.command_args[0],
-                    )
-                )
-                instruction_buffer.append(
-                    MathLogicInstruction(
-                        instruction_type=InstructionType.SUB,
-                        registers=("rax", "rbx"),
-                    )
-                )
-            case OperationType.MERGE_SUBTRACT:
-                instruction_buffer.append(
-                    MathLogicInstruction(
-                        instruction_type=InstructionType.SUB,
-                        registers=("rax", "rbx"),
-                    )
-                )
-            case OperationType.MULTIPLY:
-                command_operand_a: Command = command_buffer[0]  # type: ignore
-                command_operand_b: Command = command_buffer[1]  # type: ignore
-                instruction_buffer.append(
-                    DataMoveInstruction(
-                        instruction_type=InstructionType.MOV,
-                        register="rax",
-                        data=command_operand_a.command_args[0],
-                    )
-                )
-                instruction_buffer.append(
-                    DataMoveInstruction(
-                        instruction_type=InstructionType.MOV,
-                        register="rbx",
-                        data=command_operand_b.command_args[0],
-                    )
-                )
-                instruction_buffer.append(
-                    MathLogicInstruction(
-                        instruction_type=InstructionType.IMUL,
-                        registers=("rax", "rbx"),
-                    )
-                )
-            case OperationType.SUB_MULTIPLY:
-                command_operand_b: Command = command_buffer[1]  # type: ignore
-                instruction_buffer.append(
-                    DataMoveInstruction(
-                        instruction_type=InstructionType.MOV,
-                        register="rbx",
-                        data=command_operand_b.command_args[0],
-                    )
-                )
-                instruction_buffer.append(
-                    MathLogicInstruction(
-                        instruction_type=InstructionType.IMUL,
-                        registers=("rax", "rbx"),
-                    )
-                )
-            case OperationType.MERGE_MULTIPLY:
-                instruction_buffer.append(
-                    MathLogicInstruction(
-                        instruction_type=InstructionType.IMUL,
-                        registers=("rax", "rbx"),
-                    )
-                )
-            case OperationType.DIVIDE:
-                command_operand_a: Command = command_buffer[0]  # type: ignore
-                command_operand_b: Command = command_buffer[1]  # type: ignore
-                instruction_buffer.append(
-                    DataMoveInstruction(
-                        instruction_type=InstructionType.MOV,
-                        register="rax",
-                        data=command_operand_a.command_args[0],
-                    )
-                )
-                instruction_buffer.append(
-                    DataMoveInstruction(
-                        instruction_type=InstructionType.MOV,
-                        register="rdx",
-                        data="0",
-                    )
-                )
-                instruction_buffer.append(
-                    DataMoveInstruction(
-                        instruction_type=InstructionType.MOV,
-                        register="rbx",
-                        data=command_operand_b.command_args[0],
-                    )
-                )
-                instruction_buffer.append(
-                    MathLogicInstruction(
-                        instruction_type=InstructionType.IDIV,
-                        registers=("rbx",),
-                    )
-                )
-            case OperationType.SUB_DIVIDE:
-                command_operand_b: Command = command_buffer[1]  # type: ignore
-                instruction_buffer.append(
-                    DataMoveInstruction(
-                        instruction_type=InstructionType.MOV,
-                        register="rbx",
-                        data=command_operand_b.command_args[0],
-                    )
-                )
-                instruction_buffer.append(
-                    MathLogicInstruction(
-                        instruction_type=InstructionType.IDIV,
-                        registers=("rax", "rbx"),
-                    )
-                )
-            case OperationType.MERGE_DIVIDE:
-                instruction_buffer.append(
-                    MathLogicInstruction(
-                        instruction_type=InstructionType.IDIV,
-                        registers=("rax", "rbx"),
-                    )
-                )
-            case OperationType.DECLARE:
-                command_value_a: Command = command_buffer[0]
-                if command_value_a.command_type == CommandType.PUSH:
-                    instruction_buffer.append(
-                        DataMoveInstruction(
-                            instruction_type=InstructionType.MOV,
-                            register="rax",
-                            data=command_value_a.command_args[0],
-                        )
-                    )
-                instruction_buffer.append(
-                    DataMoveInstruction(
-                        instruction_type=InstructionType.PUSH,
-                        register="rax",
-                    )
-                )
-            case _:
-                raise Exception("Unreachable")
+            ]
 
-        return instruction_buffer
+        if is_operand_a_register(command.operand_a):
+            next_register = command.operand_a + 1  # type: ignore
+            register_a = X86_64_REGISTER_SCHEMA[command.operand_a.name]  # type: ignore
+            register_b = X86_64_REGISTER_SCHEMA[next_register.name]  # type: ignore
+            return [
+                DataMoveInstruction(
+                    instruction_type=InstructionType.MOV,
+                    register=register_b,
+                    data=command.operand_b,  # type: ignore
+                ),
+                MathLogicInstruction(
+                    instruction_type=math_op_type,
+                    registers=(register_a, register_b),
+                ),
+            ]
 
+        if is_operand_a_register(command.operand_b):
+            next_register = command.operand_b + 1  # type: ignore
+            register_a = X86_64_REGISTER_SCHEMA[command.operand_b.name]  # type: ignore
+            register_b = X86_64_REGISTER_SCHEMA[next_register.name]  # type: ignore
+            return [
+                DataMoveInstruction(
+                    instruction_type=InstructionType.MOV,
+                    register=register_b,
+                    data=command.operand_a,  # type: ignore
+                ),
+                MathLogicInstruction(
+                    instruction_type=math_op_type,
+                    registers=(register_a, register_b),
+                ),
+            ]
 
-class NewGeneration:
-    def __init__(self, representation: Representation):
-        self.representation = representation
-        self.code_chunks: list[ASMInstruction] = []
-
-    def __call__(self) -> str:
-        for command in self.representation.commands:
-            match command.operation:
-                case CommandType.STORE:
-                    ...
-                case CommandType.SUM:
-                    ...
-                case CommandType.SUB:
-                    ...
-                case CommandType.MUL:
-                    ...
-                case CommandType.DIV:
-                    ...
-                case _:
-                    raise Exception("Unreachable")
-        return ""
-
-    def _generate_store(self, command: NewCommand) -> list[ASMInstruction]:
-        return []
+        target = X86_64_REGISTER_SCHEMA[command.target.name]  # type: ignore
+        sub_target = X86_64_REGISTER_SCHEMA[(command.target + 1).name]  # type: ignore
+        return [
+            DataMoveInstruction(
+                instruction_type=InstructionType.MOV,
+                register=target,
+                data=command.operand_a,  # type: ignore
+            ),
+            DataMoveInstruction(
+                instruction_type=InstructionType.MOV,
+                register=sub_target,
+                data=command.operand_b,  # type: ignore
+            ),
+            MathLogicInstruction(
+                instruction_type=math_op_type,
+                registers=(target, sub_target),
+            ),
+        ]

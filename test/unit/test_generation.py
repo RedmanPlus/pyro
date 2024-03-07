@@ -1,18 +1,41 @@
 import pytest
 
 from src.generation.generation import Generation
-from src.representation import Command, CommandType
+from src.parsing import Parser
+from src.representation import IRBuilder
+from src.tokens import Tokenizer
 
 
 @pytest.mark.gen
-def test_simple_codegen(snapshot):
-    int_rep = [
-        Command(command_type=CommandType.PUSH, command_args=("1",)),
-        Command(command_type=CommandType.PUSH, command_args=("2",)),
-        Command(command_type=CommandType.SUM, command_args=()),
-        Command(command_type=CommandType.STORE, command_args=("x",)),
-    ]
-
-    generation = Generation(rep=int_rep)
+def test_new_gen(snapshot):
+    code = """x = 1
+y = 2
+    """
+    tokens = Tokenizer(code=code)
+    parser = Parser(tokens=tokens.tokens)
+    int_rep = IRBuilder(ast=parser.core_node)
+    generation = Generation(representation=int_rep.commands)
     result = generation()
-    snapshot.assert_match(result, "simple_asm")
+    snapshot.assert_match(result, "simple_asm_new_gen")
+
+
+@pytest.mark.gen
+def test_new_gen_math(snapshot):
+    code = """x = 1 + 2"""
+    tokens = Tokenizer(code=code)
+    parser = Parser(tokens=tokens.tokens)
+    int_rep = IRBuilder(ast=parser.core_node)
+    generation = Generation(representation=int_rep.commands)
+    result = generation()
+    snapshot.assert_match(result, "simple_asm_new_gen_math")
+
+
+@pytest.mark.gen
+def test_new_gen_precedence(snapshot):
+    code = """x = 1 + 2 * 3 - 4 * 5"""
+    tokens = Tokenizer(code=code)
+    parser = Parser(tokens=tokens.tokens)
+    int_rep = IRBuilder(ast=parser.core_node)
+    generation = Generation(representation=int_rep.commands)
+    result = generation()
+    snapshot.assert_match(result, "simple_asm_new_gen_precedence")

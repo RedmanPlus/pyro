@@ -1,22 +1,26 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from enum import Enum, auto
+from enum import Enum
 
 
-class OperationType(Enum):
-    SUM = auto()
-    SUBTRACT = auto()
-    MULTIPLY = auto()
-    DIVIDE = auto()
-    SUB_SUM = auto()
-    SUB_SUBTRACT = auto()
-    SUB_MULTIPLY = auto()
-    SUB_DIVIDE = auto()
-    MERGE_SUM = auto()
-    MERGE_SUBTRACT = auto()
-    MERGE_MULTIPLY = auto()
-    MERGE_DIVIDE = auto()
-    DECLARE = auto()
+X86_64_REGISTER_SCHEMA: dict[str, str] = {
+    "r0": "rax",
+    "r1": "rbx",
+    "r2": "rcx",
+    "r3": "rdx",
+    "r4": "rsi",
+    "r5": "rdi",
+    "r6": "rsp",
+    "r7": "rbp",
+    "r8": "r8",
+    "r9": "r9",
+    "r10": "r10",
+    "r11": "r11",
+    "r12": "r12",
+    "r13": "r13",
+    "r14": "r14",
+    "r15": "r15",
+}
 
 
 class InstructionType(Enum):

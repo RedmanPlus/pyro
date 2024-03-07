@@ -1,16 +1,5 @@
-from dataclasses import dataclass
-
 from src.parsing import Node, NodeType
-from src.representation.utils import CommandType, NewCommand, Representation
-
-
-@dataclass
-class Command:
-    command_type: CommandType
-    command_args: tuple[str, ...]
-
-    def __repr__(self) -> str:
-        return f"{self.command_type} {self.command_args}"
+from src.representation.utils import Command, CommandType, PseudoRegister, Representation
 
 
 class IRBuilder:
@@ -39,24 +28,30 @@ class IRBuilder:
                 command_expr = self._parse_bin_expr(node_dec)
                 self.used_register_count = 0
                 self.commands.append(command_expr)
-                command_declare = NewCommand(
+                if node_term.children[0].value is None:
+                    raise Exception("Unreachable")
+                command_declare = Command(
                     operation=CommandType.STORE,
                     target=node_term.children[0].value,
                     operand_a=command_expr.target,
                 )
                 self.commands.append(command_declare)
             case NodeType.NODE_TERM:
-                command_declare = NewCommand(
+                if node_term.children[0].value is None:
+                    raise Exception("Unreachable")
+                if node_dec.children[0].value is None:
+                    raise Exception("Unreachable")
+                command_declare = Command(
                     operation=CommandType.STORE,
                     target=node_term.children[0].value,
                     operand_a=node_dec.children[0].value,
                 )
                 self.commands.append(command_declare)
 
-    def _parse_bin_expr(self, node: Node) -> NewCommand:
+    def _parse_bin_expr(self, node: Node) -> Command:
         node_term_a: Node = node.children[0]
-        command_a: NewCommand | None = None
-        operand_a: str | None = None
+        command_a: Command | None = None
+        operand_a: str | PseudoRegister | None = None
         match node_term_a.node_type:
             case NodeType.NODE_BIN_EXPR:
                 command_a = self._parse_bin_expr(node_term_a)
@@ -67,8 +62,8 @@ class IRBuilder:
                 raise Exception("Unreachable")
         node_op: Node = node.children[1]
         node_term_b: Node = node.children[2]
-        command_b: NewCommand | None = None
-        operand_b: str | None = None
+        command_b: Command | None = None
+        operand_b: str | PseudoRegister | None = None
         match node_term_b.node_type:
             case NodeType.NODE_BIN_EXPR:
                 command_b = self._parse_bin_expr(node_term_b)
@@ -82,14 +77,17 @@ class IRBuilder:
         if command_b is not None:
             self.commands.append(command_b)
 
-        target: str | None
+        target: str | PseudoRegister | None
         if command_a is not None:
             target = operand_a
         elif command_b is not None:
             target = operand_b
         else:
-            target = f"r{self.used_register_count}"
-        command_expr: NewCommand = NewCommand(
+            target = PseudoRegister(name=f"r{self.used_register_count}")
+
+        if target is None or operand_a is None or operand_b is None:
+            raise Exception("Unreachable")
+        command_expr: Command = Command(
             operation=self._parse_operand(node_op),
             target=target,
             operand_a=operand_a,
