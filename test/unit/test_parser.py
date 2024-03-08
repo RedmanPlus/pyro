@@ -1,7 +1,7 @@
 import pytest
 
 from src.parsing import Parser
-from src.tokens import Token, TokenType
+from src.tokens import Token, Tokenizer, TokenType
 
 
 @pytest.mark.parser
@@ -137,3 +137,12 @@ def test_new_parser_more_complex_precedence(snapshot):
 
     parser = Parser(tokens=tokens)
     snapshot.assert_match(parser.core_node.pprint(), "precedence_complex_parse")
+
+
+@pytest.mark.parser
+def test_parse_multiple_definition(snapshot):
+    code = "x, y = 34 + 35, 210 * 2"
+    tokenizer = Tokenizer(code=code)
+    parser = Parser(tokens=tokenizer.tokens)
+
+    snapshot.assert_match(parser.core_node.pprint(), "multiple_definition_parse")

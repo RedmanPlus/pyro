@@ -1,0 +1,15 @@
+section .text
+global _start
+
+_start:
+    mov rax, 34
+    mov rbx, 35
+    add rax, rbx
+    push rax
+    mov rax, 190
+    mov rbx, 230
+    add rax, rbx
+    push rax
+    mov rax, 60
+    mov rdi, 0
+    syscall

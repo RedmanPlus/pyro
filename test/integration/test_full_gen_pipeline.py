@@ -37,3 +37,13 @@ y = 150 + 150 + 20"""
     int_rep = IRBuilder(ast=parser.core_node)
     code = Generation(representation=int_rep.commands)
     snapshot.assert_match(code(), "test_math_codegen")
+
+
+@pytest.mark.integration
+def test_multiple_declaration(snapshot):
+    code = "x, y = 34 + 35, 190 + 230"
+    tokenizer = Tokenizer(code=code)
+    parser = Parser(tokens=tokenizer.tokens)
+    int_rep = IRBuilder(ast=parser.core_node)
+    code = Generation(representation=int_rep.commands)
+    snapshot.assert_match(code(), "test_multiline_declaration_codegen")
