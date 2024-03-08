@@ -25,3 +25,10 @@ y = 2 + 3
     assert len(tokenizer.tokens) == 13
     assert tokenizer.tokens[3].token_type == TokenType.PLUS
     assert tokenizer.tokens[5].token_type == TokenType.NEWLINE
+
+
+@pytest.mark.tokenizer
+def test_tokenize_comma_expr():
+    code = "x, y = 1, 2"
+    tokenizer = Tokenizer(code=code)
+    assert len(tokenizer.tokens) == 8

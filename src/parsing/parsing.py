@@ -56,37 +56,69 @@ class Parser:
         while len(self.tokens) != 0:
             if len(self.tokens) == 1 and self.tokens[0].token_type == TokenType.NEWLINE:
                 break
-            stmt = self._parse_stmt()
-            self.core_node.children.append(stmt)
+            stmts = self._parse_stmts()
+            self.core_node.children += stmts
 
-    def _parse_stmt(self) -> Node:
+    def _parse_stmts(self) -> list[Node]:
+        idents = self._parse_idents()
+        exprs = self._parse_exprs()
+        if len(idents) != len(exprs):
+            raise Exception(
+                "Illegal declaration: expected equal amount of declared variables and expressions"
+            )
+
+        stmts = [
+            Node(node_type=NodeType.NODE_STMT, children=[ident, expr])
+            for ident, expr in zip(idents, exprs)
+        ]
+        return stmts
+
+    def _parse_idents(self) -> list[Node]:
         token_ident = self._consume()
         if token_ident.token_type != TokenType.IDENT:
             raise Exception(f"Illegal declaration: {token_ident}")
 
-        if self._peek(0).token_type != TokenType.EQ:
-            raise Exception(f"Illegal declaration: {token_ident} -> missing '='")
-
-        self._consume()
-        node_expr = self._parse_expr()
-        if len(self.tokens) != 0:
-            if self._peek(0).token_type == TokenType.NEWLINE:
-                self._consume()
-        return Node(
-            node_type=NodeType.NODE_STMT,
-            children=[
+        if self._peek(0).token_type == TokenType.EQ:
+            self._consume()
+            return [
                 Node(
                     node_type=NodeType.NODE_TERM,
-                    children=[Node(NodeType.NODE_IDENT, children=[], value=token_ident.content)],
+                    children=[Node(node_type=NodeType.NODE_IDENT, value=token_ident.content)],
+                )
+            ]
+        elif self._peek(0).token_type == TokenType.COMMA:
+            self._consume()
+            idents = self._parse_idents()
+            idents.insert(
+                0,
+                Node(
+                    node_type=NodeType.NODE_TERM,
+                    children=[Node(node_type=NodeType.NODE_IDENT, value=token_ident.content)],
                 ),
-                node_expr,
-            ],
-        )
+            )
+            return idents
+        else:
+            raise Exception(f"Illegal declaration: {token_ident} -> missing '=' or ','")
+
+    def _parse_exprs(self) -> list[Node]:
+        node_expr = self._parse_expr()
+        if self._peek(0).token_type == TokenType.NEWLINE:
+            self._consume()
+            return [node_expr]
+        elif self._peek(0).token_type == TokenType.COMMA:
+            self._consume()
+            exprs = self._parse_exprs()
+            exprs.insert(0, node_expr)
+            return exprs
+        else:
+            raise Exception("Illegal expression, expected newline or new expression")
 
     def _parse_expr(self) -> Node:
-        if self._peek(1).token_type == TokenType.NEWLINE:
+        if (
+            self._peek(1).token_type == TokenType.NEWLINE
+            or self._peek(1).token_type == TokenType.COMMA
+        ):
             node = self._parse_leaf()
-            self._consume()
             return node
 
         return self._parse_bin_expr()

@@ -12,7 +12,7 @@ y = 420"""
     tokenizer = Tokenizer(code=code)
     parser = Parser(tokens=tokenizer.tokens)
     rep = IRBuilder(ast=parser.core_node)
-    result = Generation(rep=rep.commands)
+    result = Generation(representation=rep.commands)
     code = result()
     with open("out.asm", "w") as f:
         f.write(code)
