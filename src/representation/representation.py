@@ -1,5 +1,5 @@
 from src.parsing import Node, NodeType
-from src.representation.utils import Command, CommandType, PseudoRegister, Representation
+from src.representation.utils import Command, CommandType, PseudoRegister, Representation, Variable
 
 
 class IRBuilder:
@@ -30,9 +30,10 @@ class IRBuilder:
                 self.commands.append(command_expr)
                 if node_term.children[0].value is None:
                     raise Exception("Unreachable")
+                var = self.commands.register_var(varname=node_term.children[0].value)
                 command_declare = Command(
                     operation=CommandType.STORE,
-                    target=node_term.children[0].value,
+                    target=var,
                     operand_a=command_expr.target,
                 )
                 self.commands.append(command_declare)
@@ -41,9 +42,10 @@ class IRBuilder:
                     raise Exception("Unreachable")
                 if node_dec.children[0].value is None:
                     raise Exception("Unreachable")
+                var = self.commands.register_var(varname=node_term.children[0].value)
                 command_declare = Command(
                     operation=CommandType.STORE,
-                    target=node_term.children[0].value,
+                    target=var,
                     operand_a=node_dec.children[0].value,
                 )
                 self.commands.append(command_declare)
@@ -51,25 +53,37 @@ class IRBuilder:
     def _parse_bin_expr(self, node: Node) -> Command:
         node_term_a: Node = node.children[0]
         command_a: Command | None = None
-        operand_a: str | PseudoRegister | None = None
+        operand_a: str | PseudoRegister | Variable | None = None
         match node_term_a.node_type:
             case NodeType.NODE_BIN_EXPR:
                 command_a = self._parse_bin_expr(node_term_a)
                 operand_a = command_a.target
             case NodeType.NODE_TERM:
-                operand_a = node_term_a.children[0].value
+                if node_term_a.children[0].node_type == NodeType.NODE_IDENT:
+                    var = self.commands.get_var(node_term_a.children[0].value)  # type: ignore
+                    if var is None:
+                        raise Exception(f"Unknown variable: {node_term_a.children[0].value}")
+                    operand_a = var
+                else:
+                    operand_a = node_term_a.children[0].value
             case _:
                 raise Exception("Unreachable")
         node_op: Node = node.children[1]
         node_term_b: Node = node.children[2]
         command_b: Command | None = None
-        operand_b: str | PseudoRegister | None = None
+        operand_b: str | PseudoRegister | Variable | None = None
         match node_term_b.node_type:
             case NodeType.NODE_BIN_EXPR:
                 command_b = self._parse_bin_expr(node_term_b)
                 operand_b = command_b.target
             case NodeType.NODE_TERM:
-                operand_b = node_term_b.children[0].value
+                if node_term_b.children[0].node_type == NodeType.NODE_IDENT:
+                    var = self.commands.get_var(node_term_b.children[0].value)  # type: ignore
+                    if var is None:
+                        raise Exception(f"Unknown variable: {node_term_b.children[0].value}")
+                    operand_b = var
+                else:
+                    operand_b = node_term_b.children[0].value
             case _:
                 raise Exception("Unreachable")
         if command_a is not None:
@@ -79,9 +93,9 @@ class IRBuilder:
 
         target: str | PseudoRegister | None
         if command_a is not None:
-            target = operand_a
+            target = operand_a  # type: ignore
         elif command_b is not None:
-            target = operand_b
+            target = operand_b  # type: ignore
         else:
             target = PseudoRegister(name=f"r{self.used_register_count}")
 
@@ -89,7 +103,7 @@ class IRBuilder:
             raise Exception("Unreachable")
         command_expr: Command = Command(
             operation=self._parse_operand(node_op),
-            target=target,
+            target=target,  # type: ignore
             operand_a=operand_a,
             operand_b=operand_b,
         )

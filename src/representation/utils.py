@@ -12,6 +12,10 @@ class CommandType(Enum):
     STORE = auto()
 
 
+class VarType(Enum):
+    INT = auto()
+
+
 @dataclass
 class PseudoRegister:
     name: str
@@ -27,11 +31,21 @@ class PseudoRegister:
 
 
 @dataclass
+class Variable:
+    name: str
+    value: str | None = None
+    var_type: VarType = VarType.INT
+
+    def __repr__(self) -> str:
+        return f"{self.name}: {self.var_type.name} = {self.value}"
+
+
+@dataclass
 class Command:
     operation: CommandType
-    target: PseudoRegister | str
-    operand_a: PseudoRegister | str
-    operand_b: PseudoRegister | str | None = None
+    target: PseudoRegister | Variable
+    operand_a: PseudoRegister | str | Variable
+    operand_b: PseudoRegister | str | Variable | None = None
 
     def __repr__(self) -> str:
         target = self.target if isinstance(self.target, str) else self.target.name
@@ -52,9 +66,31 @@ class Command:
 class Representation:
     block_name: str
     commands: list[Command] = field(default_factory=list)
+    variable_table: dict[str, Variable] = field(default_factory=dict)
 
     def append(self, command: Command):
         self.commands.append(command)
+
+    def register_var(
+        self, varname: str, value: str | None = None, var_type: VarType = VarType.INT
+    ) -> Variable:
+        variable = Variable(name=varname, value=value, var_type=var_type)
+        self.variable_table[varname] = variable
+        return variable
+
+    def get_var(self, varname: str) -> Variable | None:
+        return self.variable_table.get(varname, None)
+
+    def get_var_position(self, varname: str) -> int:
+        var = self.get_var(varname)
+        if var is None:
+            raise Exception(f"Variable {varname} is not declared")
+
+        for i, k in enumerate(self.variable_table.keys()):
+            if k == varname:
+                return i
+
+        raise Exception("Unreachable")
 
     def pprint(self) -> str:
         header = f"{self.block_name}: " + "\n"
@@ -63,6 +99,21 @@ class Representation:
 
         return header
 
+    def pprint_vars(self) -> str:
+        header = f"{self.block_name} variables:" + "\n"
+        for var in self.variable_table.values():
+            header += f"    {var}" + "\n"
 
-def is_operand_a_register(operand: PseudoRegister | str | None) -> bool:
+        return header
+
+
+def is_operand_a_register(operand: PseudoRegister | str | Variable | None) -> bool:
     return isinstance(operand, PseudoRegister)
+
+
+def is_operand_a_variable(operand: PseudoRegister | str | Variable | None) -> bool:
+    return isinstance(operand, Variable)
+
+
+def is_operand_a_value(operand: PseudoRegister | str | Variable | None) -> bool:
+    return isinstance(operand, str)

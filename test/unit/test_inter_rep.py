@@ -39,3 +39,27 @@ def test_complex_precedence_rep(snapshot):
     rep = int_rep.commands
 
     snapshot.assert_match(rep.pprint(), "complex_prec_inter_rep")
+
+
+@pytest.mark.int_rep
+def test_variable_usage_fail():
+    code = "x = 1 + y"
+    tokens = Tokenizer(code=code).tokens
+    node = Parser(tokens=tokens).core_node
+
+    with pytest.raises(Exception) as e:
+        IRBuilder(ast=node)
+
+    assert e.value.args[0] == "Unknown variable: y"
+
+
+@pytest.mark.int_rep
+def test_variable_usage_ok(snapshot):
+    code = "x, y = 1, x * 10"
+    tokens = Tokenizer(code=code).tokens
+    node = Parser(tokens=tokens).core_node
+
+    int_rep = IRBuilder(ast=node)
+    rep = int_rep.commands
+    snapshot.assert_match(rep.pprint(), "variable_usage_inter_rep")
+    snapshot.assert_match(rep.pprint_vars(), "variable_usage_varbump")
