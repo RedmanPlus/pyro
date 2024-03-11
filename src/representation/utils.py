@@ -81,6 +81,17 @@ class Representation:
     def get_var(self, varname: str) -> Variable | None:
         return self.variable_table.get(varname, None)
 
+    def get_var_position(self, varname: str) -> int:
+        var = self.get_var(varname)
+        if var is None:
+            raise Exception(f"Variable {varname} is not declared")
+
+        for i, k in enumerate(self.variable_table.keys()):
+            if k == varname:
+                return i
+
+        raise Exception("Unreachable")
+
     def pprint(self) -> str:
         header = f"{self.block_name}: " + "\n"
         for command in self.commands:
@@ -96,5 +107,13 @@ class Representation:
         return header
 
 
-def is_operand_a_register(operand: PseudoRegister | str | None) -> bool:
+def is_operand_a_register(operand: PseudoRegister | str | Variable | None) -> bool:
     return isinstance(operand, PseudoRegister)
+
+
+def is_operand_a_variable(operand: PseudoRegister | str | Variable | None) -> bool:
+    return isinstance(operand, Variable)
+
+
+def is_operand_a_value(operand: PseudoRegister | str | Variable | None) -> bool:
+    return isinstance(operand, str)
