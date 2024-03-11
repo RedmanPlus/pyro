@@ -1,0 +1,3 @@
+main variables:
+    x: INT = None
+    y: INT = None
