@@ -146,3 +146,12 @@ def test_parse_multiple_definition(snapshot):
     parser = Parser(tokens=tokenizer.tokens)
 
     snapshot.assert_match(parser.core_node.pprint(), "multiple_definition_parse")
+
+
+@pytest.mark.parser
+def test_parse_complex_precedence_operators(snapshot):
+    code = "x = 5 * 6 - 1 & 2 | 3 + 4 ^ 2 / ~ 1"
+    tokenizer = Tokenizer(code=code)
+    parser = Parser(tokens=tokenizer.tokens)
+
+    snapshot.assert_match(parser.core_node.pprint(), "complex_precedence_binops_parse")
