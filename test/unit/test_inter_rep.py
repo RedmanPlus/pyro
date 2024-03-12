@@ -76,3 +76,15 @@ x = 2"""
     rep = int_rep.commands
     snapshot.assert_match(rep.pprint(), "variable_reassignment_inter_rep")
     snapshot.assert_match(rep.pprint_vars(), "variable_reassignment_varbump")
+
+
+@pytest.mark.int_rep
+def test_complex_precedence_new_operations(snapshot):
+    code = "x = 5 * 6 - 1 & 2 | 3 + 4 ^ 2 / ~ 1"
+    tokens = Tokenizer(code=code).tokens
+    node = Parser(tokens=tokens).core_node
+
+    int_rep = IRBuilder(ast=node)
+    rep = int_rep.commands
+    snapshot.assert_match(rep.pprint(), "new_operators_inter_rep")
+    snapshot.assert_match(rep.pprint_vars(), "new_operators_varbump")

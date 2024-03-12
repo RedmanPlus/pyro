@@ -9,6 +9,12 @@ class CommandType(Enum):
     SUB = auto()
     MUL = auto()
     DIV = auto()
+    BIT_AND = auto()
+    BIT_OR = auto()
+    BIT_XOR = auto()
+    BIT_NOT = auto()
+    BIT_SHL = auto()
+    BIT_SHR = auto()
     STORE = auto()
 
 
