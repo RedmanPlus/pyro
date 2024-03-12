@@ -50,3 +50,14 @@ def test_new_gen_var_usage(snapshot):
     generation = Generation(representation=int_rep.commands)
     result = generation()
     snapshot.assert_match(result, "simple_asm_new_gen_var_usage")
+
+
+@pytest.mark.gen
+def test_new_gen_var_reassignment(snapshot):
+    code = "x = 1\n" "x = 2"
+    tokens = Tokenizer(code=code)
+    parser = Parser(tokens=tokens.tokens)
+    int_rep = IRBuilder(ast=parser.core_node)
+    generation = Generation(representation=int_rep.commands)
+    result = generation()
+    snapshot.assert_match(result, "simple_asm_new_gen_var_reassignment")
