@@ -36,10 +36,10 @@ class Generation:
                     instructions = self._generate_sub(command)
                     self.code_chunks += instructions
                 case CommandType.MUL:
-                    instructions = self._generate_imul(command)
+                    instructions = self._generate_mul(command)
                     self.code_chunks += instructions
                 case CommandType.DIV:
-                    instructions = self._generate_idiv(command)
+                    instructions = self._generate_div(command)
                     self.code_chunks += instructions
                 case CommandType.BIT_AND:
                     instructions = self._generate_bit_and(command)
@@ -143,11 +143,11 @@ class Generation:
     def _generate_sub(self, command: Command) -> list[ASMInstruction]:
         return self._generate_binop(command=command, math_op_type=InstructionType.SUB)
 
-    def _generate_imul(self, command: Command) -> list[ASMInstruction]:
-        return self._generate_binop(command=command, math_op_type=InstructionType.IMUL)
+    def _generate_mul(self, command: Command) -> list[ASMInstruction]:
+        return self._generate_binop(command=command, math_op_type=InstructionType.MUL)
 
-    def _generate_idiv(self, command: Command) -> list[ASMInstruction]:
-        instructions = self._generate_binop(command=command, math_op_type=InstructionType.IDIV)
+    def _generate_div(self, command: Command) -> list[ASMInstruction]:
+        instructions = self._generate_binop(command=command, math_op_type=InstructionType.DIV)
         instructions.insert(
             0,
             DataMoveInstruction(
