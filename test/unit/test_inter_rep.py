@@ -63,3 +63,16 @@ def test_variable_usage_ok(snapshot):
     rep = int_rep.commands
     snapshot.assert_match(rep.pprint(), "variable_usage_inter_rep")
     snapshot.assert_match(rep.pprint_vars(), "variable_usage_varbump")
+
+
+@pytest.mark.int_rep
+def test_variable_reassignment(snapshot):
+    code = """x = 1
+x = 2"""
+    tokens = Tokenizer(code=code).tokens
+    node = Parser(tokens=tokens).core_node
+
+    int_rep = IRBuilder(ast=node)
+    rep = int_rep.commands
+    snapshot.assert_match(rep.pprint(), "variable_reassignment_inter_rep")
+    snapshot.assert_match(rep.pprint_vars(), "variable_reassignment_varbump")

@@ -20,6 +20,7 @@ class Generation:
     def __init__(self, representation: Representation):
         self.representation = representation
         self.code_chunks: list[ASMInstruction] = []
+        self.variables: list[str] = []
 
     def __call__(self) -> str:
         asm_header: str = "section .text\nglobal _start\n\n_start:\n"
@@ -62,26 +63,61 @@ class Generation:
     def _generate_store(self, command: Command) -> list[ASMInstruction]:
         instructions: list[ASMInstruction] = []
         saved_value: PseudoRegister | str | Variable = command.operand_a
-        if isinstance(saved_value, str):
-            instructions += [
-                DataMoveInstruction(
-                    instruction_type=InstructionType.MOV,
-                    register="rax",
-                    data=saved_value,
-                ),
-                DataMoveInstruction(
-                    instruction_type=InstructionType.PUSH,
-                    register="rax",
-                ),
-            ]
-        if isinstance(saved_value, PseudoRegister):
-            instructions += [
-                DataMoveInstruction(
-                    instruction_type=InstructionType.PUSH,
-                    register=X86_64_REGISTER_SCHEMA[saved_value.name],
-                )
-            ]
-        return instructions
+        target = command.target
+        if isinstance(target, PseudoRegister):
+            raise Exception("Unreachable")
+        variable_position = self._get_variable_index(target.name)
+        if variable_position < 0:
+            if isinstance(saved_value, str):
+                instructions += [
+                    DataMoveInstruction(
+                        instruction_type=InstructionType.MOV,
+                        register="rax",
+                        data=saved_value,
+                    ),
+                    DataMoveInstruction(
+                        instruction_type=InstructionType.PUSH,
+                        register="rax",
+                    ),
+                ]
+            if isinstance(saved_value, PseudoRegister):
+                instructions += [
+                    DataMoveInstruction(
+                        instruction_type=InstructionType.PUSH,
+                        register=X86_64_REGISTER_SCHEMA[saved_value.name],
+                    )
+                ]
+            return instructions
+        else:
+            stack_offset = self._calculate_variable_offset(target.name)
+            if isinstance(saved_value, str):
+                instructions += [
+                    DataMoveInstruction(
+                        instruction_type=InstructionType.MOV,
+                        register="rax",
+                        data=saved_value,
+                    ),
+                    DataMoveInstruction(
+                        instruction_type=InstructionType.MOV, register=stack_offset, data="rax"
+                    ),
+                ]
+            if isinstance(saved_value, PseudoRegister):
+                instructions += [
+                    DataMoveInstruction(
+                        instruction_type=InstructionType.MOV,
+                        register=stack_offset,
+                        data=X86_64_REGISTER_SCHEMA[saved_value.name],
+                    ),
+                ]
+            return instructions
+
+    def _get_variable_index(self, varname: str) -> int:
+        try:
+            variable_position = self.variables.index(varname)
+        except ValueError:
+            self.variables.append(varname)
+            variable_position = -1
+        return variable_position
 
     def _generate_sum(self, command: Command) -> list[ASMInstruction]:
         return self._generate_binop(command=command, math_op_type=InstructionType.ADD)
@@ -164,8 +200,7 @@ class Generation:
         if is_operand_a_register(operand):
             return None
         if is_operand_a_variable(operand):
-            variable_position = self.representation.get_var_position(operand.name) * 4  # type: ignore
-            stack_offset = f"QWORD [rsp + {variable_position}]"
+            stack_offset = self._calculate_variable_offset(operand.name)  # type: ignore
             return DataMoveInstruction(
                 instruction_type=InstructionType.MOV,
                 register=register_b if is_operand_b else register_a,
@@ -186,3 +221,8 @@ class Generation:
             instruction_type=math_op_type,
             registers=(register_a, register_b),
         )
+
+    def _calculate_variable_offset(self, var_name: str) -> str:
+        variable_position = self.representation.get_var_position(var_name) * 4  # type: ignore
+        stack_offset = f"QWORD [rsp + {variable_position}]"
+        return stack_offset
