@@ -10,6 +10,12 @@ class TokenType(Enum):
     MINUS = auto()
     MUL = auto()
     DIV = auto()
+    BIT_OR = auto()
+    BIT_AND = auto()
+    BIT_XOR = auto()
+    BIT_NOT = auto()
+    BIT_SHL = auto()
+    BIT_SHR = auto()
     COMMA = auto()
     NEWLINE = auto()
 
@@ -59,6 +65,18 @@ class Tokenizer:
                 self._process_div()
             if current_char == ",":
                 self._process_comma()
+            if current_char == "&":
+                self._process_bit_and()
+            if current_char == "|":
+                self._process_bit_or()
+            if current_char == "^":
+                self._process_bit_xor()
+            if current_char == "~":
+                self._process_bit_not()
+            if current_char == ">":
+                self._process_bit_shr()
+            if current_char == "<":
+                self._process_bit_shl()
         self.tokens.append(Token(token_type=TokenType.NEWLINE))
 
     def _process_alnum(self):
@@ -110,6 +128,36 @@ class Tokenizer:
         self._consume()
         self.tokens.append(Token(token_type=TokenType.COMMA))
 
+    def _process_bit_and(self):
+        self._consume()
+        self.tokens.append(Token(token_type=TokenType.BIT_AND))
+
+    def _process_bit_or(self):
+        self._consume()
+        self.tokens.append(Token(token_type=TokenType.BIT_OR))
+
+    def _process_bit_xor(self):
+        self._consume()
+        self.tokens.append(Token(token_type=TokenType.BIT_XOR))
+
+    def _process_bit_not(self):
+        self._consume()
+        self.tokens.append(Token(token_type=TokenType.BIT_NOT))
+
+    def _process_bit_shl(self):
+        self._consume()
+        if self._peek(0) != "<":
+            raise Exception(f"Expected shift left, got {self._peek(0)}")
+        self._consume()
+        self.tokens.append(Token(token_type=TokenType.BIT_SHL))
+
+    def _process_bit_shr(self):
+        self._consume()
+        if self._peek(0) != ">":
+            raise Exception(f"Expected shift right, got {self._peek(0)}")
+        self._consume()
+        self.tokens.append(Token(token_type=TokenType.BIT_SHR))
+
     def _peek(self, position: int) -> str | None:
         if self.code:
             return self.code[position]
@@ -125,3 +173,7 @@ class Tokenizer:
             if self._peek(0) == "\n":
                 self.tokens.append(Token(token_type=TokenType.NEWLINE))
             self._consume()
+
+    def pprint(self) -> str:
+        result = [str(token) for token in self.tokens]
+        return "\n".join(result)
