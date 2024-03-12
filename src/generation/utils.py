@@ -29,8 +29,14 @@ class InstructionType(Enum):
     POP = "pop"
     ADD = "add"
     SUB = "sub"
-    IMUL = "imul"
-    IDIV = "idiv"
+    MUL = "mul"
+    DIV = "div"
+    AND = "and"
+    OR = "or"
+    XOR = "xor"
+    NOT = "not"
+    SHL = "shl"
+    SHR = "shr"
     SYSCALL = "syscall"
 
 

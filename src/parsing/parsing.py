@@ -16,6 +16,12 @@ class NodeType(Enum):
     NODE_MINUS = auto()
     NODE_MULTI = auto()
     NODE_DIV = auto()
+    NODE_BIT_AND = auto()
+    NODE_BIT_OR = auto()
+    NODE_BIT_XOR = auto()
+    NODE_BIT_NOT = auto()
+    NODE_BIT_SHL = auto()
+    NODE_BIT_SHR = auto()
     NODE_PROG = auto()
 
 
@@ -119,12 +125,17 @@ class Parser:
             or self._peek(1).token_type == TokenType.COMMA
         ):
             node = self._parse_leaf()
+            if node is None:
+                raise Exception("Unreachable")
             return node
 
-        return self._parse_bin_expr()
+        result = self._parse_bin_expr()
+        if result is None:
+            raise Exception("Unreachable")
+        return result
 
-    def _parse_bin_expr(self, min_prec: int = -1) -> Node:
-        left_operand: Node = self._parse_leaf()
+    def _parse_bin_expr(self, min_prec: int = -1) -> Node | None:
+        left_operand: Node | None = self._parse_leaf()
 
         while True:
             node = self._parse_increasing_precedence(left_operand, min_prec)
@@ -134,7 +145,7 @@ class Parser:
 
         return left_operand
 
-    def _parse_increasing_precedence(self, left_operand: Node, min_prec: int) -> Node:
+    def _parse_increasing_precedence(self, left_operand: Node | None, min_prec: int) -> Node | None:
         next = self._peek(0)
         if not self._is_binop(next):
             return left_operand
@@ -144,9 +155,13 @@ class Parser:
             return left_operand
         self._consume()
         right_operand = self._parse_bin_expr(next_prec)
+        if left_operand is None:
+            return self._make_unary(self._to_operator(next), right_operand)
         return self._make_binary(left_operand, self._to_operator(next), right_operand)
 
-    def _parse_leaf(self) -> Node:
+    def _parse_leaf(self) -> Node | None:
+        if self._peek(0).token_type not in [TokenType.IDENT, TokenType.NUMBER]:
+            return None
         token = self._consume()
 
         return Node(
@@ -169,7 +184,9 @@ class Parser:
         return self.tokens[distance]
 
     @staticmethod
-    def _make_binary(left_operand: Node, operator: Node, right_operand: Node) -> Node:
+    def _make_binary(left_operand: Node, operator: Node, right_operand: Node | None) -> Node:
+        if right_operand is None:
+            raise Exception("Unreachable")
         return Node(
             node_type=NodeType.NODE_BIN_EXPR,
             children=[
@@ -180,20 +197,49 @@ class Parser:
         )
 
     @staticmethod
+    def _make_unary(operator: Node, right_operand: Node | None) -> Node:
+        if right_operand is None:
+            raise Exception("Unreachable")
+        return Node(node_type=NodeType.NODE_BIN_EXPR, children=[operator, right_operand])
+
+    @staticmethod
     def _is_binop(token: Token) -> bool:
-        return token.token_type in (TokenType.PLUS, TokenType.MINUS, TokenType.MUL, TokenType.DIV)
+        return token.token_type in (
+            TokenType.PLUS,
+            TokenType.MINUS,
+            TokenType.MUL,
+            TokenType.DIV,
+            TokenType.BIT_AND,
+            TokenType.BIT_OR,
+            TokenType.BIT_XOR,
+            TokenType.BIT_SHL,
+            TokenType.BIT_SHR,
+            TokenType.BIT_NOT,
+        )
 
     @staticmethod
     def _get_precedence(token: Token) -> int:
         match token.token_type:
             case TokenType.PLUS:
-                return 0
+                return 5
             case TokenType.MINUS:
-                return 0
+                return 5
             case TokenType.MUL:
-                return 1
+                return 6
             case TokenType.DIV:
+                return 6
+            case TokenType.BIT_AND:
+                return 3
+            case TokenType.BIT_OR:
                 return 1
+            case TokenType.BIT_XOR:
+                return 2
+            case TokenType.BIT_NOT:
+                return 7
+            case TokenType.BIT_SHL:
+                return 4
+            case TokenType.BIT_SHR:
+                return 4
             case _:
                 raise Exception("Unreachable")
 
@@ -209,6 +255,18 @@ class Parser:
                 node_type = NodeType.NODE_MULTI
             case TokenType.DIV:
                 node_type = NodeType.NODE_DIV
+            case TokenType.BIT_AND:
+                node_type = NodeType.NODE_BIT_AND
+            case TokenType.BIT_OR:
+                node_type = NodeType.NODE_BIT_OR
+            case TokenType.BIT_XOR:
+                node_type = NodeType.NODE_BIT_XOR
+            case TokenType.BIT_NOT:
+                node_type = NodeType.NODE_BIT_NOT
+            case TokenType.BIT_SHL:
+                node_type = NodeType.NODE_BIT_SHL
+            case TokenType.BIT_SHR:
+                node_type = NodeType.NODE_BIT_SHR
             case _:
                 raise Exception("Unreachable")
 

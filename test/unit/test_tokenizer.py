@@ -32,3 +32,10 @@ def test_tokenize_comma_expr():
     code = "x, y = 1, 2"
     tokenizer = Tokenizer(code=code)
     assert len(tokenizer.tokens) == 8
+
+
+@pytest.mark.tokenizer
+def test_tokenize_bitwise_ops(snapshot):
+    code = "x = 1 & 1\n" "y = 1 | 1\n" "z = 1 ^ 1\n" "a = ~1\n" "b = 1 << 1\n" "c = 1 >> 1\n"
+    tokenizer = Tokenizer(code=code)
+    snapshot.assert_match(tokenizer.pprint(), "tokenize_bitwise_operations")

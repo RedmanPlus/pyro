@@ -52,6 +52,8 @@ class IRBuilder:
 
     def _parse_bin_expr(self, node: Node) -> Command:
         node_term_a: Node = node.children[0]
+        if node_term_a.node_type not in [NodeType.NODE_TERM, NodeType.NODE_BIN_EXPR]:
+            return self._make_unary(node)
         command_a: Command | None = None
         operand_a: str | PseudoRegister | Variable | None = None
         match node_term_a.node_type:
@@ -114,6 +116,32 @@ class IRBuilder:
             self.used_register_count -= 1
         return command_expr
 
+    def _make_unary(self, node: Node) -> Command:
+        operation = self._parse_operand(node.children[0])
+        node_term = node.children[1]
+        match node_term.node_type:
+            case NodeType.NODE_BIN_EXPR:
+                command = self._parse_bin_expr(node_term)
+                self.commands.append(command)
+                operand = command.target
+            case NodeType.NODE_TERM:
+                if node_term.children[0].node_type == NodeType.NODE_IDENT:
+                    var = self.commands.get_var(node_term.children[0].value)  # type: ignore
+                    if var is None:
+                        raise Exception(f"Unknown variable: {node_term.children[0].value}")
+                    operand = var
+                else:
+                    operand = node_term.children[0].value  # type: ignore
+            case _:
+                raise Exception("Unreachable")
+        target = (
+            operand
+            if isinstance(operand, PseudoRegister)
+            else PseudoRegister(f"r{self.used_register_count}")
+        )
+        self.used_register_count += 1
+        return Command(target=target, operation=operation, operand_a=operand)
+
     def _parse_operand(self, node: Node) -> CommandType:
         match node.node_type:
             case NodeType.NODE_PLUS:
@@ -124,5 +152,17 @@ class IRBuilder:
                 return CommandType.MUL
             case NodeType.NODE_DIV:
                 return CommandType.DIV
+            case NodeType.NODE_BIT_AND:
+                return CommandType.BIT_AND
+            case NodeType.NODE_BIT_OR:
+                return CommandType.BIT_OR
+            case NodeType.NODE_BIT_XOR:
+                return CommandType.BIT_XOR
+            case NodeType.NODE_BIT_NOT:
+                return CommandType.BIT_NOT
+            case NodeType.NODE_BIT_SHL:
+                return CommandType.BIT_SHL
+            case NodeType.NODE_BIT_SHR:
+                return CommandType.BIT_SHR
             case _:
                 raise Exception("Unreachable")

@@ -36,10 +36,28 @@ class Generation:
                     instructions = self._generate_sub(command)
                     self.code_chunks += instructions
                 case CommandType.MUL:
-                    instructions = self._generate_imul(command)
+                    instructions = self._generate_mul(command)
                     self.code_chunks += instructions
                 case CommandType.DIV:
-                    instructions = self._generate_idiv(command)
+                    instructions = self._generate_div(command)
+                    self.code_chunks += instructions
+                case CommandType.BIT_AND:
+                    instructions = self._generate_bit_and(command)
+                    self.code_chunks += instructions
+                case CommandType.BIT_OR:
+                    instructions = self._generate_bit_or(command)
+                    self.code_chunks += instructions
+                case CommandType.BIT_XOR:
+                    instructions = self._generate_bit_xor(command)
+                    self.code_chunks += instructions
+                case CommandType.BIT_NOT:
+                    instructions = self._generate_bit_not(command)
+                    self.code_chunks += instructions
+                case CommandType.BIT_SHL:
+                    instructions = self._generate_bit_shl(command)
+                    self.code_chunks += instructions
+                case CommandType.BIT_SHR:
+                    instructions = self._generate_bit_shr(command)
                     self.code_chunks += instructions
                 case _:
                     raise Exception("Unreachable")
@@ -125,11 +143,11 @@ class Generation:
     def _generate_sub(self, command: Command) -> list[ASMInstruction]:
         return self._generate_binop(command=command, math_op_type=InstructionType.SUB)
 
-    def _generate_imul(self, command: Command) -> list[ASMInstruction]:
-        return self._generate_binop(command=command, math_op_type=InstructionType.IMUL)
+    def _generate_mul(self, command: Command) -> list[ASMInstruction]:
+        return self._generate_binop(command=command, math_op_type=InstructionType.MUL)
 
-    def _generate_idiv(self, command: Command) -> list[ASMInstruction]:
-        instructions = self._generate_binop(command=command, math_op_type=InstructionType.IDIV)
+    def _generate_div(self, command: Command) -> list[ASMInstruction]:
+        instructions = self._generate_binop(command=command, math_op_type=InstructionType.DIV)
         instructions.insert(
             0,
             DataMoveInstruction(
@@ -140,9 +158,29 @@ class Generation:
         )
         return instructions
 
+    def _generate_bit_and(self, command: Command) -> list[ASMInstruction]:
+        return self._generate_binop(command=command, math_op_type=InstructionType.AND)
+
+    def _generate_bit_or(self, command: Command) -> list[ASMInstruction]:
+        return self._generate_binop(command=command, math_op_type=InstructionType.OR)
+
+    def _generate_bit_xor(self, command: Command) -> list[ASMInstruction]:
+        return self._generate_binop(command=command, math_op_type=InstructionType.XOR)
+
+    def _generate_bit_not(self, command: Command) -> list[ASMInstruction]:
+        return self._generate_binop(command=command, math_op_type=InstructionType.NOT)
+
+    def _generate_bit_shl(self, command: Command) -> list[ASMInstruction]:
+        return self._generate_binop(command=command, math_op_type=InstructionType.SHL)
+
+    def _generate_bit_shr(self, command: Command) -> list[ASMInstruction]:
+        return self._generate_binop(command=command, math_op_type=InstructionType.SHR)
+
     def _generate_binop(
         self, command: Command, math_op_type: InstructionType
     ) -> list[ASMInstruction]:
+        if command.operand_b is None:
+            return self._generate_unary(command=command, math_op_type=math_op_type)
         instructions: list[ASMInstruction] = []
         register_a, register_b = self._get_register_for_command(command)
         is_operand_a, is_operand_b = self._get_register_reassignment(command)
@@ -161,6 +199,26 @@ class Generation:
             instructions.append(instruction_b)
         instructions.append(inctruction_c)
         return instructions
+
+    def _generate_unary(
+        self, command: Command, math_op_type: InstructionType
+    ) -> list[ASMInstruction]:
+        register = (
+            X86_64_REGISTER_SCHEMA[command.operand_a.name]  # type: ignore
+            if is_operand_a_register(command.operand_a)
+            else X86_64_REGISTER_SCHEMA[command.target.name]
+        )  # type: ignore
+
+        instruction_a = self._process_operand(
+            operand=command.operand_a, register_a=register, register_b="", is_operand_b=False
+        )
+        if instruction_a is None:
+            raise Exception("Unreachable")
+        instruction_b = MathLogicInstruction(
+            instruction_type=math_op_type,
+            registers=(register,),
+        )
+        return [instruction_a, instruction_b]
 
     def _get_register_for_command(self, command: Command) -> tuple[str, str]:
         if is_operand_a_register(command.operand_a) and is_operand_a_register(command.operand_b):

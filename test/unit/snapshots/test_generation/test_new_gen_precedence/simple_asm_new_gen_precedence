@@ -4,12 +4,12 @@ global _start
 _start:
     mov rax, 2
     mov rbx, 3
-    imul rax, rbx
+    mul rax, rbx
     mov rbx, 1
     add rax, rbx
     mov rbx, 4
     mov rcx, 5
-    imul rbx, rcx
+    mul rbx, rcx
     sub rax, rbx
     push rax
     mov rax, 60
