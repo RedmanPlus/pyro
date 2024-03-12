@@ -31,6 +31,12 @@ class InstructionType(Enum):
     SUB = "sub"
     IMUL = "imul"
     IDIV = "idiv"
+    AND = "and"
+    OR = "or"
+    XOR = "xor"
+    NOT = "not"
+    SHL = "shl"
+    SHR = "shr"
     SYSCALL = "syscall"
 
 

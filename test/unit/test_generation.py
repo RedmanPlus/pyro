@@ -61,3 +61,14 @@ def test_new_gen_var_reassignment(snapshot):
     generation = Generation(representation=int_rep.commands)
     result = generation()
     snapshot.assert_match(result, "simple_asm_new_gen_var_reassignment")
+
+
+@pytest.mark.gen
+def test_new_bitwise_ops_generation(snapshot):
+    code = "x = 5 * 6 - 1 & 2 | 3 + 4 ^ 2 / ~ 1"
+    tokens = Tokenizer(code=code)
+    parser = Parser(tokens=tokens.tokens)
+    int_rep = IRBuilder(ast=parser.core_node)
+    generation = Generation(representation=int_rep.commands)
+    result = generation()
+    snapshot.assert_match(result, "simple_asm_new_gen_var_bitwise_ops")

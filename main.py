@@ -7,7 +7,7 @@ from src.tokens import Tokenizer
 
 
 def main():
-    code = "x = 1\n" "x = 2"
+    code = "x = 5 * 6 - 1 & 2 | 3 + 4 ^ 2 / ~ 1"
     tokenizer = Tokenizer(code=code)
     parser = Parser(tokens=tokenizer.tokens)
     rep = IRBuilder(ast=parser.core_node)
