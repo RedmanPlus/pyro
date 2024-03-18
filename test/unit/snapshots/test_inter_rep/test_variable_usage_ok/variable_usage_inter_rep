@@ -1,4 +1,4 @@
 main: 
    x = STORE 1
-   r0 = MUL x, 10
-   y = STORE r0
+   r8 = MUL x, 10
+   y = STORE r8

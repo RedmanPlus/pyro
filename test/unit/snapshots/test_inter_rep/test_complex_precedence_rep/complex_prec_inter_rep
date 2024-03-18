@@ -1,6 +1,6 @@
 main: 
-   r0 = MUL 2, 3
-   r0 = SUM 1, r0
-   r1 = MUL 4, 5
-   r0 = SUB r0, r1
-   x = STORE r0
+   r8 = MUL 2, 3
+   r8 = SUM 1, r8
+   r9 = MUL 4, 5
+   r8 = SUB r8, r9
+   x = STORE r8

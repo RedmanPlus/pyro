@@ -2,20 +2,25 @@ section .text
 global _start
 
 _start:
-    mov rax, 34
-    mov rbx, 35
-    add rax, rbx
-    push rax
+    mov r8, 34
+    mov r9, 35
+    add r8, r9
+    push r8
+    mov rdx, 0
     mov rax, 5
     mov rbx, 7
-    mul rax, rbx
+    mul rbx
+    mov r8, rax
+    mov rdx, 0
+    mov rax, r8
     mov rbx, 10
-    mul rax, rbx
-    mov rbx, QWORD [rsp + 0]
-    add rax, rbx
-    mov rbx, 1
-    add rax, rbx
-    push rax
+    mul rbx
+    mov r8, rax
+    mov r9, QWORD [rsp + 0]
+    add r8, r9
+    mov r9, 1
+    add r8, r9
+    push r8
     mov rax, 60
     mov rdi, 0
     syscall

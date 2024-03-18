@@ -6,7 +6,7 @@ class IRBuilder:
     def __init__(self, ast: Node):
         self.ast: Node = ast
         self.commands: Representation = Representation(block_name="main")
-        self.used_register_count: int = 0
+        self.used_register_count: int = 8
         self._parse_prog(self.ast)
 
     def _parse_prog(self, node: Node):
@@ -26,7 +26,7 @@ class IRBuilder:
         match node_dec.node_type:
             case NodeType.NODE_BIN_EXPR:
                 command_expr = self._parse_bin_expr(node_dec)
-                self.used_register_count = 0
+                self.used_register_count = 8
                 self.commands.append(command_expr)
                 if node_term.children[0].value is None:
                     raise Exception("Unreachable")

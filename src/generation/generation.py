@@ -144,16 +144,37 @@ class Generation:
         return self._generate_binop(command=command, math_op_type=InstructionType.SUB)
 
     def _generate_mul(self, command: Command) -> list[ASMInstruction]:
-        return self._generate_binop(command=command, math_op_type=InstructionType.MUL)
+        actual_target = command.target
+        if not is_operand_a_register(actual_target):
+            raise Exception("Unreachable")
 
-    def _generate_div(self, command: Command) -> list[ASMInstruction]:
-        instructions = self._generate_binop(command=command, math_op_type=InstructionType.DIV)
-        instructions.insert(
-            0,
+        command.target = PseudoRegister(name="r0")
+        instructions = self._generate_carried_binop(
+            command=command, math_op_type=InstructionType.MUL
+        )
+        instructions.append(
             DataMoveInstruction(
                 instruction_type=InstructionType.MOV,
-                register="rdx",
-                data="0",
+                register=X86_64_REGISTER_SCHEMA[actual_target.name],
+                data=X86_64_REGISTER_SCHEMA[command.target.name],
+            ),
+        )
+        return instructions
+
+    def _generate_div(self, command: Command) -> list[ASMInstruction]:
+        actual_target = command.target
+        if not is_operand_a_register(actual_target):
+            raise Exception("Unreachable")
+
+        command.target = PseudoRegister(name="r0")
+        instructions = self._generate_carried_binop(
+            command=command, math_op_type=InstructionType.DIV
+        )
+        instructions.append(
+            DataMoveInstruction(
+                instruction_type=InstructionType.MOV,
+                register=X86_64_REGISTER_SCHEMA[actual_target.name],
+                data=X86_64_REGISTER_SCHEMA[command.target.name],
             ),
         )
         return instructions
@@ -200,6 +221,41 @@ class Generation:
         instructions.append(inctruction_c)
         return instructions
 
+    def _generate_carried_binop(
+        self, command: Command, math_op_type: InstructionType
+    ) -> list[ASMInstruction]:
+        instructions: list[ASMInstruction] = [
+            DataMoveInstruction(instruction_type=InstructionType.MOV, register="rdx", data="0")
+        ]
+        # argument extraction
+        register_a, register_b = self._get_register_for_carried_command(command)
+        if register_a != "rax":
+            instructions.append(
+                DataMoveInstruction(
+                    instruction_type=InstructionType.MOV, register="rax", data=register_a
+                )
+            )
+        else:
+            operation = self._process_operand(command.operand_a, "rax", "rbx", False)
+            if operation is None:
+                raise Exception("Unreachable")
+            instructions.append(operation)
+        if register_b != "rbx":
+            instructions.append(
+                DataMoveInstruction(
+                    instruction_type=InstructionType.MOV, register="rbx", data=register_b
+                )
+            )
+        else:
+            if command.operand_b is None:
+                raise Exception("Unreachable")
+            operation = self._process_operand(command.operand_b, "rax", "rbx", True)
+            if operation is None:
+                raise Exception("Unreachable")
+            instructions.append(operation)
+        instructions.append(self._process_op_type(math_op_type, register_b))
+        return instructions
+
     def _generate_unary(
         self, command: Command, math_op_type: InstructionType
     ) -> list[ASMInstruction]:
@@ -239,6 +295,23 @@ class Generation:
         register_b = X86_64_REGISTER_SCHEMA[(command.target + 1).name]  # type: ignore
         return register_a, register_b
 
+    def _get_register_for_carried_command(self, command: Command) -> tuple[str, str]:
+        if is_operand_a_register(command.operand_a) and is_operand_a_register(command.operand_b):
+            register_a = X86_64_REGISTER_SCHEMA[command.operand_a.name]  # type: ignore
+            register_b = X86_64_REGISTER_SCHEMA[command.operand_b.name]  # type: ignore
+            return register_a, register_b
+        if is_operand_a_register(command.operand_a):
+            register_a = X86_64_REGISTER_SCHEMA[command.operand_a.name]  # type: ignore
+            register_b = X86_64_REGISTER_SCHEMA["r1"]
+            return register_a, register_b
+        if is_operand_a_register(command.operand_b):
+            register_a = X86_64_REGISTER_SCHEMA["r0"]  # type: ignore
+            register_b = X86_64_REGISTER_SCHEMA[command.operand_b.name]  # type: ignore
+            return register_a, register_b
+        register_a = X86_64_REGISTER_SCHEMA["r0"]  # type: ignore
+        register_b = X86_64_REGISTER_SCHEMA["r1"]  # type: ignore
+        return register_a, register_b
+
     def _get_register_reassignment(self, command: Command) -> tuple[bool, bool]:
         if is_operand_a_register(command.operand_a) and is_operand_a_register(command.operand_b):
             return False, False
@@ -273,8 +346,10 @@ class Generation:
         raise Exception("Unreachable")
 
     def _process_op_type(
-        self, math_op_type: InstructionType, register_a: str, register_b: str
+        self, math_op_type: InstructionType, register_a: str, register_b: str | None = None
     ) -> ASMInstruction:
+        if register_b is None:
+            return MathLogicInstruction(instruction_type=math_op_type, registers=(register_a,))
         return MathLogicInstruction(
             instruction_type=math_op_type,
             registers=(register_a, register_b),
