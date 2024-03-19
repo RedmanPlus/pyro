@@ -38,10 +38,15 @@ class Token:
 
 
 class Tokenizer:
-    def __init__(self, code: str):
+    def __init__(self, code: str = ""):
         self.code = code
         self.tokens: list[Token] = []
+
+    def __call__(self, code: str) -> list[Token]:
+        self.code = code
+
         self._process_code()
+        return self.tokens
 
     def _process_code(self):
         while self._peek(0) is not None:

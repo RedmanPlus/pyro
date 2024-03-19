@@ -1,13 +1,24 @@
-from src.parsing import Node, NodeType
-from src.representation.utils import Command, CommandType, PseudoRegister, Representation, Variable
+from src.compiler.parsing import Node, NodeType
+from src.compiler.representation.utils import (
+    Command,
+    CommandType,
+    PseudoRegister,
+    Representation,
+    Variable,
+)
 
 
 class IRBuilder:
-    def __init__(self, ast: Node):
-        self.ast: Node = ast
+    def __init__(self, ast: Node | None = None):
+        self.ast: Node | None = ast
         self.commands: Representation = Representation(block_name="main")
         self.used_register_count: int = 8
+
+    def __call__(self, ast: Node) -> Representation:
+        if self.ast is None:
+            self.ast = ast
         self._parse_prog(self.ast)
+        return self.commands
 
     def _parse_prog(self, node: Node):
         for child in node.children:

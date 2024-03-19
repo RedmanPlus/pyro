@@ -1,7 +1,7 @@
 import pytest
 
-from src.parsing import Parser
-from src.tokens import Token, Tokenizer, TokenType
+from src.compiler.parsing import Parser
+from src.compiler.tokens import Token, Tokenizer, TokenType
 
 
 @pytest.mark.parser
@@ -21,8 +21,9 @@ def test_new_parser(snapshot):
         ),
     ]
 
-    parser = Parser(tokens=tokens)
-    snapshot.assert_match(parser.core_node.pprint(), "simple_parse")
+    parser = Parser()
+    core_node = parser(tokens=tokens)
+    snapshot.assert_match(core_node.pprint(), "simple_parse")
 
 
 @pytest.mark.parser
@@ -49,8 +50,9 @@ def test_new_parser_summs(snapshot):
         Token(token_type=TokenType.NEWLINE, line=1, pos=10),
     ]
 
-    parser = Parser(tokens=tokens)
-    snapshot.assert_match(parser.core_node.pprint(), "summ_parse")
+    parser = Parser()
+    core_node = parser(tokens=tokens)
+    snapshot.assert_match(core_node.pprint(), "summ_parse")
 
 
 @pytest.mark.parser
@@ -89,8 +91,9 @@ def test_new_parser_complex_precedence(snapshot):
         Token(token_type=TokenType.NEWLINE, line=1, pos=10),
     ]
 
-    parser = Parser(tokens=tokens)
-    snapshot.assert_match(parser.core_node.pprint(), "precedence_parse")
+    parser = Parser()
+    core_node = parser(tokens=tokens)
+    snapshot.assert_match(core_node.pprint(), "precedence_parse")
 
 
 @pytest.mark.parser
@@ -135,23 +138,28 @@ def test_new_parser_more_complex_precedence(snapshot):
         Token(token_type=TokenType.NEWLINE, line=1, pos=10),
     ]
 
-    parser = Parser(tokens=tokens)
-    snapshot.assert_match(parser.core_node.pprint(), "precedence_complex_parse")
+    parser = Parser()
+    core_node = parser(tokens=tokens)
+    snapshot.assert_match(core_node.pprint(), "precedence_complex_parse")
 
 
 @pytest.mark.parser
 def test_parse_multiple_definition(snapshot):
     code = "x, y = 34 + 35, 210 * 2"
-    tokenizer = Tokenizer(code=code)
-    parser = Parser(tokens=tokenizer.tokens)
+    tokenizer = Tokenizer()
+    tokens = tokenizer(code=code)
+    parser = Parser()
+    core_node = parser(tokens=tokens)
 
-    snapshot.assert_match(parser.core_node.pprint(), "multiple_definition_parse")
+    snapshot.assert_match(core_node.pprint(), "multiple_definition_parse")
 
 
 @pytest.mark.parser
 def test_parse_complex_precedence_operators(snapshot):
     code = "x = 5 * 6 - 1 & 2 | 3 + 4 ^ 2 / ~ 1"
-    tokenizer = Tokenizer(code=code)
-    parser = Parser(tokens=tokenizer.tokens)
+    tokenizer = Tokenizer()
+    tokens = tokenizer(code=code)
+    parser = Parser()
+    core_node = parser(tokens=tokens)
 
-    snapshot.assert_match(parser.core_node.pprint(), "complex_precedence_binops_parse")
+    snapshot.assert_match(core_node.pprint(), "complex_precedence_binops_parse")

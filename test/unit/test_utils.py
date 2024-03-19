@@ -1,5 +1,5 @@
-from src.parsing.utils import Pattern, PatternMatcher, Union
-from src.tokens import TokenType
+from src.compiler.parsing import Pattern, PatternMatcher, Union
+from src.compiler.tokens import TokenType
 
 
 def test_match_token_with_union():
