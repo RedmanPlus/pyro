@@ -14,4 +14,11 @@ MAIN_CLI_ARGS = [
         help="Name of the resulting binary",
         metavar="<filename>",
     ),
+    CLIArg(
+        name_or_flags=["-d", "--debug"],
+        help="Should additional debug print commands be added to the binary for memory inspection",
+        action="store_true",
+        default=False,
+        dest="debug",
+    ),
 ]
