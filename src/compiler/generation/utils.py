@@ -37,7 +37,10 @@ class InstructionType(Enum):
     NOT = "not"
     SHL = "shl"
     SHR = "shr"
+    LEA = "lea"
     SYSCALL = "syscall"
+    CALL = "call"
+    EXTERN = "extern"
 
 
 @dataclass
@@ -76,8 +79,11 @@ class MathLogicInstruction(ASMInstruction):
 
 
 @dataclass
-class SyscallInstruction(ASMInstruction):
+class CallInstruction(ASMInstruction):
     instruction_type: InstructionType
+    callee: str | None = None
 
     def to_asm(self) -> str:
-        return "    syscall"
+        if self.callee is not None:
+            return f"    {self.instruction_type.value} {self.callee}"
+        return f"    {self.instruction_type.value}"

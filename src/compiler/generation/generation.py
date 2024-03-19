@@ -1,10 +1,10 @@
 from src.compiler.generation.utils import (
     X86_64_REGISTER_SCHEMA,
     ASMInstruction,
+    CallInstruction,
     DataMoveInstruction,
     InstructionType,
     MathLogicInstruction,
-    SyscallInstruction,
 )
 from src.compiler.representation import Command, CommandType, Representation
 from src.compiler.representation.utils import (
@@ -17,7 +17,8 @@ from src.compiler.representation.utils import (
 
 
 class Generation:
-    def __init__(self, representation: Representation | None = None):
+    def __init__(self, representation: Representation | None = None, debug: bool = False):
+        self.debug = debug
         self.representation = representation
         self.code_chunks: list[ASMInstruction] = []
         self.variables: list[str] = []
@@ -25,7 +26,13 @@ class Generation:
     def __call__(self, representation: Representation) -> str:
         if self.representation is None:
             self.representation = representation
-        asm_header: str = "section .text\nglobal _start\n\n_start:\n"
+        asm_header: str
+        if self.debug:
+            asm_header = (
+                "section .text\n    default rel\n    extern printf\n    global main\n\nmain:\n"
+            )
+        else:
+            asm_header = "section .text\nglobal _start\n\n_start:\n"
         for command in self.representation.commands:
             match command.operation:
                 case CommandType.STORE:
@@ -63,6 +70,8 @@ class Generation:
                     self.code_chunks += instructions
                 case _:
                     raise Exception("Unreachable")
+        if self.debug:
+            self._add_debug_prints()
         asm_body: str = asm_header + "\n".join(chunk.to_asm() for chunk in self.code_chunks)
         exit_chunk: list[ASMInstruction] = [
             DataMoveInstruction(
@@ -75,9 +84,11 @@ class Generation:
                 register="rdi",
                 data="0",
             ),
-            SyscallInstruction(instruction_type=InstructionType.SYSCALL),
+            CallInstruction(instruction_type=InstructionType.SYSCALL),
         ]
         result_asm: str = asm_body + "\n" + "\n".join(chunk.to_asm() for chunk in exit_chunk)
+        if self.debug:
+            result_asm += "\n\n\nsection .data\n    formatString: db '%d', 10, 0\n"
         return result_asm
 
     def _generate_store(self, command: Command) -> list[ASMInstruction]:
@@ -358,6 +369,28 @@ class Generation:
         )
 
     def _calculate_variable_offset(self, var_name: str) -> str:
-        variable_position = self.representation.get_var_position(var_name) * 4  # type: ignore
-        stack_offset = f"QWORD [rsp + {variable_position}]"
+        if self.representation is None:
+            raise Exception("Unreachable")
+        variable_position = self.representation.get_var_position(var_name)  # type: ignore
+        stack_offset = (
+            f"QWORD [rsp + {(len(self.representation.variable_table) - variable_position - 1) * 8}]"
+        )
         return stack_offset
+
+    def _add_debug_prints(self):
+        instructions = []
+        for _variable in self.variables:
+            instructions += [
+                DataMoveInstruction(
+                    instruction_type=InstructionType.LEA,
+                    register="rdi",
+                    data="[formatString]",
+                ),
+                DataMoveInstruction(
+                    instruction_type=InstructionType.POP,
+                    register="rsi",
+                ),
+                DataMoveInstruction(instruction_type=InstructionType.MOV, register="rax", data="0"),
+                CallInstruction(instruction_type=InstructionType.CALL, callee="printf"),
+            ]
+        self.code_chunks += instructions

@@ -5,11 +5,11 @@ from src.compiler.tokens import Tokenizer
 
 
 class Compiler:
-    def __init__(self):
+    def __init__(self, debug: bool = False):
         self.tokenizer = Tokenizer()
         self.parser = Parser()
         self.representation = IRBuilder()
-        self.generation = Generation()
+        self.generation = Generation(debug=debug)
 
     def __call__(self, code: str) -> str:
         tokens = self.tokenizer(code=code)

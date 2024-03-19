@@ -7,8 +7,13 @@ def handle_input_file(src: str) -> str:
         return data
 
 
-def handle_output_file(dst: str, asm: str) -> None:
+def handle_output_file(dst: str, asm: str, debug: bool = False) -> None:
     with open(f"{dst}.asm", "w") as f:
         f.write(asm)
     subprocess.run(["nasm", "-felf64", f"{dst}.asm"])
-    subprocess.run(["ld", "-o", f"{dst}", f"{dst}.o"])
+    if debug:
+        subprocess.run(
+            f"ld -o {dst} {dst}.o -dynamic-linker /lib64/ld-linux-x86-64.so.2 -L./raylib/ -lc".split()
+        )
+    else:
+        subprocess.run(["ld", "-o", f"{dst}", f"{dst}.o"])
