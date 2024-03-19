@@ -1,4 +1,4 @@
-from src.generation.utils import (
+from src.compiler.generation.utils import (
     X86_64_REGISTER_SCHEMA,
     ASMInstruction,
     DataMoveInstruction,
@@ -6,8 +6,8 @@ from src.generation.utils import (
     MathLogicInstruction,
     SyscallInstruction,
 )
-from src.representation import Command, CommandType, Representation
-from src.representation.utils import (
+from src.compiler.representation import Command, CommandType, Representation
+from src.compiler.representation.utils import (
     PseudoRegister,
     Variable,
     is_operand_a_register,
@@ -17,12 +17,14 @@ from src.representation.utils import (
 
 
 class Generation:
-    def __init__(self, representation: Representation):
+    def __init__(self, representation: Representation | None = None):
         self.representation = representation
         self.code_chunks: list[ASMInstruction] = []
         self.variables: list[str] = []
 
-    def __call__(self) -> str:
+    def __call__(self, representation: Representation) -> str:
+        if self.representation is None:
+            self.representation = representation
         asm_header: str = "section .text\nglobal _start\n\n_start:\n"
         for command in self.representation.commands:
             match command.operation:

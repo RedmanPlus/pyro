@@ -1,8 +1,8 @@
 import pytest
 
-from src.parsing import Parser
-from src.representation import IRBuilder
-from src.tokens import Token, TokenType
+from src.compiler.parsing import Parser
+from src.compiler.representation import IRBuilder
+from src.compiler.tokens import Token, TokenType
 
 
 @pytest.mark.integration
@@ -21,6 +21,8 @@ def test_int_rep_from_tokens(snapshot):
             pos=6,
         ),
     ]
-    parser = Parser(tokens=tokens)
-    int_rep = IRBuilder(ast=parser.core_node)
-    snapshot.assert_match(int_rep.commands.pprint(), "int_rep_parser_compatibility")
+    parser = Parser()
+    core_node = parser(tokens=tokens)
+    int_rep = IRBuilder()
+    commands = int_rep(ast=core_node)
+    snapshot.assert_match(commands.pprint(), "int_rep_parser_compatibility")

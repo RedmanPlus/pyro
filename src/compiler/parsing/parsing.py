@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from enum import Enum, auto
 from typing import Optional
 
-from src.tokens import Token, TokenType
+from src.compiler.tokens import Token, TokenType
 
 
 class NodeType(Enum):
@@ -53,10 +53,16 @@ class Node:
 
 
 class Parser:
-    def __init__(self, tokens: list[Token]):
-        self.tokens = tokens
+    def __init__(self, tokens: list[Token] | None = None):
+        if tokens is None:
+            tokens = []
+        self.tokens: list[Token] = tokens
         self.core_node = Node(node_type=NodeType.NODE_PROG, children=[])
+
+    def __call__(self, tokens: list[Token]) -> Node:
+        self.tokens = tokens
         self._traverse_tokens()
+        return self.core_node
 
     def _traverse_tokens(self):
         while len(self.tokens) != 0:
