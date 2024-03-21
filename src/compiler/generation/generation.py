@@ -369,17 +369,15 @@ class Generation:
         )
 
     def _calculate_variable_offset(self, var_name: str) -> str:
-        if self.representation is None:
+        variable_position = self._get_variable_index(var_name)
+        if variable_position < 0:
             raise Exception("Unreachable")
-        variable_position = self.representation.get_var_position(var_name)  # type: ignore
-        stack_offset = (
-            f"QWORD [rsp + {(len(self.representation.variable_table) - variable_position - 1) * 8}]"
-        )
+        stack_offset = f"QWORD [rsp + {(len(self.variables) - variable_position - 1) * 8}]"
         return stack_offset
 
     def _add_debug_prints(self):
         instructions = []
-        for _variable in self.variables:
+        for variable in self.variables:
             instructions += [
                 DataMoveInstruction(
                     instruction_type=InstructionType.LEA,
@@ -387,8 +385,9 @@ class Generation:
                     data="[formatString]",
                 ),
                 DataMoveInstruction(
-                    instruction_type=InstructionType.POP,
+                    instruction_type=InstructionType.MOV,
                     register="rsi",
+                    data=self._calculate_variable_offset(variable),
                 ),
                 DataMoveInstruction(instruction_type=InstructionType.MOV, register="rax", data="0"),
                 CallInstruction(instruction_type=InstructionType.CALL, callee="printf"),
