@@ -43,3 +43,11 @@ def test_tokenize_bitwise_ops(snapshot):
     tokenizer = Tokenizer()
     tokenizer(code=code)
     snapshot.assert_match(tokenizer.pprint(), "tokenize_bitwise_operations")
+
+
+@pytest.mark.tokenizer
+def test_tokenize_parens(snapshot):
+    code = "x = (2 + 2) * 2"
+    tokenizer = Tokenizer()
+    tokenizer(code=code)
+    snapshot.assert_match(tokenizer.pprint(), "tokenize_bitwise_operations")

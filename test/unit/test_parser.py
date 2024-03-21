@@ -163,3 +163,14 @@ def test_parse_complex_precedence_operators(snapshot):
     core_node = parser(tokens=tokens)
 
     snapshot.assert_match(core_node.pprint(), "complex_precedence_binops_parse")
+
+
+@pytest.mark.parser
+def test_parse_parentheses(snapshot):
+    code = "x = (2 + 2) * 2"
+    tokenizer = Tokenizer()
+    tokens = tokenizer(code=code)
+    parser = Parser()
+    core_node = parser(tokens=tokens)
+
+    snapshot.assert_match(core_node.pprint(), "parentheses_parse")
