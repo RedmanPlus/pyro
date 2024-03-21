@@ -17,6 +17,8 @@ class TokenType(Enum):
     BIT_SHL = auto()
     BIT_SHR = auto()
     COMMA = auto()
+    OPEN_PAREN = auto()
+    CLOSED_PAREN = auto()
     NEWLINE = auto()
 
 
@@ -41,6 +43,8 @@ class Tokenizer:
     def __init__(self, code: str = ""):
         self.code = code
         self.tokens: list[Token] = []
+        self.line: int = 1
+        self.pos: int = 1
 
     def __call__(self, code: str) -> list[Token]:
         self.code = code
@@ -82,22 +86,25 @@ class Tokenizer:
                 self._process_bit_shr()
             if current_char == "<":
                 self._process_bit_shl()
+            if current_char == "(":
+                self._process_open_paren()
+            if current_char == ")":
+                self._process_closed_paren()
         self.tokens.append(Token(token_type=TokenType.NEWLINE))
 
     def _process_alnum(self):
         char_buff: list[str] = []
+        pos, line = self.pos, self.line
         while self._peek(0) is not None and self._peek(0).isalnum():
             current_char = self._consume()
             char_buff.append(current_char)
         value = "".join(char_buff)
-        token = Token(
-            token_type=TokenType.IDENT,
-            content=value,
-        )
+        token = Token(token_type=TokenType.IDENT, content=value, line=line, pos=pos)
         self.tokens.append(token)
 
     def _process_digit(self):
         char_buff: list[str] = []
+        pos, line = self.pos, self.line
         while self._peek(0) is not None and self._peek(0).isdigit():
             current_char = self._consume()
             char_buff.append(current_char)
@@ -106,62 +113,70 @@ class Tokenizer:
             raise Exception(f"Variables cannot start with digits, given - {''.join(char_buff)}")
 
         value = "".join(char_buff)
-        token = Token(token_type=TokenType.NUMBER, content=value)
+        token = Token(token_type=TokenType.NUMBER, content=value, line=line, pos=pos)
         self.tokens.append(token)
 
     def _process_eq(self):
         self._consume()
-        self.tokens.append(Token(token_type=TokenType.EQ))
+        self.tokens.append(Token(token_type=TokenType.EQ, line=self.line, pos=self.pos))
 
     def _process_plus(self):
         self._consume()
-        self.tokens.append(Token(token_type=TokenType.PLUS))
+        self.tokens.append(Token(token_type=TokenType.PLUS, line=self.line, pos=self.pos))
 
     def _process_minus(self):
         self._consume()
-        self.tokens.append(Token(token_type=TokenType.MINUS))
+        self.tokens.append(Token(token_type=TokenType.MINUS, line=self.line, pos=self.pos))
 
     def _process_mul(self):
         self._consume()
-        self.tokens.append(Token(token_type=TokenType.MUL))
+        self.tokens.append(Token(token_type=TokenType.MUL, line=self.line, pos=self.pos))
 
     def _process_div(self):
         self._consume()
-        self.tokens.append(Token(token_type=TokenType.DIV))
+        self.tokens.append(Token(token_type=TokenType.DIV, line=self.line, pos=self.pos))
 
     def _process_comma(self):
         self._consume()
-        self.tokens.append(Token(token_type=TokenType.COMMA))
+        self.tokens.append(Token(token_type=TokenType.COMMA, line=self.line, pos=self.pos))
 
     def _process_bit_and(self):
         self._consume()
-        self.tokens.append(Token(token_type=TokenType.BIT_AND))
+        self.tokens.append(Token(token_type=TokenType.BIT_AND, line=self.line, pos=self.pos))
 
     def _process_bit_or(self):
         self._consume()
-        self.tokens.append(Token(token_type=TokenType.BIT_OR))
+        self.tokens.append(Token(token_type=TokenType.BIT_OR, line=self.line, pos=self.pos))
 
     def _process_bit_xor(self):
         self._consume()
-        self.tokens.append(Token(token_type=TokenType.BIT_XOR))
+        self.tokens.append(Token(token_type=TokenType.BIT_XOR, line=self.line, pos=self.pos))
 
     def _process_bit_not(self):
         self._consume()
-        self.tokens.append(Token(token_type=TokenType.BIT_NOT))
+        self.tokens.append(Token(token_type=TokenType.BIT_NOT, line=self.line, pos=self.pos))
 
     def _process_bit_shl(self):
         self._consume()
         if self._peek(0) != "<":
             raise Exception(f"Expected shift left, got {self._peek(0)}")
         self._consume()
-        self.tokens.append(Token(token_type=TokenType.BIT_SHL))
+        self.tokens.append(Token(token_type=TokenType.BIT_SHL, line=self.line, pos=self.pos))
 
     def _process_bit_shr(self):
         self._consume()
         if self._peek(0) != ">":
             raise Exception(f"Expected shift right, got {self._peek(0)}")
         self._consume()
-        self.tokens.append(Token(token_type=TokenType.BIT_SHR))
+        self.tokens.append(Token(token_type=TokenType.BIT_SHR, line=self.line, pos=self.pos))
+
+    def _process_open_paren(self):
+        self._consume()
+        self.tokens.append(Token(token_type=TokenType.OPEN_PAREN, line=self.line, pos=self.pos))
+
+    def _process_closed_paren(self):
+        self._consume()
+        self.tokens.append(Token(token_type=TokenType.CLOSED_PAREN, line=self.line, pos=self.pos))
 
     def _peek(self, position: int) -> str | None:
         if self.code:
@@ -171,11 +186,14 @@ class Tokenizer:
     def _consume(self) -> str:
         result = self.code[0]
         self.code = self.code[1:]
+        self.pos += 1
         return result
 
     def _trim_whitespace(self):
         while self._peek(0) is not None and self._peek(0).isspace():
             if self._peek(0) == "\n":
+                self.line += 1
+                self.pos = 1
                 self.tokens.append(Token(token_type=TokenType.NEWLINE))
             self._consume()
 
