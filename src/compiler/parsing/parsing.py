@@ -139,6 +139,8 @@ class Parser:
         result = self._parse_bin_expr()
         if result is None:
             raise Exception("Unreachable")
+        if self.parens > 0:
+            raise Exception("Unclosed paren")
         return result
 
     def _parse_bin_expr(self, min_prec: int = -1) -> Node | None:
