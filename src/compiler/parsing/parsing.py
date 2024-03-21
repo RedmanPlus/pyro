@@ -58,6 +58,7 @@ class Parser:
             tokens = []
         self.tokens: list[Token] = tokens
         self.core_node = Node(node_type=NodeType.NODE_PROG, children=[])
+        self.parens: int = 0
 
     def __call__(self, tokens: list[Token]) -> Node:
         self.tokens = tokens
@@ -153,6 +154,16 @@ class Parser:
 
     def _parse_increasing_precedence(self, left_operand: Node | None, min_prec: int) -> Node | None:
         next = self._peek(0)
+        if self._is_open_paren(next):
+            self.parens += 1
+            self._consume()
+            return self._parse_bin_expr()
+        if self._is_closed_paren(next):
+            self.parens -= 1
+            if self.parens < 0:
+                raise Exception(f"Extra paren at {next.line}:{next.pos}")
+            self._consume()
+            return left_operand
         if not self._is_binop(next):
             return left_operand
 
@@ -222,6 +233,14 @@ class Parser:
             TokenType.BIT_SHR,
             TokenType.BIT_NOT,
         )
+
+    @staticmethod
+    def _is_open_paren(token: Token) -> bool:
+        return token.token_type == TokenType.OPEN_PAREN
+
+    @staticmethod
+    def _is_closed_paren(token: Token) -> bool:
+        return token.token_type == TokenType.CLOSED_PAREN
 
     @staticmethod
     def _get_precedence(token: Token) -> int:
