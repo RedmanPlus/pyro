@@ -50,4 +50,25 @@ def test_tokenize_parens(snapshot):
     code = "x = (2 + 2) * 2"
     tokenizer = Tokenizer()
     tokenizer(code=code)
-    snapshot.assert_match(tokenizer.pprint(), "tokenize_bitwise_operations")
+    snapshot.assert_match(tokenizer.pprint(), "tokenize_parens")
+
+
+@pytest.mark.tokenizer
+def test_tokenize_argument_assignment(snapshot):
+    code = (
+        "x = 1\n"
+        "x += 1\n"
+        "x -= 1\n"
+        "x *= 1\n"
+        "x /= 1\n"
+        "x **= 1\n"
+        "x //= 1\n"
+        "x &= 1\n"
+        "x |= 1\n"
+        "x ^= 1\n"
+        "x <<= 1\n"
+        "x >>= 1\n"
+    )
+    tokenizer = Tokenizer()
+    tokenizer(code=code)
+    snapshot.assert_match(tokenizer.pprint(), "tokenize_argument_assignment")
