@@ -174,3 +174,27 @@ def test_parse_parentheses(snapshot):
     core_node = parser(tokens=tokens)
 
     snapshot.assert_match(core_node.pprint(), "parentheses_parse")
+
+
+@pytest.mark.parser
+def test_parse_argument_assignment(snapshot):
+    code = (
+        "x = 1\n"
+        "x += 1\n"
+        "x -= 1\n"
+        "x *= 1\n"
+        "x /= 1\n"
+        "x **= 1\n"
+        "x //= 1\n"
+        "x &= 1\n"
+        "x |= 1\n"
+        "x ^= 1\n"
+        "x <<= 1\n"
+        "x >>= 1\n"
+    )
+    tokenizer = Tokenizer()
+    tokens = tokenizer(code=code)
+    parser = Parser()
+    core_node = parser(tokens=tokens)
+
+    snapshot.assert_match(core_node.pprint(), "argument_assign_parse")

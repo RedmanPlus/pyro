@@ -15,7 +15,10 @@ class NodeType(Enum):
     NODE_PLUS = auto()
     NODE_MINUS = auto()
     NODE_MULTI = auto()
+    NODE_POV = auto()
     NODE_DIV = auto()
+    NODE_DIV_FLOOR = auto()
+    NODE_REMAIN = auto()
     NODE_BIT_AND = auto()
     NODE_BIT_OR = auto()
     NODE_BIT_XOR = auto()
@@ -67,14 +70,15 @@ class Parser:
 
     def _traverse_tokens(self):
         while len(self.tokens) != 0:
-            if len(self.tokens) == 1 and self.tokens[0].token_type == TokenType.NEWLINE:
-                break
+            if self.tokens[0].token_type == TokenType.NEWLINE:
+                self._consume()
+                continue
             stmts = self._parse_stmts()
             self.core_node.children += stmts
 
     def _parse_stmts(self) -> list[Node]:
-        idents = self._parse_idents()
-        exprs = self._parse_exprs()
+        idents, assign_op = self._parse_idents()
+        exprs = self._parse_exprs(assign_op=assign_op, ident=idents[0])
         if len(idents) != len(exprs):
             raise Exception(
                 "Illegal declaration: expected equal amount of declared variables and expressions"
@@ -86,22 +90,28 @@ class Parser:
         ]
         return stmts
 
-    def _parse_idents(self) -> list[Node]:
+    def _parse_idents(self) -> tuple[list[Node], Node | None]:
         token_ident = self._consume()
         if token_ident.token_type != TokenType.IDENT:
             raise Exception(f"Illegal declaration: {token_ident}")
 
-        if self._peek(0).token_type == TokenType.EQ:
-            self._consume()
+        if self._is_assignment(self._peek(0)):
+            assign = self._consume()
             return [
                 Node(
                     node_type=NodeType.NODE_TERM,
                     children=[Node(node_type=NodeType.NODE_IDENT, value=token_ident.content)],
                 )
-            ]
+            ], Node(
+                node_type=self._get_argument_assign_operator(token=assign)
+            ) if assign.token_type != TokenType.EQ else None
         elif self._peek(0).token_type == TokenType.COMMA:
             self._consume()
-            idents = self._parse_idents()
+            idents, assign_op = self._parse_idents()
+            if assign_op is not None:
+                raise Exception(
+                    "Illegal declaration - multiple definition cannot have argument assignment"
+                )
             idents.insert(
                 0,
                 Node(
@@ -109,16 +119,20 @@ class Parser:
                     children=[Node(node_type=NodeType.NODE_IDENT, value=token_ident.content)],
                 ),
             )
-            return idents
+            return idents, None
         else:
             raise Exception(f"Illegal declaration: {token_ident} -> missing '=' or ','")
 
-    def _parse_exprs(self) -> list[Node]:
+    def _parse_exprs(self, assign_op: Node | None = None, ident: Node | None = None) -> list[Node]:
         node_expr = self._parse_expr()
         if self._peek(0).token_type == TokenType.NEWLINE:
             self._consume()
+            if assign_op is not None:
+                return [self._make_binary(node_expr, assign_op, ident)]
             return [node_expr]
         elif self._peek(0).token_type == TokenType.COMMA:
+            if assign_op is not None:
+                raise Exception("Unreachable")
             self._consume()
             exprs = self._parse_exprs()
             exprs.insert(0, node_expr)
@@ -237,6 +251,24 @@ class Parser:
         )
 
     @staticmethod
+    def _is_assignment(token: Token) -> bool:
+        return token.token_type in (
+            TokenType.EQ,
+            TokenType.EQ_PLUS,
+            TokenType.EQ_MINUS,
+            TokenType.EQ_MUL,
+            TokenType.EQ_POV,
+            TokenType.EQ_DIV,
+            TokenType.EQ_DIV_FLOOR,
+            TokenType.EQ_REMAIN,
+            TokenType.EQ_BIT_AND,
+            TokenType.EQ_BIT_OR,
+            TokenType.EQ_BIT_XOR,
+            TokenType.EQ_BIT_SHL,
+            TokenType.EQ_BIT_SHR,
+        )
+
+    @staticmethod
     def _is_open_paren(token: Token) -> bool:
         return token.token_type == TokenType.OPEN_PAREN
 
@@ -298,3 +330,35 @@ class Parser:
                 raise Exception("Unreachable")
 
         return Node(node_type=node_type, children=[])
+
+    def _get_argument_assign_operator(self, token: Token) -> NodeType:
+        node_type: NodeType
+        match token.token_type:
+            case TokenType.EQ_PLUS:
+                node_type = NodeType.NODE_PLUS
+            case TokenType.EQ_MINUS:
+                node_type = NodeType.NODE_MINUS
+            case TokenType.EQ_MUL:
+                node_type = NodeType.NODE_MULTI
+            case TokenType.EQ_POV:
+                node_type = NodeType.NODE_POV
+            case TokenType.EQ_DIV:
+                node_type = NodeType.NODE_DIV
+            case TokenType.EQ_DIV_FLOOR:
+                node_type = NodeType.NODE_DIV_FLOOR
+            case TokenType.EQ_REMAIN:
+                node_type = NodeType.NODE_REMAIN
+            case TokenType.EQ_BIT_AND:
+                node_type = NodeType.NODE_BIT_AND
+            case TokenType.EQ_BIT_OR:
+                node_type = NodeType.NODE_BIT_OR
+            case TokenType.EQ_BIT_XOR:
+                node_type = NodeType.NODE_BIT_XOR
+            case TokenType.EQ_BIT_SHL:
+                node_type = NodeType.NODE_BIT_SHL
+            case TokenType.EQ_BIT_SHR:
+                node_type = NodeType.NODE_BIT_SHR
+            case _:
+                raise Exception("Unreachable")
+
+        return node_type
