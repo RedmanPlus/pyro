@@ -47,8 +47,17 @@ class Generation:
                 case CommandType.MUL:
                     instructions = self._generate_mul(command)
                     self.code_chunks += instructions
+                case CommandType.POV:
+                    instructions = self._generate_mul(command)
+                    self.code_chunks += instructions
                 case CommandType.DIV:
                     instructions = self._generate_div(command)
+                    self.code_chunks += instructions
+                case CommandType.FLOOR:
+                    instructions = self._generate_div(command)
+                    self.code_chunks += instructions
+                case CommandType.REMAIN:
+                    instructions = self._generate_remain(command)
                     self.code_chunks += instructions
                 case CommandType.BIT_AND:
                     instructions = self._generate_bit_and(command)
@@ -188,6 +197,24 @@ class Generation:
                 instruction_type=InstructionType.MOV,
                 register=X86_64_REGISTER_SCHEMA[actual_target.name],
                 data=X86_64_REGISTER_SCHEMA[command.target.name],
+            ),
+        )
+        return instructions
+
+    def _generate_remain(self, command: Command) -> list[ASMInstruction]:
+        actual_target = command.target
+        if not is_operand_a_register(actual_target):
+            raise Exception("Unreachable")
+
+        command.target = PseudoRegister(name="r0")
+        instructions = self._generate_carried_binop(
+            command=command, math_op_type=InstructionType.DIV
+        )
+        instructions.append(
+            DataMoveInstruction(
+                instruction_type=InstructionType.MOV,
+                register=X86_64_REGISTER_SCHEMA[actual_target.name],
+                data="rdx",
             ),
         )
         return instructions
