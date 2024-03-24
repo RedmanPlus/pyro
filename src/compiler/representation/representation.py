@@ -161,8 +161,14 @@ class IRBuilder:
                 return CommandType.SUB
             case NodeType.NODE_MULTI:
                 return CommandType.MUL
+            case NodeType.NODE_POV:
+                return CommandType.POV
             case NodeType.NODE_DIV:
                 return CommandType.DIV
+            case NodeType.NODE_DIV_FLOOR:
+                return CommandType.FLOOR
+            case NodeType.NODE_REMAIN:
+                return CommandType.REMAIN
             case NodeType.NODE_BIT_AND:
                 return CommandType.BIT_AND
             case NodeType.NODE_BIT_OR:

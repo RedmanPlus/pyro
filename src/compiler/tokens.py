@@ -10,12 +10,27 @@ class TokenType(Enum):
     MINUS = auto()
     MUL = auto()
     DIV = auto()
+    DIV_FLOOR = auto()
+    REMAIN = auto()
+    POV = auto()
     BIT_OR = auto()
     BIT_AND = auto()
     BIT_XOR = auto()
     BIT_NOT = auto()
     BIT_SHL = auto()
     BIT_SHR = auto()
+    EQ_PLUS = auto()
+    EQ_MINUS = auto()
+    EQ_MUL = auto()
+    EQ_DIV = auto()
+    EQ_DIV_FLOOR = auto()
+    EQ_REMAIN = auto()
+    EQ_POV = auto()
+    EQ_BIT_AND = auto()
+    EQ_BIT_OR = auto()
+    EQ_BIT_XOR = auto()
+    EQ_BIT_SHL = auto()
+    EQ_BIT_SHR = auto()
     COMMA = auto()
     OPEN_PAREN = auto()
     CLOSED_PAREN = auto()
@@ -122,19 +137,67 @@ class Tokenizer:
 
     def _process_plus(self):
         self._consume()
-        self.tokens.append(Token(token_type=TokenType.PLUS, line=self.line, pos=self.pos))
+        if self._peek(0) == "=":
+            self._consume()
+            self.tokens.append(Token(token_type=TokenType.EQ_PLUS, line=self.line, pos=self.pos))
+        else:
+            self.tokens.append(Token(token_type=TokenType.PLUS, line=self.line, pos=self.pos))
 
     def _process_minus(self):
         self._consume()
-        self.tokens.append(Token(token_type=TokenType.MINUS, line=self.line, pos=self.pos))
+        if self._peek(0) == "=":
+            self._consume()
+            self.tokens.append(Token(token_type=TokenType.EQ_MINUS, line=self.line, pos=self.pos))
+        else:
+            self.tokens.append(Token(token_type=TokenType.MINUS, line=self.line, pos=self.pos))
 
     def _process_mul(self):
         self._consume()
-        self.tokens.append(Token(token_type=TokenType.MUL, line=self.line, pos=self.pos))
+        is_pov = False
+        if self._peek(0) == "*":
+            self._consume()
+            is_pov = True
+        if self._peek(0) == "=":
+            self._consume()
+            self.tokens.append(
+                Token(
+                    token_type=TokenType.EQ_POV if is_pov else TokenType.EQ_MUL,
+                    line=self.line,
+                    pos=self.pos,
+                )
+            )
+        else:
+            self.tokens.append(
+                Token(
+                    token_type=TokenType.POV if is_pov else TokenType.MUL,
+                    line=self.line,
+                    pos=self.pos,
+                )
+            )
 
     def _process_div(self):
         self._consume()
-        self.tokens.append(Token(token_type=TokenType.DIV, line=self.line, pos=self.pos))
+        is_floor = False
+        if self._peek(0) == "/":
+            self._consume()
+            is_floor = True
+        if self._peek(0) == "=":
+            self._consume()
+            self.tokens.append(
+                Token(
+                    token_type=TokenType.EQ_DIV_FLOOR if is_floor else TokenType.EQ_DIV,
+                    line=self.line,
+                    pos=self.pos,
+                )
+            )
+        else:
+            self.tokens.append(
+                Token(
+                    token_type=TokenType.DIV_FLOOR if is_floor else TokenType.DIV,
+                    line=self.line,
+                    pos=self.pos,
+                )
+            )
 
     def _process_comma(self):
         self._consume()
@@ -142,15 +205,27 @@ class Tokenizer:
 
     def _process_bit_and(self):
         self._consume()
-        self.tokens.append(Token(token_type=TokenType.BIT_AND, line=self.line, pos=self.pos))
+        if self._peek(0) == "=":
+            self._consume()
+            self.tokens.append(Token(token_type=TokenType.EQ_BIT_AND, line=self.line, pos=self.pos))
+        else:
+            self.tokens.append(Token(token_type=TokenType.BIT_AND, line=self.line, pos=self.pos))
 
     def _process_bit_or(self):
         self._consume()
-        self.tokens.append(Token(token_type=TokenType.BIT_OR, line=self.line, pos=self.pos))
+        if self._peek(0) == "=":
+            self._consume()
+            self.tokens.append(Token(token_type=TokenType.EQ_BIT_OR, line=self.line, pos=self.pos))
+        else:
+            self.tokens.append(Token(token_type=TokenType.BIT_OR, line=self.line, pos=self.pos))
 
     def _process_bit_xor(self):
         self._consume()
-        self.tokens.append(Token(token_type=TokenType.BIT_XOR, line=self.line, pos=self.pos))
+        if self._peek(0) == "=":
+            self._consume()
+            self.tokens.append(Token(token_type=TokenType.EQ_BIT_XOR, line=self.line, pos=self.pos))
+        else:
+            self.tokens.append(Token(token_type=TokenType.BIT_XOR, line=self.line, pos=self.pos))
 
     def _process_bit_not(self):
         self._consume()
@@ -161,14 +236,22 @@ class Tokenizer:
         if self._peek(0) != "<":
             raise Exception(f"Expected shift left, got {self._peek(0)}")
         self._consume()
-        self.tokens.append(Token(token_type=TokenType.BIT_SHL, line=self.line, pos=self.pos))
+        if self._peek(0) == "=":
+            self._consume()
+            self.tokens.append(Token(token_type=TokenType.EQ_BIT_SHL, line=self.line, pos=self.pos))
+        else:
+            self.tokens.append(Token(token_type=TokenType.BIT_SHL, line=self.line, pos=self.pos))
 
     def _process_bit_shr(self):
         self._consume()
         if self._peek(0) != ">":
             raise Exception(f"Expected shift right, got {self._peek(0)}")
         self._consume()
-        self.tokens.append(Token(token_type=TokenType.BIT_SHR, line=self.line, pos=self.pos))
+        if self._peek(0) == "=":
+            self._consume()
+            self.tokens.append(Token(token_type=TokenType.EQ_BIT_SHR, line=self.line, pos=self.pos))
+        else:
+            self.tokens.append(Token(token_type=TokenType.BIT_SHR, line=self.line, pos=self.pos))
 
     def _process_open_paren(self):
         self._consume()
