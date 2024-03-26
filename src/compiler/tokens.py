@@ -34,6 +34,9 @@ class TokenType(Enum):
     COMMA = auto()
     OPEN_PAREN = auto()
     CLOSED_PAREN = auto()
+    IF = auto()
+    COLON = auto()
+    INDENT = auto()
     NEWLINE = auto()
 
 
@@ -60,6 +63,10 @@ class Tokenizer:
         self.tokens: list[Token] = []
         self.line: int = 1
         self.pos: int = 1
+        self.indent: bool = False
+        self._buildin_ops: dict[str, TokenType] = {
+            "if": TokenType.IF,
+        }
 
     def __call__(self, code: str) -> list[Token]:
         self.code = code
@@ -107,6 +114,8 @@ class Tokenizer:
                 self._process_open_paren()
             if current_char == ")":
                 self._process_closed_paren()
+            if current_char == ":":
+                self._process_colon()
         self.tokens.append(Token(token_type=TokenType.NEWLINE))
 
     def _process_alnum(self):
@@ -116,8 +125,18 @@ class Tokenizer:
             current_char = self._consume()
             char_buff.append(current_char)
         value = "".join(char_buff)
-        token = Token(token_type=TokenType.IDENT, content=value, line=line, pos=pos)
-        self.tokens.append(token)
+        is_buildin = self._process_build_ins(value=value)
+        if not is_buildin:
+            token = Token(token_type=TokenType.IDENT, content=value, line=line, pos=pos)
+            self.tokens.append(token)
+
+    def _process_build_ins(self, value: str) -> bool:
+        build_in = self._buildin_ops.get(value, None)
+        if build_in is not None:
+            token = Token(token_type=build_in, line=self.line, pos=self.pos)
+            self.tokens.append(token)
+            return True
+        return False
 
     def _process_digit(self):
         char_buff: list[str] = []
@@ -271,6 +290,10 @@ class Tokenizer:
         self._consume()
         self.tokens.append(Token(token_type=TokenType.CLOSED_PAREN, line=self.line, pos=self.pos))
 
+    def _process_colon(self):
+        self._consume()
+        self.tokens.append(Token(token_type=TokenType.COLON, line=self.line, pos=self.pos))
+
     def _peek(self, position: int) -> str | None:
         if self.code:
             return self.code[position]
@@ -285,10 +308,17 @@ class Tokenizer:
     def _trim_whitespace(self):
         while self._peek(0) is not None and self._peek(0).isspace():
             if self._peek(0) == "\n":
+                old_line = self.line
+                old_pos = self.pos
                 self.line += 1
                 self.pos = 1
-                self.tokens.append(Token(token_type=TokenType.NEWLINE))
+                self.tokens.append(Token(token_type=TokenType.NEWLINE, line=old_line, pos=old_pos))
+            if self.pos == 1:
+                self.indent = True
+            if self.indent and self.pos % 4 == 0:
+                self.tokens.append(Token(token_type=TokenType.INDENT, line=self.line, pos=self.pos))
             self._consume()
+        self.indent = False
 
     def pprint(self) -> str:
         result = [str(token) for token in self.tokens]

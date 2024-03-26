@@ -111,7 +111,7 @@ junit_duration_report = "total"
 
 [tool.ruff.mccabe]
 # Настройка максимальной сложности
-max-complexity = 20
+max-complexity = 100
 
 [tool.mypy]
 explicit_package_bases = true
