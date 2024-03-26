@@ -4,10 +4,12 @@ from src.compiler.generation.utils import (
     CallInstruction,
     DataMoveInstruction,
     InstructionType,
+    LabelInstruction,
     MathLogicInstruction,
 )
 from src.compiler.representation import Command, CommandType, Representation
 from src.compiler.representation.utils import (
+    Label,
     PseudoRegister,
     Variable,
     is_operand_a_register,
@@ -33,7 +35,11 @@ class Generation:
             )
         else:
             asm_header = "section .text\nglobal _start\n\n_start:\n"
-        for command in self.representation.commands:
+        for i, command in enumerate(self.representation.commands):
+            label = self.representation.get_label_by_id(i)
+            if label is not None:
+                instructions = self._generate_label(label)
+                self.code_chunks += instructions
             match command.operation:
                 case CommandType.STORE:
                     instructions = self._generate_store(command)
@@ -102,9 +108,9 @@ class Generation:
 
     def _generate_store(self, command: Command) -> list[ASMInstruction]:
         instructions: list[ASMInstruction] = []
-        saved_value: PseudoRegister | str | Variable = command.operand_a
+        saved_value: PseudoRegister | str | Variable | Label = command.operand_a
         target = command.target
-        if isinstance(target, PseudoRegister):
+        if isinstance(target, PseudoRegister | Label):
             raise Exception("Unreachable")
         variable_position = self._get_variable_index(target.name)
         if variable_position < 0:
@@ -316,6 +322,9 @@ class Generation:
         )
         return [instruction_a, instruction_b]
 
+    def _generate_label(self, label: Label) -> list[ASMInstruction]:
+        return [LabelInstruction(instruction_type=InstructionType.LABEL, label_name=label.name)]
+
     def _get_register_for_command(self, command: Command) -> tuple[str, str]:
         if is_operand_a_register(command.operand_a) and is_operand_a_register(command.operand_b):
             register_a = X86_64_REGISTER_SCHEMA[command.operand_a.name]  # type: ignore
@@ -363,7 +372,7 @@ class Generation:
 
     def _process_operand(
         self,
-        operand: PseudoRegister | Variable | str,
+        operand: PseudoRegister | Variable | str | Label,
         register_a: str,
         register_b: str,
         is_operand_b: bool,

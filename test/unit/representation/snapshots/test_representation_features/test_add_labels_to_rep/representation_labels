@@ -1,0 +1,6 @@
+main: 
+   a = STORE 5
+   b = STORE 6
+   c = STORE 7
+foo:
+   d = STORE 8
