@@ -3,8 +3,6 @@ from enum import Enum, auto
 
 
 class CommandType(Enum):
-    PUSH = auto()
-    POP = auto()
     SUM = auto()
     SUB = auto()
     MUL = auto()
@@ -18,6 +16,15 @@ class CommandType(Enum):
     BIT_NOT = auto()
     BIT_SHL = auto()
     BIT_SHR = auto()
+    CMP = auto()
+    JMP = auto()
+    JE = auto()
+    JNE = auto()
+    JZ = auto()
+    JG = auto()
+    JGE = auto()
+    JL = auto()
+    JLE = auto()
     STORE = auto()
 
 
@@ -61,17 +68,46 @@ class Label:
 @dataclass
 class Command:
     operation: CommandType
-    target: PseudoRegister | Variable
+    target: PseudoRegister | Variable | None
     operand_a: PseudoRegister | str | Variable | Label
     operand_b: PseudoRegister | str | Variable | None = None
 
+    def __init__(
+        self,
+        operation: CommandType,
+        target: PseudoRegister | Variable | None,
+        operand_a: PseudoRegister | str | Variable | Label,
+        operand_b: PseudoRegister | str | Variable | None = None,
+    ):
+        if (
+            operation
+            not in [
+                CommandType.JMP,
+                CommandType.JE,
+                CommandType.JNE,
+                CommandType.JZ,
+                CommandType.JG,
+                CommandType.JGE,
+                CommandType.JL,
+                CommandType.JLE,
+                CommandType.CMP,
+            ]
+            and target is None
+        ):
+            raise Exception(f"target cannot be None for operation {operation.name}")
+        self.operation = operation
+        self.target = target
+        self.operand_a = operand_a
+        self.operand_b = operand_b
+
     def __repr__(self) -> str:
-        target = self.target if isinstance(self.target, str) else self.target.name
         command_str = (
-            f"{target} = "
             f"{self.operation.name} "
             f"{self.operand_a if isinstance(self.operand_a, str) else self.operand_a.name}"
         )
+        if self.target is not None:
+            target = self.target if isinstance(self.target, str) else self.target.name
+            command_str = target + " = " + command_str
         if self.operand_b is not None:
             command_str += (
                 f", {self.operand_b if isinstance(self.operand_b, str) else self.operand_b.name}"
