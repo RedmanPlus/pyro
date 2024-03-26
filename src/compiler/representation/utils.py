@@ -50,10 +50,19 @@ class Variable:
 
 
 @dataclass
+class Label:
+    name: str
+    position: int
+
+    def __repr__(self) -> str:
+        return f"{self.name}:"
+
+
+@dataclass
 class Command:
     operation: CommandType
     target: PseudoRegister | Variable
-    operand_a: PseudoRegister | str | Variable
+    operand_a: PseudoRegister | str | Variable | Label
     operand_b: PseudoRegister | str | Variable | None = None
 
     def __repr__(self) -> str:
@@ -75,6 +84,7 @@ class Command:
 class Representation:
     block_name: str
     commands: list[Command] = field(default_factory=list)
+    labels: dict[str, Label] = field(default_factory=dict)
     variable_table: dict[str, Variable] = field(default_factory=dict)
 
     def append(self, command: Command):
@@ -86,6 +96,14 @@ class Representation:
         variable = Variable(name=varname, value=value, var_type=var_type)
         self.variable_table[varname] = variable
         return variable
+
+    def add_label(self, label_name: str):
+        label_pos = len(self.commands)
+        if self.get_label(label_name=label_name) is not None:
+            raise Exception(f"Label by name {label_name} already exists")
+        label = Label(name=label_name, position=label_pos)
+        self.labels[label_name] = label
+        return label
 
     def get_var(self, varname: str) -> Variable | None:
         return self.variable_table.get(varname, None)
@@ -101,9 +119,15 @@ class Representation:
 
         raise Exception("Unreachable")
 
+    def get_label(self, label_name: str) -> Label | None:
+        return self.labels.get(label_name, None)
+
     def pprint(self) -> str:
         header = f"{self.block_name}: " + "\n"
-        for command in self.commands:
+        for i, command in enumerate(self.commands):
+            label = self._get_label_by_id(i)
+            if label is not None:
+                header += str(label) + "\n"
             header += "   " + str(command) + "\n"
 
         return header
@@ -114,6 +138,13 @@ class Representation:
             header += f"    {var}" + "\n"
 
         return header
+
+    def _get_label_by_id(self, label_id: int) -> Label | None:
+        for label in self.labels.values():
+            if label.position == label_id:
+                return label
+
+        return None
 
 
 def is_operand_a_register(operand: PseudoRegister | str | Variable | None) -> bool:

@@ -241,7 +241,10 @@ class Parser:
             TokenType.PLUS,
             TokenType.MINUS,
             TokenType.MUL,
+            TokenType.POV,
             TokenType.DIV,
+            TokenType.DIV_FLOOR,
+            TokenType.REMAIN,
             TokenType.BIT_AND,
             TokenType.BIT_OR,
             TokenType.BIT_XOR,
@@ -285,7 +288,13 @@ class Parser:
                 return 5
             case TokenType.MUL:
                 return 6
+            case TokenType.POV:
+                return 8
             case TokenType.DIV:
+                return 6
+            case TokenType.DIV_FLOOR:
+                return 6
+            case TokenType.REMAIN:
                 return 6
             case TokenType.BIT_AND:
                 return 3
@@ -312,8 +321,14 @@ class Parser:
                 node_type = NodeType.NODE_MINUS
             case TokenType.MUL:
                 node_type = NodeType.NODE_MULTI
+            case TokenType.POV:
+                node_type = NodeType.NODE_POV
             case TokenType.DIV:
                 node_type = NodeType.NODE_DIV
+            case TokenType.DIV_FLOOR:
+                node_type = NodeType.NODE_DIV_FLOOR
+            case TokenType.REMAIN:
+                node_type = NodeType.NODE_REMAIN
             case TokenType.BIT_AND:
                 node_type = NodeType.NODE_BIT_AND
             case TokenType.BIT_OR:

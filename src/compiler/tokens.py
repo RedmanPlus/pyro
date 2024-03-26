@@ -87,6 +87,8 @@ class Tokenizer:
                 self._process_mul()
             if current_char == "/":
                 self._process_div()
+            if current_char == "%":
+                self._process_remain()
             if current_char == ",":
                 self._process_comma()
             if current_char == "&":
@@ -198,6 +200,14 @@ class Tokenizer:
                     pos=self.pos,
                 )
             )
+
+    def _process_remain(self):
+        self._consume()
+        if self._peek(0) == "=":
+            self._consume()
+            self.tokens.append(Token(token_type=TokenType.EQ_REMAIN, line=self.line, pos=self.pos))
+        else:
+            self.tokens.append(Token(token_type=TokenType.REMAIN, line=self.line, pos=self.pos))
 
     def _process_comma(self):
         self._consume()
