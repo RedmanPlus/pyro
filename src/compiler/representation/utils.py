@@ -59,7 +59,7 @@ class Variable:
 @dataclass
 class Label:
     name: str
-    position: int
+    position: int = -1
 
     def __repr__(self) -> str:
         return f"{self.name}:"
@@ -124,6 +124,8 @@ class Representation:
     variable_table: dict[str, Variable] = field(default_factory=dict)
 
     def append(self, command: Command):
+        if isinstance(command.operand_a, Label):
+            self._add_label_intrinsic(label=command.operand_a)
         self.commands.append(command)
 
     def register_var(
@@ -135,8 +137,9 @@ class Representation:
 
     def add_label(self, label_name: str):
         label_pos = len(self.commands)
-        if self.get_label(label_name=label_name) is not None:
-            raise Exception(f"Label by name {label_name} already exists")
+        if (label := self.get_label(label_name=label_name)) is not None:
+            label.position = label_pos
+            return label
         label = Label(name=label_name, position=label_pos)
         self.labels[label_name] = label
         return label
@@ -181,6 +184,9 @@ class Representation:
                 return label
 
         return None
+
+    def _add_label_intrinsic(self, label: Label):
+        self.labels[label.name] = label
 
 
 def is_operand_a_register(operand: PseudoRegister | str | Variable | Label | None) -> bool:

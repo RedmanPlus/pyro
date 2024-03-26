@@ -1,0 +1,11 @@
+main: 
+   a = STORE 5
+   b = STORE 6
+   c = STORE 7
+   CMP a, b
+   JNE foo
+   JMP bar
+foo:
+   d = STORE 8
+bar:
+   e = STORE 9
