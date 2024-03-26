@@ -1,41 +1,43 @@
 NodeType.NODE_PROG {
-    NodeType.NODE_STMT {
-        NodeType.NODE_TERM {
-            NodeType.NODE_IDENT: x {}
-        }
+    NodeType.NODE_SCOPE {
+        NodeType.NODE_STMT {
+            NodeType.NODE_TERM {
+                NodeType.NODE_IDENT: x {}
+            }
 
-        NodeType.NODE_BIN_EXPR {
             NodeType.NODE_BIN_EXPR {
-                NodeType.NODE_TERM {
-                    NodeType.NODE_VALUE: 34 {}
+                NodeType.NODE_BIN_EXPR {
+                    NodeType.NODE_TERM {
+                        NodeType.NODE_VALUE: 34 {}
+                    }
+
+                    NodeType.NODE_PLUS {}
+
+                    NodeType.NODE_BIN_EXPR {
+                        NodeType.NODE_TERM {
+                            NodeType.NODE_VALUE: 35 {}
+                        }
+
+                        NodeType.NODE_MULTI {}
+
+                        NodeType.NODE_TERM {
+                            NodeType.NODE_VALUE: 36 {}
+                        }
+                    }
                 }
 
                 NodeType.NODE_PLUS {}
 
                 NodeType.NODE_BIN_EXPR {
                     NodeType.NODE_TERM {
-                        NodeType.NODE_VALUE: 35 {}
+                        NodeType.NODE_VALUE: 37 {}
                     }
 
                     NodeType.NODE_MULTI {}
 
                     NodeType.NODE_TERM {
-                        NodeType.NODE_VALUE: 36 {}
+                        NodeType.NODE_VALUE: 38 {}
                     }
-                }
-            }
-
-            NodeType.NODE_PLUS {}
-
-            NodeType.NODE_BIN_EXPR {
-                NodeType.NODE_TERM {
-                    NodeType.NODE_VALUE: 37 {}
-                }
-
-                NodeType.NODE_MULTI {}
-
-                NodeType.NODE_TERM {
-                    NodeType.NODE_VALUE: 38 {}
                 }
             }
         }

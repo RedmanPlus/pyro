@@ -23,6 +23,14 @@ class IRBuilder:
     def _parse_prog(self, node: Node):
         for child in node.children:
             match child.node_type:
+                case NodeType.NODE_SCOPE:
+                    self._parse_scope(child)
+                case _:
+                    raise Exception("Unreachable")
+
+    def _parse_scope(self, node: Node):
+        for child in node.children:
+            match child.node_type:
                 case NodeType.NODE_STMT:
                     self._parse_stmt(child)
                 case _:
