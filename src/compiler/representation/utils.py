@@ -125,7 +125,7 @@ class Representation:
     def pprint(self) -> str:
         header = f"{self.block_name}: " + "\n"
         for i, command in enumerate(self.commands):
-            label = self._get_label_by_id(i)
+            label = self.get_label_by_id(i)
             if label is not None:
                 header += str(label) + "\n"
             header += "   " + str(command) + "\n"
@@ -139,7 +139,7 @@ class Representation:
 
         return header
 
-    def _get_label_by_id(self, label_id: int) -> Label | None:
+    def get_label_by_id(self, label_id: int) -> Label | None:
         for label in self.labels.values():
             if label.position == label_id:
                 return label
@@ -147,13 +147,13 @@ class Representation:
         return None
 
 
-def is_operand_a_register(operand: PseudoRegister | str | Variable | None) -> bool:
+def is_operand_a_register(operand: PseudoRegister | str | Variable | Label | None) -> bool:
     return isinstance(operand, PseudoRegister)
 
 
-def is_operand_a_variable(operand: PseudoRegister | str | Variable | None) -> bool:
+def is_operand_a_variable(operand: PseudoRegister | str | Variable | Label | None) -> bool:
     return isinstance(operand, Variable)
 
 
-def is_operand_a_value(operand: PseudoRegister | str | Variable | None) -> bool:
+def is_operand_a_value(operand: PseudoRegister | str | Variable | Label | None) -> bool:
     return isinstance(operand, str)

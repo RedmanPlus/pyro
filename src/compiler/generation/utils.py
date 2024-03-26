@@ -24,6 +24,7 @@ X86_64_REGISTER_SCHEMA: dict[str, str] = {
 
 
 class InstructionType(Enum):
+    LABEL = ""
     MOV = "mov"
     PUSH = "push"
     POP = "pop"
@@ -87,3 +88,12 @@ class CallInstruction(ASMInstruction):
         if self.callee is not None:
             return f"    {self.instruction_type.value} {self.callee}"
         return f"    {self.instruction_type.value}"
+
+
+@dataclass
+class LabelInstruction(ASMInstruction):
+    instruction_type: InstructionType
+    label_name: str
+
+    def to_asm(self) -> str:
+        return f"{self.label_name}:"
