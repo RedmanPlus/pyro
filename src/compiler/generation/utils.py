@@ -39,6 +39,15 @@ class InstructionType(Enum):
     SHL = "shl"
     SHR = "shr"
     LEA = "lea"
+    CMP = "cmp"
+    JMP = "jmp"
+    JE = "je"
+    JNE = "jne"
+    JZ = "jz"
+    JG = "jg"
+    JGE = "jge"
+    JL = "jl"
+    JLE = "jle"
     SYSCALL = "syscall"
     CALL = "call"
     EXTERN = "extern"
@@ -77,6 +86,22 @@ class MathLogicInstruction(ASMInstruction):
         if len(self.registers) == 1:
             return f"    {self.instruction_type.value} {self.registers[0]}"
         return f"    {self.instruction_type.value} {self.registers[0]}, {self.registers[1]}"
+
+
+@dataclass
+class ControllFlowInstruction(ASMInstruction):
+    instruction_type: InstructionType
+    data: tuple[str, ...]
+
+    def to_asm(self) -> str:
+        inst = f"    {self.instruction_type.value} "
+        for i, elem in enumerate(self.data):
+            if (len(self.data) == 1) or (i == len(self.data) - 1):
+                inst += f"{elem}"
+            elif i < len(self.data) - 1:
+                inst += f"{elem}, "
+
+        return inst
 
 
 @dataclass
