@@ -90,6 +90,27 @@ class Generation:
                 case CommandType.JMP:
                     instructions = self._generate_jump(command, jump_type=InstructionType.JMP)
                     self.code_chunks += instructions
+                case CommandType.JE:
+                    instructions = self._generate_jump(command, jump_type=InstructionType.JE)
+                    self.code_chunks += instructions
+                case CommandType.JNE:
+                    instructions = self._generate_jump(command, jump_type=InstructionType.JNE)
+                    self.code_chunks += instructions
+                case CommandType.JZ:
+                    instructions = self._generate_jump(command, jump_type=InstructionType.JZ)
+                    self.code_chunks += instructions
+                case CommandType.JG:
+                    instructions = self._generate_jump(command, jump_type=InstructionType.JG)
+                    self.code_chunks += instructions
+                case CommandType.JGE:
+                    instructions = self._generate_jump(command, jump_type=InstructionType.JGE)
+                    self.code_chunks += instructions
+                case CommandType.JL:
+                    instructions = self._generate_jump(command, jump_type=InstructionType.JL)
+                    self.code_chunks += instructions
+                case CommandType.JLE:
+                    instructions = self._generate_jump(command, jump_type=InstructionType.JLE)
+                    self.code_chunks += instructions
                 case _:
                     raise Exception("Unreachable")
         if self.debug:
