@@ -2,6 +2,7 @@ from src.compiler.generation.utils import (
     X86_64_REGISTER_SCHEMA,
     ASMInstruction,
     CallInstruction,
+    ControllFlowInstruction,
     DataMoveInstruction,
     InstructionType,
     LabelInstruction,
@@ -83,6 +84,33 @@ class Generation:
                 case CommandType.BIT_SHR:
                     instructions = self._generate_bit_shr(command)
                     self.code_chunks += instructions
+                case CommandType.CMP:
+                    instructions = self._generate_cmp(command)
+                    self.code_chunks += instructions
+                case CommandType.JMP:
+                    instructions = self._generate_jump(command, jump_type=InstructionType.JMP)
+                    self.code_chunks += instructions
+                case CommandType.JE:
+                    instructions = self._generate_jump(command, jump_type=InstructionType.JE)
+                    self.code_chunks += instructions
+                case CommandType.JNE:
+                    instructions = self._generate_jump(command, jump_type=InstructionType.JNE)
+                    self.code_chunks += instructions
+                case CommandType.JZ:
+                    instructions = self._generate_jump(command, jump_type=InstructionType.JZ)
+                    self.code_chunks += instructions
+                case CommandType.JG:
+                    instructions = self._generate_jump(command, jump_type=InstructionType.JG)
+                    self.code_chunks += instructions
+                case CommandType.JGE:
+                    instructions = self._generate_jump(command, jump_type=InstructionType.JGE)
+                    self.code_chunks += instructions
+                case CommandType.JL:
+                    instructions = self._generate_jump(command, jump_type=InstructionType.JL)
+                    self.code_chunks += instructions
+                case CommandType.JLE:
+                    instructions = self._generate_jump(command, jump_type=InstructionType.JLE)
+                    self.code_chunks += instructions
                 case _:
                     raise Exception("Unreachable")
         if self.debug:
@@ -110,7 +138,7 @@ class Generation:
         instructions: list[ASMInstruction] = []
         saved_value: PseudoRegister | str | Variable | Label = command.operand_a
         target = command.target
-        if isinstance(target, PseudoRegister | Label):
+        if not isinstance(target, Variable):
             raise Exception("Unreachable")
         variable_position = self._get_variable_index(target.name)
         if variable_position < 0:
@@ -183,7 +211,7 @@ class Generation:
         instructions.append(
             DataMoveInstruction(
                 instruction_type=InstructionType.MOV,
-                register=X86_64_REGISTER_SCHEMA[actual_target.name],
+                register=X86_64_REGISTER_SCHEMA[actual_target.name],  # type: ignore
                 data=X86_64_REGISTER_SCHEMA[command.target.name],
             ),
         )
@@ -201,7 +229,7 @@ class Generation:
         instructions.append(
             DataMoveInstruction(
                 instruction_type=InstructionType.MOV,
-                register=X86_64_REGISTER_SCHEMA[actual_target.name],
+                register=X86_64_REGISTER_SCHEMA[actual_target.name],  # type: ignore
                 data=X86_64_REGISTER_SCHEMA[command.target.name],
             ),
         )
@@ -219,7 +247,7 @@ class Generation:
         instructions.append(
             DataMoveInstruction(
                 instruction_type=InstructionType.MOV,
-                register=X86_64_REGISTER_SCHEMA[actual_target.name],
+                register=X86_64_REGISTER_SCHEMA[actual_target.name],  # type: ignore
                 data="rdx",
             ),
         )
@@ -308,7 +336,7 @@ class Generation:
         register = (
             X86_64_REGISTER_SCHEMA[command.operand_a.name]  # type: ignore
             if is_operand_a_register(command.operand_a)
-            else X86_64_REGISTER_SCHEMA[command.target.name]
+            else X86_64_REGISTER_SCHEMA[command.target.name]  # type: ignore
         )  # type: ignore
 
         instruction_a = self._process_operand(
@@ -324,6 +352,40 @@ class Generation:
 
     def _generate_label(self, label: Label) -> list[ASMInstruction]:
         return [LabelInstruction(instruction_type=InstructionType.LABEL, label_name=label.name)]
+
+    def _generate_cmp(self, command: Command) -> list[ASMInstruction]:
+        command.target = PseudoRegister("r0")
+        register_a, register_b = self._get_register_for_command(command=command)
+        instruction: list[ASMInstruction] = []
+        operand_a = self._process_operand(
+            operand=command.operand_a,
+            register_a=register_a,
+            register_b=register_b,
+            is_operand_b=False,
+        )
+        operand_b = self._process_operand(
+            operand=command.operand_b,  # type: ignore
+            register_a=register_a,
+            register_b=register_b,
+            is_operand_b=True,
+        )
+        cmp = ControllFlowInstruction(
+            instruction_type=InstructionType.CMP, data=(register_a, register_b)
+        )
+        if operand_a is not None:
+            instruction.append(operand_a)
+        if operand_b is not None:
+            instruction.append(operand_b)
+        instruction.append(cmp)
+
+        return instruction
+
+    def _generate_jump(self, command: Command, jump_type: InstructionType) -> list[ASMInstruction]:
+        if not isinstance(command.operand_a, Label):
+            raise Exception("cannot jump to anything but label")
+        resulting_target = command.operand_a
+
+        return [ControllFlowInstruction(instruction_type=jump_type, data=(resulting_target.name,))]
 
     def _get_register_for_command(self, command: Command) -> tuple[str, str]:
         if is_operand_a_register(command.operand_a) and is_operand_a_register(command.operand_b):

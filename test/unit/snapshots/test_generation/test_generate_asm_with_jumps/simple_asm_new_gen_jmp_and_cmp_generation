@@ -1,0 +1,22 @@
+section .text
+global _start
+
+_start:
+    mov rax, 5
+    push rax
+    mov rax, 6
+    push rax
+    mov rax, 7
+    push rax
+    mov rax, QWORD [rsp + 16]
+    mov rbx, QWORD [rsp + 8]
+    cmp rax, rbx
+    jmp bar
+    mov rax, 8
+    push rax
+bar:
+    mov rax, 9
+    push rax
+    mov rax, 60
+    mov rdi, 0
+    syscall

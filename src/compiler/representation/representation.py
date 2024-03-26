@@ -45,7 +45,7 @@ class IRBuilder:
                 command_declare = Command(
                     operation=CommandType.STORE,
                     target=var,
-                    operand_a=command_expr.target,
+                    operand_a=command_expr.target,  # type: ignore
                 )
                 self.commands.append(command_declare)
             case NodeType.NODE_TERM:
@@ -151,7 +151,7 @@ class IRBuilder:
             else PseudoRegister(f"r{self.used_register_count}")
         )
         self.used_register_count += 1
-        return Command(target=target, operation=operation, operand_a=operand)
+        return Command(target=target, operation=operation, operand_a=operand)  # type: ignore
 
     def _parse_operand(self, node: Node) -> CommandType:
         match node.node_type:

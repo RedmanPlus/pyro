@@ -3,8 +3,6 @@ from enum import Enum, auto
 
 
 class CommandType(Enum):
-    PUSH = auto()
-    POP = auto()
     SUM = auto()
     SUB = auto()
     MUL = auto()
@@ -18,6 +16,15 @@ class CommandType(Enum):
     BIT_NOT = auto()
     BIT_SHL = auto()
     BIT_SHR = auto()
+    CMP = auto()
+    JMP = auto()
+    JE = auto()
+    JNE = auto()
+    JZ = auto()
+    JG = auto()
+    JGE = auto()
+    JL = auto()
+    JLE = auto()
     STORE = auto()
 
 
@@ -52,7 +59,7 @@ class Variable:
 @dataclass
 class Label:
     name: str
-    position: int
+    position: int = -1
 
     def __repr__(self) -> str:
         return f"{self.name}:"
@@ -61,17 +68,46 @@ class Label:
 @dataclass
 class Command:
     operation: CommandType
-    target: PseudoRegister | Variable
+    target: PseudoRegister | Variable | None
     operand_a: PseudoRegister | str | Variable | Label
     operand_b: PseudoRegister | str | Variable | None = None
 
+    def __init__(
+        self,
+        operation: CommandType,
+        target: PseudoRegister | Variable | None,
+        operand_a: PseudoRegister | str | Variable | Label,
+        operand_b: PseudoRegister | str | Variable | None = None,
+    ):
+        if (
+            operation
+            not in [
+                CommandType.JMP,
+                CommandType.JE,
+                CommandType.JNE,
+                CommandType.JZ,
+                CommandType.JG,
+                CommandType.JGE,
+                CommandType.JL,
+                CommandType.JLE,
+                CommandType.CMP,
+            ]
+            and target is None
+        ):
+            raise Exception(f"target cannot be None for operation {operation.name}")
+        self.operation = operation
+        self.target = target
+        self.operand_a = operand_a
+        self.operand_b = operand_b
+
     def __repr__(self) -> str:
-        target = self.target if isinstance(self.target, str) else self.target.name
         command_str = (
-            f"{target} = "
             f"{self.operation.name} "
             f"{self.operand_a if isinstance(self.operand_a, str) else self.operand_a.name}"
         )
+        if self.target is not None:
+            target = self.target if isinstance(self.target, str) else self.target.name
+            command_str = target + " = " + command_str
         if self.operand_b is not None:
             command_str += (
                 f", {self.operand_b if isinstance(self.operand_b, str) else self.operand_b.name}"
@@ -88,6 +124,8 @@ class Representation:
     variable_table: dict[str, Variable] = field(default_factory=dict)
 
     def append(self, command: Command):
+        if isinstance(command.operand_a, Label):
+            self._add_label_intrinsic(label=command.operand_a)
         self.commands.append(command)
 
     def register_var(
@@ -99,8 +137,9 @@ class Representation:
 
     def add_label(self, label_name: str):
         label_pos = len(self.commands)
-        if self.get_label(label_name=label_name) is not None:
-            raise Exception(f"Label by name {label_name} already exists")
+        if (label := self.get_label(label_name=label_name)) is not None:
+            label.position = label_pos
+            return label
         label = Label(name=label_name, position=label_pos)
         self.labels[label_name] = label
         return label
@@ -145,6 +184,9 @@ class Representation:
                 return label
 
         return None
+
+    def _add_label_intrinsic(self, label: Label):
+        self.labels[label.name] = label
 
 
 def is_operand_a_register(operand: PseudoRegister | str | Variable | Label | None) -> bool:
