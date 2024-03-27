@@ -155,7 +155,7 @@ class Representation:
 
         for label_name, label in labels_to_delete:
             del self.labels[label_name]
-            existing_label = self.get_label_by_id(label.position)
+            existing_label = self._get_label_by_id(label.position)
             self.replace_label_in_commands(old_label=label, new_label=existing_label)
 
     def get_var(self, varname: str) -> Variable | None:
@@ -178,7 +178,7 @@ class Representation:
     def pprint(self) -> str:
         header = f"{self.block_name}: " + "\n"
         for i, command in enumerate(self.commands):
-            label = self.get_label_by_id(i)
+            label = self._get_label_by_id(i)
             if label is not None:
                 header += str(label) + "\n"
             header += "   " + str(command) + "\n"
@@ -192,17 +192,31 @@ class Representation:
 
         return header
 
-    def get_label_by_id(self, label_id: int) -> Label | None:
-        for label in self.labels.values():
+    def take_label_by_id(self, label_id: int) -> Label | None:
+        label_to_remove: tuple[str, Label] | None = None
+        for label_name, label in self.labels.items():
             if label.position == label_id:
-                return label
+                label_to_remove = label_name, label
+                break
 
-        return None
+        if label_to_remove is None:
+            return None
+
+        label_name, label = label_to_remove
+        del self.labels[label_name]
+        return label
 
     def replace_label_in_commands(self, old_label: Label, new_label: Label):
         for command in self.commands:
             if command.operand_a == old_label:
                 command.operand_a = new_label
+
+    def _get_label_by_id(self, label_id: int) -> Label | None:
+        for label in self.labels.values():
+            if label.position == label_id:
+                return label
+
+        return None
 
     def _add_label_intrinsic(self, label: Label):
         self.labels[label.name] = label

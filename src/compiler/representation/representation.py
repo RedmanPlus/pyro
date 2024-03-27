@@ -109,11 +109,21 @@ class IRBuilder:
                 )
             )
 
-        label_name = self._generate_label_name(optype="if", scope_depth=scope_depth)
-        self.commands.append(Command(operation=CommandType.JE, operand_a=Label(name=label_name)))
-        scope_node = node.children[1]
-        self._parse_scope(scope_node, scope_depth=scope_depth + 1)
-        self.commands.add_label(label_name)
+        if_label_name = self._generate_label_name(optype="if", scope_depth=scope_depth)
+        self.commands.append(Command(operation=CommandType.JE, operand_a=Label(name=if_label_name)))
+        if_scope_node = node.children[1]
+        self._parse_scope(if_scope_node, scope_depth=scope_depth + 1)
+        try:
+            else_scope_node = node.children[2]
+            else_label_name = self._generate_label_name(optype="else", scope_depth=scope_depth)
+            self.commands.append(
+                Command(operation=CommandType.JMP, operand_a=Label(name=else_label_name))
+            )
+            self.commands.add_label(if_label_name)
+            self._parse_scope(else_scope_node, scope_depth=scope_depth + 1)
+            self.commands.add_label(else_label_name)
+        except IndexError:
+            self.commands.add_label(if_label_name)
 
     def _parse_bin_expr(self, node: Node) -> Command:
         node_term_a: Node = node.children[0]

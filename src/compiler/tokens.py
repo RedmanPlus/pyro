@@ -35,6 +35,7 @@ class TokenType(Enum):
     OPEN_PAREN = auto()
     CLOSED_PAREN = auto()
     IF = auto()
+    ELSE = auto()
     COLON = auto()
     INDENT = auto()
     NEWLINE = auto()
@@ -64,9 +65,7 @@ class Tokenizer:
         self.line: int = 1
         self.pos: int = 1
         self.indent: bool = False
-        self._buildin_ops: dict[str, TokenType] = {
-            "if": TokenType.IF,
-        }
+        self._buildin_ops: dict[str, TokenType] = {"if": TokenType.IF, "else": TokenType.ELSE}
 
     def __call__(self, code: str) -> list[Token]:
         self.code = code

@@ -80,3 +80,11 @@ def test_tokenize_if_statement_and_scopes(snapshot):
     tokenizer = Tokenizer()
     tokenizer(code=code)
     snapshot.assert_match(tokenizer.pprint(), "tokenize_if_and_scopes")
+
+
+@pytest.mark.tokenizer
+def test_tokenize_if_else_statement(snapshot):
+    code = "x = 1\n" "if 1:\n" "    x = 2\n" "else:\n" "    x = 1\n"
+    tokenizer = Tokenizer()
+    tokenizer(code=code)
+    snapshot.assert_match(tokenizer.pprint(), "tokenize_if_else")

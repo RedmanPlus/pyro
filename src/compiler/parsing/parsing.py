@@ -10,6 +10,7 @@ class NodeType(Enum):
     NODE_SCOPE = auto()
     NODE_STMT = auto()
     NODE_IF = auto()
+    NODE_ELSE = auto()
     NODE_EXPR = auto()
     NODE_BIN_EXPR = auto()
     NODE_TERM = auto()
@@ -102,6 +103,12 @@ class Parser:
                 subscope = self._parse_scope(depth=depth + 1)
                 stmts.children.append(subscope)
                 node_scope.children.append(stmts)
+            elif isinstance(stmts, Node) and stmts.node_type == NodeType.NODE_ELSE:
+                subscope = self._parse_scope(depth=depth + 1)
+                node_if = node_scope.children[-1]
+                if node_if.node_type != NodeType.NODE_IF:
+                    raise Exception("else without if")
+                node_if.children.append(subscope)
             else:
                 node_scope.children += stmts  # type: ignore
 
@@ -113,6 +120,8 @@ class Parser:
                 return self._parse_assignment_stmts()
             case TokenType.IF:
                 return self._parse_if_stmt()
+            case TokenType.ELSE:
+                return self._parse_else()
             case _:
                 raise Exception("Unreachable")
 
@@ -140,6 +149,14 @@ class Parser:
         self._consume()
         node_if.children.append(condition)
         return node_if
+
+    def _parse_else(self) -> Node:
+        self._consume()
+        node_else = Node(node_type=NodeType.NODE_ELSE)
+        if self._peek(0).token_type != TokenType.COLON:
+            raise Exception(f"Expected colon after else statement, got {self._peek(0)}")
+        self._consume()
+        return node_else
 
     def _parse_idents(self) -> tuple[list[Node], Node | None]:
         token_ident = self._consume()
