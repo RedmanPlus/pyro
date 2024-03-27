@@ -1,18 +1,20 @@
 NodeType.NODE_PROG {
-    NodeType.NODE_STMT {
-        NodeType.NODE_TERM {
-            NodeType.NODE_IDENT: x {}
-        }
-
-        NodeType.NODE_BIN_EXPR {
+    NodeType.NODE_SCOPE {
+        NodeType.NODE_STMT {
             NodeType.NODE_TERM {
-                NodeType.NODE_VALUE: 34 {}
+                NodeType.NODE_IDENT: x {}
             }
 
-            NodeType.NODE_PLUS {}
+            NodeType.NODE_BIN_EXPR {
+                NodeType.NODE_TERM {
+                    NodeType.NODE_VALUE: 34 {}
+                }
 
-            NodeType.NODE_TERM {
-                NodeType.NODE_VALUE: 35 {}
+                NodeType.NODE_PLUS {}
+
+                NodeType.NODE_TERM {
+                    NodeType.NODE_VALUE: 35 {}
+                }
             }
         }
     }

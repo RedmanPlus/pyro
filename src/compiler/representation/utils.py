@@ -75,8 +75,8 @@ class Command:
     def __init__(
         self,
         operation: CommandType,
-        target: PseudoRegister | Variable | None,
         operand_a: PseudoRegister | str | Variable | Label,
+        target: PseudoRegister | Variable | None = None,
         operand_b: PseudoRegister | str | Variable | None = None,
     ):
         if (
@@ -144,6 +144,20 @@ class Representation:
         self.labels[label_name] = label
         return label
 
+    def clear_labels(self):
+        existing_positions: set[int] = set()
+        labels_to_delete: list[tuple[str, Label]] = []
+        for label_name, label in self.labels.items():
+            old_positions = len(existing_positions)
+            existing_positions.add(label.position)
+            if len(existing_positions) == old_positions:
+                labels_to_delete.append((label_name, label))
+
+        for label_name, label in labels_to_delete:
+            del self.labels[label_name]
+            existing_label = self.get_label_by_id(label.position)
+            self.replace_label_in_commands(old_label=label, new_label=existing_label)
+
     def get_var(self, varname: str) -> Variable | None:
         return self.variable_table.get(varname, None)
 
@@ -184,6 +198,11 @@ class Representation:
                 return label
 
         return None
+
+    def replace_label_in_commands(self, old_label: Label, new_label: Label):
+        for command in self.commands:
+            if command.operand_a == old_label:
+                command.operand_a = new_label
 
     def _add_label_intrinsic(self, label: Label):
         self.labels[label.name] = label

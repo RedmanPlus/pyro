@@ -2,6 +2,7 @@ from src.compiler.parsing import Node, NodeType
 from src.compiler.representation.utils import (
     Command,
     CommandType,
+    Label,
     PseudoRegister,
     Representation,
     Variable,
@@ -12,19 +13,31 @@ class IRBuilder:
     def __init__(self, ast: Node | None = None):
         self.ast: Node | None = ast
         self.commands: Representation = Representation(block_name="main")
+        self.label_names: list[str] = []
         self.used_register_count: int = 8
 
     def __call__(self, ast: Node) -> Representation:
         if self.ast is None:
             self.ast = ast
         self._parse_prog(self.ast)
+        self.commands.clear_labels()
         return self.commands
 
     def _parse_prog(self, node: Node):
         for child in node.children:
             match child.node_type:
+                case NodeType.NODE_SCOPE:
+                    self._parse_scope(child)
+                case _:
+                    raise Exception("Unreachable")
+
+    def _parse_scope(self, node: Node, scope_depth: int = 0):
+        for child in node.children:
+            match child.node_type:
                 case NodeType.NODE_STMT:
                     self._parse_stmt(child)
+                case NodeType.NODE_IF:
+                    self._parse_if(child, scope_depth=scope_depth)
                 case _:
                     raise Exception("Unreachable")
 
@@ -60,6 +73,47 @@ class IRBuilder:
                     operand_a=node_dec.children[0].value,
                 )
                 self.commands.append(command_declare)
+
+    def _parse_if(self, node: Node, scope_depth: int):
+        condition = node.children[0]
+        comparison_target: str | Variable
+        if condition.node_type == NodeType.NODE_TERM:
+            comparison_target_node = condition.children[0]
+            if comparison_target_node.node_type == NodeType.NODE_IDENT:
+                if comparison_target_node.value is None:
+                    raise Exception("Unreachable")
+                var = self.commands.get_var(comparison_target_node.value)
+                if var is None:
+                    raise Exception("Unreachable")
+                comparison_target = var
+            elif comparison_target_node.node_type == NodeType.NODE_VALUE:
+                if comparison_target_node.value is None:
+                    raise Exception("Unreachable")
+                comparison_target = comparison_target_node.value
+            else:
+                raise Exception("Unreachable")
+            if comparison_target is None:
+                raise Exception("Unreachable")
+            self.commands.append(
+                Command(operation=CommandType.CMP, operand_a=comparison_target, operand_b="0")
+            )
+        elif condition.node_type == NodeType.NODE_BIN_EXPR:
+            comparison_target_expr = self._parse_bin_expr(condition)
+            if comparison_target_expr.target is None:
+                raise Exception("Unreachable")
+            self.commands.append(
+                Command(
+                    operation=CommandType.CMP,
+                    operand_a=comparison_target_expr.target,
+                    operand_b="0",
+                )
+            )
+
+        label_name = self._generate_label_name(optype="if", scope_depth=scope_depth)
+        self.commands.append(Command(operation=CommandType.JE, operand_a=Label(name=label_name)))
+        scope_node = node.children[1]
+        self._parse_scope(scope_node, scope_depth=scope_depth + 1)
+        self.commands.add_label(label_name)
 
     def _parse_bin_expr(self, node: Node) -> Command:
         node_term_a: Node = node.children[0]
@@ -183,3 +237,20 @@ class IRBuilder:
                 return CommandType.BIT_SHR
             case _:
                 raise Exception("Unreachable")
+
+    def _generate_label_name(self, optype: str, scope_depth: int) -> str:
+        label_name = f"{self.commands.block_name}_{optype}_{scope_depth}"
+        label_exists = True
+        while label_exists:
+            if label_name in self.label_names:
+                label_enumeration = label_name.split("_")[-1]
+                if not label_enumeration.isdigit():
+                    label_name += "_1"
+                else:
+                    label_enum = int(label_enumeration)
+                    label_enum += 1
+                    label_name += f"_{label_enum}"
+                continue
+            label_exists = False
+        self.label_names.append(label_name)
+        return label_name

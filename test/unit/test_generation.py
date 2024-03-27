@@ -8,9 +8,7 @@ from src.compiler.representation.utils import Label, Variable
 
 @pytest.mark.gen
 def test_new_gen(snapshot):
-    code = """x = 1
-y = 2
-    """
+    code = "x = 1\n" "y = 2\n"
     compiler = Compiler()
     asm = compiler(code=code)
     snapshot.assert_match(asm, "simple_asm_new_gen")

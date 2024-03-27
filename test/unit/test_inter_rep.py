@@ -104,3 +104,16 @@ def test_complex_precedence_new_operations(snapshot):
     rep = int_rep(ast=node)
     snapshot.assert_match(rep.pprint(), "new_operators_inter_rep")
     snapshot.assert_match(rep.pprint_vars(), "new_operators_varbump")
+
+
+@pytest.mark.int_rep
+def test_if_statement_inter_rep(snapshot):
+    code = "x = 1\n" "if x:\n" "    x = 2\n" "y = 1\n" "z = x + y\n"
+    tokenizer = Tokenizer()
+    tokens = tokenizer(code=code)
+    parser = Parser()
+    node = parser(tokens=tokens)
+
+    int_rep = IRBuilder()
+    rep = int_rep(ast=node)
+    snapshot.assert_match(rep.pprint(), "if_statements_inter_rep")

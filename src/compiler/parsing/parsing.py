@@ -6,12 +6,15 @@ from src.compiler.tokens import Token, TokenType
 
 
 class NodeType(Enum):
-    NODE_IDENT = auto()
-    NODE_VALUE = auto()
-    NODE_TERM = auto()
+    NODE_PROG = auto()
+    NODE_SCOPE = auto()
+    NODE_STMT = auto()
+    NODE_IF = auto()
     NODE_EXPR = auto()
     NODE_BIN_EXPR = auto()
-    NODE_STMT = auto()
+    NODE_TERM = auto()
+    NODE_IDENT = auto()
+    NODE_VALUE = auto()
     NODE_PLUS = auto()
     NODE_MINUS = auto()
     NODE_MULTI = auto()
@@ -25,7 +28,6 @@ class NodeType(Enum):
     NODE_BIT_NOT = auto()
     NODE_BIT_SHL = auto()
     NODE_BIT_SHR = auto()
-    NODE_PROG = auto()
 
 
 @dataclass
@@ -73,10 +75,48 @@ class Parser:
             if self.tokens[0].token_type == TokenType.NEWLINE:
                 self._consume()
                 continue
-            stmts = self._parse_stmts()
-            self.core_node.children += stmts
+            stmt = self._parse_scope(depth=0)
+            self.core_node.children.append(stmt)
 
-    def _parse_stmts(self) -> list[Node]:
+    def _parse_scope(self, depth: int = 0) -> Node:
+        node_scope = Node(node_type=NodeType.NODE_SCOPE)
+        while len(self.tokens) != 0:
+            if self._peek(0).token_type == TokenType.NEWLINE:
+                self._consume()
+                continue
+            if self._peek(0).token_type == TokenType.INDENT:
+                indent_level = self._count_indentation()
+                if indent_level > depth:
+                    raise Exception(
+                        "Indentation does not match the scope depth of the given code block"
+                    )
+                if indent_level < depth:
+                    return node_scope
+
+                self._skip(indent_level)
+            elif self._peek(0).token_type != TokenType.INDENT and depth > 0:
+                return node_scope
+
+            stmts = self._parse_stmts()
+            if isinstance(stmts, Node) and stmts.node_type == NodeType.NODE_IF:
+                subscope = self._parse_scope(depth=depth + 1)
+                stmts.children.append(subscope)
+                node_scope.children.append(stmts)
+            else:
+                node_scope.children += stmts  # type: ignore
+
+        return node_scope
+
+    def _parse_stmts(self) -> list[Node] | Node:
+        match self._peek(0).token_type:
+            case TokenType.IDENT:
+                return self._parse_assignment_stmts()
+            case TokenType.IF:
+                return self._parse_if_stmt()
+            case _:
+                raise Exception("Unreachable")
+
+    def _parse_assignment_stmts(self) -> list[Node]:
         idents, assign_op = self._parse_idents()
         exprs = self._parse_exprs(assign_op=assign_op, ident=idents[0])
         if len(idents) != len(exprs):
@@ -89,6 +129,17 @@ class Parser:
             for ident, expr in zip(idents, exprs)
         ]
         return stmts
+
+    def _parse_if_stmt(self) -> Node:
+        self._consume()
+        node_if = Node(node_type=NodeType.NODE_IF)
+        condition = self._parse_expr(expected_final=(TokenType.COLON,))
+        if (current := self._peek(0)).token_type != TokenType.COLON:
+            raise Exception(f"Missing colon for if statement at {current.line}:{current.pos}")
+
+        self._consume()
+        node_if.children.append(condition)
+        return node_if
 
     def _parse_idents(self) -> tuple[list[Node], Node | None]:
         token_ident = self._consume()
@@ -140,11 +191,10 @@ class Parser:
         else:
             raise Exception("Illegal expression, expected newline or new expression")
 
-    def _parse_expr(self) -> Node:
-        if (
-            self._peek(1).token_type == TokenType.NEWLINE
-            or self._peek(1).token_type == TokenType.COMMA
-        ):
+    def _parse_expr(
+        self, expected_final: tuple[TokenType, ...] = (TokenType.NEWLINE, TokenType.COMMA)
+    ) -> Node:
+        if self._peek(1).token_type in expected_final:
             node = self._parse_leaf()
             if node is None:
                 raise Exception("Unreachable")
@@ -215,6 +265,10 @@ class Parser:
 
     def _peek(self, distance: int = 1) -> Token:
         return self.tokens[distance]
+
+    def _skip(self, distance: int = 1):
+        for _ in range(distance):
+            self._consume()
 
     @staticmethod
     def _make_binary(left_operand: Node, operator: Node, right_operand: Node | None) -> Node:
@@ -377,3 +431,10 @@ class Parser:
                 raise Exception("Unreachable")
 
         return node_type
+
+    def _count_indentation(self) -> int:
+        indent_counter: int = 0
+        while self._peek(indent_counter).token_type == TokenType.INDENT:
+            indent_counter += 1
+
+        return indent_counter

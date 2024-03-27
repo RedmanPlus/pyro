@@ -72,3 +72,11 @@ def test_tokenize_argument_assignment(snapshot):
     tokenizer = Tokenizer()
     tokenizer(code=code)
     snapshot.assert_match(tokenizer.pprint(), "tokenize_argument_assignment")
+
+
+@pytest.mark.tokenizer
+def test_tokenize_if_statement_and_scopes(snapshot):
+    code = "x = 1\n" "if 1:\n" "    x = 2\n"
+    tokenizer = Tokenizer()
+    tokenizer(code=code)
+    snapshot.assert_match(tokenizer.pprint(), "tokenize_if_and_scopes")

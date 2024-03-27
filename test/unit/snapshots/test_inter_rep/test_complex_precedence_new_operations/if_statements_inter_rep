@@ -1,0 +1,9 @@
+main: 
+   x = STORE a
+   CMP x, 0
+   JG main_if_0
+   x = STORE 2
+main_if_0:
+   y = STORE 1
+   r8 = SUM x, y
+   z = STORE r8

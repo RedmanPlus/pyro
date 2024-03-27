@@ -1,0 +1,77 @@
+NodeType.NODE_PROG {
+    NodeType.NODE_SCOPE {
+        NodeType.NODE_STMT {
+            NodeType.NODE_TERM {
+                NodeType.NODE_IDENT: x {}
+            }
+
+            NodeType.NODE_TERM {
+                NodeType.NODE_VALUE: 1 {}
+            }
+        }
+
+        NodeType.NODE_STMT {
+            NodeType.NODE_TERM {
+                NodeType.NODE_IDENT: y {}
+            }
+
+            NodeType.NODE_TERM {
+                NodeType.NODE_VALUE: 1 {}
+            }
+        }
+
+        NodeType.NODE_IF {
+            NodeType.NODE_TERM {
+                NodeType.NODE_IDENT: x {}
+            }
+
+            NodeType.NODE_SCOPE {
+                NodeType.NODE_STMT {
+                    NodeType.NODE_TERM {
+                        NodeType.NODE_IDENT: x {}
+                    }
+
+                    NodeType.NODE_TERM {
+                        NodeType.NODE_VALUE: 2 {}
+                    }
+                }
+
+                NodeType.NODE_IF {
+                    NodeType.NODE_TERM {
+                        NodeType.NODE_IDENT: y {}
+                    }
+
+                    NodeType.NODE_SCOPE {
+                        NodeType.NODE_STMT {
+                            NodeType.NODE_TERM {
+                                NodeType.NODE_IDENT: y {}
+                            }
+
+                            NodeType.NODE_TERM {
+                                NodeType.NODE_VALUE: 2 {}
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        NodeType.NODE_STMT {
+            NodeType.NODE_TERM {
+                NodeType.NODE_IDENT: z {}
+            }
+
+            NodeType.NODE_BIN_EXPR {
+                NodeType.NODE_TERM {
+                    NodeType.NODE_IDENT: x {}
+                }
+
+                NodeType.NODE_PLUS {}
+
+                NodeType.NODE_TERM {
+                    NodeType.NODE_IDENT: y {}
+                }
+            }
+        }
+    }
+}
