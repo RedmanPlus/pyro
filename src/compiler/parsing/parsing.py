@@ -80,22 +80,21 @@ class Parser:
 
     def _parse_scope(self, depth: int = 0) -> Node:
         node_scope = Node(node_type=NodeType.NODE_SCOPE)
-        depth_counter: int = 0
         while len(self.tokens) != 0:
             if self._peek(0).token_type == TokenType.NEWLINE:
                 self._consume()
-                depth_counter = 0
                 continue
             if self._peek(0).token_type == TokenType.INDENT:
-                self._consume()
-                depth_counter += 1
-                if depth_counter > depth:
+                indent_level = self._count_indentation()
+                if indent_level > depth:
                     raise Exception(
                         "Indentation does not match the scope depth of the given code block"
                     )
-                continue
+                if indent_level < depth:
+                    return node_scope
 
-            if depth_counter < depth:
+                self._skip(indent_level)
+            elif self._peek(0).token_type != TokenType.INDENT and depth > 0:
                 return node_scope
 
             stmts = self._parse_stmts()
@@ -105,8 +104,6 @@ class Parser:
                 node_scope.children.append(stmts)
             else:
                 node_scope.children += stmts  # type: ignore
-
-            depth_counter = 0
 
         return node_scope
 
@@ -269,6 +266,10 @@ class Parser:
     def _peek(self, distance: int = 1) -> Token:
         return self.tokens[distance]
 
+    def _skip(self, distance: int = 1):
+        for _ in range(distance):
+            self._consume()
+
     @staticmethod
     def _make_binary(left_operand: Node, operator: Node, right_operand: Node | None) -> Node:
         if right_operand is None:
@@ -430,3 +431,10 @@ class Parser:
                 raise Exception("Unreachable")
 
         return node_type
+
+    def _count_indentation(self) -> int:
+        indent_counter: int = 0
+        while self._peek(indent_counter).token_type == TokenType.INDENT:
+            indent_counter += 1
+
+        return indent_counter
