@@ -75,8 +75,8 @@ class Command:
     def __init__(
         self,
         operation: CommandType,
-        target: PseudoRegister | Variable | None,
         operand_a: PseudoRegister | str | Variable | Label,
+        target: PseudoRegister | Variable | None = None,
         operand_b: PseudoRegister | str | Variable | None = None,
     ):
         if (
