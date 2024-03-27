@@ -37,7 +37,7 @@ class Generation:
         else:
             asm_header = "section .text\nglobal _start\n\n_start:\n"
         for i, command in enumerate(self.representation.commands):
-            label = self.representation.get_label_by_id(i)
+            label = self.representation.take_label_by_id(i)
             if label is not None:
                 instructions = self._generate_label(label)
                 self.code_chunks += instructions
@@ -113,6 +113,11 @@ class Generation:
                     self.code_chunks += instructions
                 case _:
                     raise Exception("Unreachable")
+        if len(self.representation.labels) != 0:
+            last_label: Label = list(self.representation.labels.items())[0][1]
+            instructions = self._generate_label(last_label)
+            self.code_chunks += instructions
+
         if self.debug:
             self._add_debug_prints()
         asm_body: str = asm_header + "\n".join(chunk.to_asm() for chunk in self.code_chunks)
