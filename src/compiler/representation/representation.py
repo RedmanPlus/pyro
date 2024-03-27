@@ -20,6 +20,7 @@ class IRBuilder:
         if self.ast is None:
             self.ast = ast
         self._parse_prog(self.ast)
+        self.commands.clear_labels()
         return self.commands
 
     def _parse_prog(self, node: Node):
