@@ -117,3 +117,16 @@ def test_if_statement_inter_rep(snapshot):
     int_rep = IRBuilder()
     rep = int_rep(ast=node)
     snapshot.assert_match(rep.pprint(), "if_statements_inter_rep")
+
+
+@pytest.mark.int_rep
+def test_if_else_statement_inter_rep(snapshot):
+    code = "x = 1\n" "if x:\n" "    x = 2\n" "else:\n" "    x = 1\n" "y = 1\n" "z = x + y\n"
+    tokenizer = Tokenizer()
+    tokens = tokenizer(code=code)
+    parser = Parser()
+    node = parser(tokens=tokens)
+
+    int_rep = IRBuilder()
+    rep = int_rep(ast=node)
+    snapshot.assert_match(rep.pprint(), "if_else_statements_inter_rep")
