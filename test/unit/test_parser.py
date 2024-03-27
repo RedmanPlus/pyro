@@ -240,3 +240,14 @@ def test_nested_if_statement_corner_case(snapshot):
     core_node = parser(tokens=tokens)
 
     snapshot.assert_match(core_node.pprint(), "nested_if_statement_corner_case_parse")
+
+
+@pytest.mark.parser
+def test_if_else_statement(snapshot):
+    code = "x = 1\n" "if x:\n" "    x = 2\n" "else:\n" "    x = 1\n"
+    tokenizer = Tokenizer()
+    tokens = tokenizer(code=code)
+    parser = Parser()
+    core_node = parser(tokens=tokens)
+
+    snapshot.assert_match(core_node.pprint(), "if_else_statement_parse")
