@@ -251,3 +251,28 @@ def test_if_else_statement(snapshot):
     core_node = parser(tokens=tokens)
 
     snapshot.assert_match(core_node.pprint(), "if_else_statement_parse")
+
+
+@pytest.mark.parser
+def test_nested_if_else_statement(snapshot):
+    code = (
+        "x = 1\n"
+        "y = 1\n"
+        "if x:\n"
+        "    x = 2\n"
+        "    if y:\n"
+        "        y = 2\n"
+        "    else:\n"
+        "        y = 1\n"
+        "    x += y\n"
+        "else:\n"
+        "    x = 1\n"
+        "    y = 1\n"
+        "z = x + y\n"
+    )
+    tokenizer = Tokenizer()
+    tokens = tokenizer(code=code)
+    parser = Parser()
+    core_node = parser(tokens=tokens)
+
+    snapshot.assert_match(core_node.pprint(), "nested_if_else_statement_parse")
