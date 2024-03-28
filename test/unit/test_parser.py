@@ -297,3 +297,25 @@ def test_if_elif_else_statement(snapshot):
     core_node = parser(tokens=tokens)
 
     snapshot.assert_match(core_node.pprint(), "if_elif_else_statement_parse")
+
+
+@pytest.mark.parser
+def test_if_elif_else_wrong_structure_statement():
+    code = (
+        "x = 1\n"
+        "if x:\n"
+        "    x = 2\n"
+        "elif 1:\n"
+        "    x = 3\n"
+        "else:\n"
+        "    x = 1\n"
+        "elif 2:\n"
+        "    x = 4\n"
+    )
+    tokenizer = Tokenizer()
+    tokens = tokenizer(code=code)
+    parser = Parser()
+    with pytest.raises(Exception) as e:
+        parser(tokens=tokens)
+
+    assert e.value.args[0] == "Cannot write elif without if"

@@ -75,9 +75,40 @@ class IRBuilder:
                 self.commands.append(command_declare)
 
     def _parse_if(self, node: Node, scope_depth: int):
+        self._parse_if_condition(node)
+        if_label_name = self._generate_label_name(optype="if", scope_depth=scope_depth)
+        if_end_label_name = self._generate_label_name(optype="if_end", scope_depth=scope_depth)
+        self.commands.append(Command(operation=CommandType.JE, operand_a=Label(name=if_label_name)))
+        if_scope_node = node.children[1]
+        self._parse_scope(if_scope_node, scope_depth=scope_depth + 1)
+        self.commands.append(
+            Command(operation=CommandType.JMP, operand_a=Label(name=if_end_label_name))
+        )
+        last_label = if_label_name
+        for i, child in enumerate(node.children[2:]):
+            if child.node_type == NodeType.NODE_ELIF:
+                self.commands.add_label(last_label)
+                self._parse_if_condition(child)
+                elif_scope_node = child.children[1]
+                last_label = self._generate_label_name(optype="elif", scope_depth=scope_depth)
+                self.commands.append(
+                    Command(operation=CommandType.JE, operand_a=Label(name=last_label))
+                )
+                self._parse_scope(elif_scope_node, scope_depth=scope_depth + 1)
+                self.commands.append(
+                    Command(operation=CommandType.JMP, operand_a=Label(name=if_end_label_name))
+                )
+            if child.node_type == NodeType.NODE_SCOPE and i == len(node.children[2:]) - 1:
+                self.commands.add_label(last_label)
+                self._parse_scope(child, scope_depth=scope_depth + 1)
+            if child.node_type == NodeType.NODE_SCOPE and i != len(node.children[2:]) - 1:
+                raise Exception("cannot have else before elif")
+        self.commands.add_label(if_end_label_name)
+
+    def _parse_if_condition(self, node: Node):
         condition = node.children[0]
-        comparison_target: str | Variable
         if condition.node_type == NodeType.NODE_TERM:
+            comparison_target: str | Variable
             comparison_target_node = condition.children[0]
             if comparison_target_node.node_type == NodeType.NODE_IDENT:
                 if comparison_target_node.value is None:
@@ -108,22 +139,6 @@ class IRBuilder:
                     operand_b="0",
                 )
             )
-
-        if_label_name = self._generate_label_name(optype="if", scope_depth=scope_depth)
-        self.commands.append(Command(operation=CommandType.JE, operand_a=Label(name=if_label_name)))
-        if_scope_node = node.children[1]
-        self._parse_scope(if_scope_node, scope_depth=scope_depth + 1)
-        try:
-            else_scope_node = node.children[2]
-            else_label_name = self._generate_label_name(optype="else", scope_depth=scope_depth)
-            self.commands.append(
-                Command(operation=CommandType.JMP, operand_a=Label(name=else_label_name))
-            )
-            self.commands.add_label(if_label_name)
-            self._parse_scope(else_scope_node, scope_depth=scope_depth + 1)
-            self.commands.add_label(else_label_name)
-        except IndexError:
-            self.commands.add_label(if_label_name)
 
     def _parse_bin_expr(self, node: Node) -> Command:
         node_term_a: Node = node.children[0]

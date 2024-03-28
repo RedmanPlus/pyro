@@ -178,10 +178,13 @@ class Representation:
     def pprint(self) -> str:
         header = f"{self.block_name}: " + "\n"
         for i, command in enumerate(self.commands):
-            label = self._get_label_by_id(i)
+            label = self.take_label_by_id(i)
             if label is not None:
                 header += str(label) + "\n"
             header += "   " + str(command) + "\n"
+        if len(self.labels) != 0:
+            last_label: Label = list(self.labels.items())[-1][1]
+            header += str(last_label) + "\n"
 
         return header
 

@@ -82,6 +82,7 @@ class Parser:
 
     def _parse_scope(self, depth: int = 0) -> Node:
         node_scope = Node(node_type=NodeType.NODE_SCOPE)
+        if_started = False
         while len(self.tokens) != 0:
             if self._peek(0).token_type == TokenType.NEWLINE:
                 self._consume()
@@ -104,7 +105,10 @@ class Parser:
                 subscope = self._parse_scope(depth=depth + 1)
                 stmts.children.append(subscope)
                 node_scope.children.append(stmts)
+                if_started = True
             elif isinstance(stmts, Node) and stmts.node_type == NodeType.NODE_ELIF:
+                if not if_started:
+                    raise Exception("Cannot write elif without if")
                 subscope = self._parse_scope(depth=depth + 1)
                 stmts.children.append(subscope)
                 node_if = node_scope.children[-1]
@@ -117,6 +121,7 @@ class Parser:
                 if node_if.node_type != NodeType.NODE_IF:
                     raise Exception("else without if")
                 node_if.children.append(subscope)
+                if_started = False
             else:
                 node_scope.children += stmts  # type: ignore
 
