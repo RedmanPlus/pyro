@@ -24,6 +24,15 @@ class NodeType(Enum):
     NODE_DIV = auto()
     NODE_DIV_FLOOR = auto()
     NODE_REMAIN = auto()
+    NODE_AND = auto()
+    NODE_OR = auto()
+    NODE_NOT = auto()
+    NODE_EQ = auto()
+    NODE_NEQ = auto()
+    NODE_GT = auto()
+    NODE_GTE = auto()
+    NODE_LT = auto()
+    NODE_LTE = auto()
     NODE_BIT_AND = auto()
     NODE_BIT_OR = auto()
     NODE_BIT_XOR = auto()
@@ -342,6 +351,15 @@ class Parser:
             TokenType.DIV,
             TokenType.DIV_FLOOR,
             TokenType.REMAIN,
+            TokenType.AND,
+            TokenType.OR,
+            TokenType.NOT,
+            TokenType.EQUALS,
+            TokenType.NOT_EQUALS,
+            TokenType.LT,
+            TokenType.LTE,
+            TokenType.GT,
+            TokenType.GTE,
             TokenType.BIT_AND,
             TokenType.BIT_OR,
             TokenType.BIT_XOR,
@@ -379,32 +397,50 @@ class Parser:
     @staticmethod
     def _get_precedence(token: Token) -> int:
         match token.token_type:
-            case TokenType.PLUS:
+            case TokenType.OR:
+                return 1
+            case TokenType.AND:
+                return 2
+            case TokenType.NOT:
+                return 3
+            case TokenType.EQUALS:
+                return 4
+            case TokenType.NOT_EQUALS:
+                return 4
+            case TokenType.GT:
+                return 4
+            case TokenType.GTE:
+                return 4
+            case TokenType.LT:
+                return 4
+            case TokenType.LTE:
+                return 4
+            case TokenType.BIT_OR:
                 return 5
-            case TokenType.MINUS:
-                return 5
-            case TokenType.MUL:
-                return 6
-            case TokenType.POV:
-                return 8
-            case TokenType.DIV:
-                return 6
-            case TokenType.DIV_FLOOR:
-                return 6
-            case TokenType.REMAIN:
+            case TokenType.BIT_XOR:
                 return 6
             case TokenType.BIT_AND:
-                return 3
-            case TokenType.BIT_OR:
-                return 1
-            case TokenType.BIT_XOR:
-                return 2
-            case TokenType.BIT_NOT:
                 return 7
             case TokenType.BIT_SHL:
-                return 4
+                return 8
             case TokenType.BIT_SHR:
-                return 4
+                return 8
+            case TokenType.PLUS:
+                return 9
+            case TokenType.MINUS:
+                return 9
+            case TokenType.MUL:
+                return 10
+            case TokenType.DIV:
+                return 10
+            case TokenType.DIV_FLOOR:
+                return 10
+            case TokenType.REMAIN:
+                return 10
+            case TokenType.BIT_NOT:
+                return 11
+            case TokenType.POV:
+                return 12
             case _:
                 raise Exception("Unreachable")
 
@@ -426,6 +462,24 @@ class Parser:
                 node_type = NodeType.NODE_DIV_FLOOR
             case TokenType.REMAIN:
                 node_type = NodeType.NODE_REMAIN
+            case TokenType.AND:
+                node_type = NodeType.NODE_AND
+            case TokenType.OR:
+                node_type = NodeType.NODE_OR
+            case TokenType.NOT:
+                node_type = NodeType.NODE_NOT
+            case TokenType.EQUALS:
+                node_type = NodeType.NODE_EQ
+            case TokenType.NOT_EQUALS:
+                node_type = NodeType.NODE_NEQ
+            case TokenType.LT:
+                node_type = NodeType.NODE_LT
+            case TokenType.LTE:
+                node_type = NodeType.NODE_LTE
+            case TokenType.GT:
+                node_type = NodeType.NODE_GT
+            case TokenType.GTE:
+                node_type = NodeType.NODE_GTE
             case TokenType.BIT_AND:
                 node_type = NodeType.NODE_BIT_AND
             case TokenType.BIT_OR:
