@@ -130,3 +130,26 @@ def test_if_else_statement_inter_rep(snapshot):
     int_rep = IRBuilder()
     rep = int_rep(ast=node)
     snapshot.assert_match(rep.pprint(), "if_else_statements_inter_rep")
+
+
+@pytest.mark.parser
+def test_if_elif_else_statement_inter_rep(snapshot):
+    code = (
+        "x = 1\n"
+        "if x:\n"
+        "    x = 2\n"
+        "elif 1:\n"
+        "    x = 3\n"
+        "elif 2:\n"
+        "    x = 4\n"
+        "else:\n"
+        "    x = 1\n"
+    )
+    tokenizer = Tokenizer()
+    tokens = tokenizer(code=code)
+    parser = Parser()
+    node = parser(tokens=tokens)
+
+    int_rep = IRBuilder()
+    rep = int_rep(ast=node)
+    snapshot.assert_match(rep.pprint(), "if_elif_else_statement_inter_rep")

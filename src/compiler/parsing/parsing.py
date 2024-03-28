@@ -10,6 +10,7 @@ class NodeType(Enum):
     NODE_SCOPE = auto()
     NODE_STMT = auto()
     NODE_IF = auto()
+    NODE_ELIF = auto()
     NODE_ELSE = auto()
     NODE_EXPR = auto()
     NODE_BIN_EXPR = auto()
@@ -81,6 +82,7 @@ class Parser:
 
     def _parse_scope(self, depth: int = 0) -> Node:
         node_scope = Node(node_type=NodeType.NODE_SCOPE)
+        if_started = False
         while len(self.tokens) != 0:
             if self._peek(0).token_type == TokenType.NEWLINE:
                 self._consume()
@@ -103,12 +105,23 @@ class Parser:
                 subscope = self._parse_scope(depth=depth + 1)
                 stmts.children.append(subscope)
                 node_scope.children.append(stmts)
+                if_started = True
+            elif isinstance(stmts, Node) and stmts.node_type == NodeType.NODE_ELIF:
+                if not if_started:
+                    raise Exception("Cannot write elif without if")
+                subscope = self._parse_scope(depth=depth + 1)
+                stmts.children.append(subscope)
+                node_if = node_scope.children[-1]
+                if node_if.node_type != NodeType.NODE_IF:
+                    raise Exception("else without if")
+                node_if.children.append(stmts)
             elif isinstance(stmts, Node) and stmts.node_type == NodeType.NODE_ELSE:
                 subscope = self._parse_scope(depth=depth + 1)
                 node_if = node_scope.children[-1]
                 if node_if.node_type != NodeType.NODE_IF:
                     raise Exception("else without if")
                 node_if.children.append(subscope)
+                if_started = False
             else:
                 node_scope.children += stmts  # type: ignore
 
@@ -120,8 +133,10 @@ class Parser:
                 return self._parse_assignment_stmts()
             case TokenType.IF:
                 return self._parse_if_stmt()
+            case TokenType.ELIF:
+                return self._parse_elif_stmt()
             case TokenType.ELSE:
-                return self._parse_else()
+                return self._parse_else_stmt()
             case _:
                 raise Exception("Unreachable")
 
@@ -150,7 +165,18 @@ class Parser:
         node_if.children.append(condition)
         return node_if
 
-    def _parse_else(self) -> Node:
+    def _parse_elif_stmt(self) -> Node:
+        self._consume()
+        node_elif = Node(node_type=NodeType.NODE_ELIF)
+        condition = self._parse_expr(expected_final=(TokenType.COLON,))
+        if (current := self._peek(0)).token_type != TokenType.COLON:
+            raise Exception(f"Missing colon for if statement at {current.line}:{current.pos}")
+
+        self._consume()
+        node_elif.children.append(condition)
+        return node_elif
+
+    def _parse_else_stmt(self) -> Node:
         self._consume()
         node_else = Node(node_type=NodeType.NODE_ELSE)
         if self._peek(0).token_type != TokenType.COLON:
