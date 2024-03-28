@@ -6,6 +6,8 @@ from src.compiler.representation.utils import (
     PseudoRegister,
     Representation,
     Variable,
+    VarType,
+    get_variable_type,
 )
 
 
@@ -54,7 +56,12 @@ class IRBuilder:
                 self.commands.append(command_expr)
                 if node_term.children[0].value is None:
                     raise Exception("Unreachable")
-                var = self.commands.register_var(varname=node_term.children[0].value)
+                var_type: VarType | None = get_variable_type(operation_type=command_expr.operation)
+                if var_type is None:
+                    raise Exception("Unreachable")
+                var = self.commands.register_var(
+                    varname=node_term.children[0].value, var_type=var_type
+                )
                 command_declare = Command(
                     operation=CommandType.STORE,
                     target=var,
@@ -248,6 +255,24 @@ class IRBuilder:
                 return CommandType.FLOOR
             case NodeType.NODE_REMAIN:
                 return CommandType.REMAIN
+            case NodeType.NODE_AND:
+                return CommandType.AND
+            case NodeType.NODE_OR:
+                return CommandType.OR
+            case NodeType.NODE_NOT:
+                return CommandType.NOT
+            case NodeType.NODE_EQ:
+                return CommandType.EQ
+            case NodeType.NODE_NEQ:
+                return CommandType.NEQ
+            case NodeType.NODE_GT:
+                return CommandType.GT
+            case NodeType.NODE_GTE:
+                return CommandType.GTE
+            case NodeType.NODE_LT:
+                return CommandType.LT
+            case NodeType.NODE_LTE:
+                return CommandType.LTE
             case NodeType.NODE_BIT_AND:
                 return CommandType.BIT_AND
             case NodeType.NODE_BIT_OR:

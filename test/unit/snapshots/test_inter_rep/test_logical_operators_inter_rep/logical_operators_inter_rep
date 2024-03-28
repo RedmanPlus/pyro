@@ -1,0 +1,46 @@
+main: 
+   x = STORE 1
+   y = STORE 2
+   CMP r8, 0
+   JE main_if_0
+   x = STORE 2
+   JMP main_if_end_0
+main_if_0:
+   CMP r9, 0
+   JE main_elif_0
+   r10 = SUB y, x
+   x = STORE r10
+   JMP main_if_end_0
+main_elif_0:
+   r8 = SUM y, x
+   x = STORE r8
+main_if_end_0:
+   r8 = SUM x, y
+   z = STORE r8
+   r8 = MUL x, 10
+   CMP r8, 0
+   JE main_if_0_1
+   r9 = MUL 10, z
+   z = STORE r9
+   JMP main_if_end_0_1
+main_if_0_1:
+   r8 = MUL x, 10
+   r8 = EQ z, r8
+   r9 = NEQ y, 10
+   CMP r8, 0
+   JE main_elif_0_1
+   y = STORE 10
+   JMP main_if_end_0_1
+main_elif_0_1:
+   r9 = MUL 10, x
+   x = STORE r9
+main_if_end_0_1:
+   r8 = GT x, 10
+   r9 = LT x, 5
+   r8 = OR r8, r9
+   a = STORE r8
+   CMP a, 0
+   JE main_if_0_1_2
+   b = STORE 2
+   JMP main_if_end_0_1_2
+main_if_end_0_1_2:

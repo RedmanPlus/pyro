@@ -1,0 +1,6 @@
+main variables:
+    x: INT = None
+    y: INT = None
+    z: INT = None
+    a: BOOL = None
+    b: INT = None

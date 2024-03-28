@@ -10,6 +10,15 @@ class CommandType(Enum):
     DIV = auto()
     FLOOR = auto()
     REMAIN = auto()
+    AND = auto()
+    OR = auto()
+    NOT = auto()
+    EQ = auto()
+    NEQ = auto()
+    LT = auto()
+    LTE = auto()
+    GT = auto()
+    GTE = auto()
     BIT_AND = auto()
     BIT_OR = auto()
     BIT_XOR = auto()
@@ -30,6 +39,33 @@ class CommandType(Enum):
 
 class VarType(Enum):
     INT = auto()
+    BOOL = auto()
+
+
+operation_result_type: dict[CommandType, VarType] = {
+    CommandType.SUM: VarType.INT,
+    CommandType.SUB: VarType.INT,
+    CommandType.MUL: VarType.INT,
+    CommandType.POV: VarType.INT,
+    CommandType.DIV: VarType.INT,
+    CommandType.FLOOR: VarType.INT,
+    CommandType.REMAIN: VarType.INT,
+    CommandType.AND: VarType.BOOL,
+    CommandType.OR: VarType.BOOL,
+    CommandType.NOT: VarType.BOOL,
+    CommandType.EQ: VarType.BOOL,
+    CommandType.NEQ: VarType.BOOL,
+    CommandType.LT: VarType.BOOL,
+    CommandType.LTE: VarType.BOOL,
+    CommandType.GT: VarType.BOOL,
+    CommandType.GTE: VarType.BOOL,
+    CommandType.BIT_AND: VarType.INT,
+    CommandType.BIT_OR: VarType.INT,
+    CommandType.BIT_XOR: VarType.INT,
+    CommandType.BIT_NOT: VarType.INT,
+    CommandType.BIT_SHL: VarType.INT,
+    CommandType.BIT_SHR: VarType.INT,
+}
 
 
 @dataclass
@@ -54,6 +90,10 @@ class Variable:
 
     def __repr__(self) -> str:
         return f"{self.name}: {self.var_type.name} = {self.value}"
+
+
+def get_variable_type(operation_type: CommandType) -> VarType | None:
+    return operation_result_type.get(operation_type, None)
 
 
 @dataclass
