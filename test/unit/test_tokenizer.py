@@ -96,3 +96,30 @@ def test_tokenize_if_elif_else_statement(snapshot):
     tokenizer = Tokenizer()
     tokenizer(code=code)
     snapshot.assert_match(tokenizer.pprint(), "tokenize_if_elif_else")
+
+
+@pytest.mark.tokenizer
+def test_tokenize_logical_operators(snapshot):
+    code = (
+        "x = 1\n"
+        "y = 2\n"
+        "if x == y:\n"
+        "    x = 2\n"
+        "elif x > y:\n"
+        "    x -= y\n"
+        "else:\n"
+        "    x += y\n"
+        "z = x + y\n"
+        "if z != x * 10:\n"
+        "    z *= 10\n"
+        "elif z == x * 10 and y != 10:\n"
+        "    y = 10\n"
+        "else:\n"
+        "    x *= 10\n"
+        "a = x > 10 or x < 5\n"
+        "if a:\n"
+        "    b = 2\n"
+    )
+    tokenizer = Tokenizer()
+    tokenizer(code=code)
+    snapshot.assert_match(tokenizer.pprint(), "tokenize_logical_operators")
