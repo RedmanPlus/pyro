@@ -8,15 +8,16 @@ from src.compiler.generation.utils import (
     LabelInstruction,
     MathLogicInstruction,
 )
-from src.compiler.representation import Command, CommandType, Representation
+from src.compiler.representation.command import Command, CommandType
+from src.compiler.representation.label import Label
+from src.compiler.representation.pseudo_register import PseudoRegister
+from src.compiler.representation.representation import Representation
 from src.compiler.representation.utils import (
-    Label,
-    PseudoRegister,
-    Variable,
     is_operand_a_register,
     is_operand_a_value,
     is_operand_a_variable,
 )
+from src.compiler.representation.variable import Variable
 
 
 class Generation:
@@ -198,6 +199,10 @@ class Generation:
             variable_position = -1
         return variable_position
 
+    def _generate_logical_operation(self, command: Command):
+        # TODO: work out the process of creating boolean values in assembly
+        ...
+
     def _generate_sum(self, command: Command) -> list[ASMInstruction]:
         return self._generate_binop(command=command, math_op_type=InstructionType.ADD)
 
@@ -209,7 +214,7 @@ class Generation:
         if not is_operand_a_register(actual_target):
             raise Exception("Unreachable")
 
-        command.target = PseudoRegister(name="r0")
+        command.target = PseudoRegister(order=0)
         instructions = self._generate_carried_binop(
             command=command, math_op_type=InstructionType.MUL
         )
@@ -227,7 +232,7 @@ class Generation:
         if not is_operand_a_register(actual_target):
             raise Exception("Unreachable")
 
-        command.target = PseudoRegister(name="r0")
+        command.target = PseudoRegister(order=0)
         instructions = self._generate_carried_binop(
             command=command, math_op_type=InstructionType.DIV
         )
@@ -245,7 +250,7 @@ class Generation:
         if not is_operand_a_register(actual_target):
             raise Exception("Unreachable")
 
-        command.target = PseudoRegister(name="r0")
+        command.target = PseudoRegister(order=0)
         instructions = self._generate_carried_binop(
             command=command, math_op_type=InstructionType.DIV
         )
@@ -359,7 +364,7 @@ class Generation:
         return [LabelInstruction(instruction_type=InstructionType.LABEL, label_name=label.name)]
 
     def _generate_cmp(self, command: Command) -> list[ASMInstruction]:
-        command.target = PseudoRegister("r0")
+        command.target = PseudoRegister(order=0)
         register_a, register_b = self._get_register_for_command(command=command)
         instruction: list[ASMInstruction] = []
         operand_a = self._process_operand(
