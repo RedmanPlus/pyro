@@ -22,6 +22,12 @@ class PseudoRegister:
         name_prefix = size_name_mapping[self.size]
         return f"{name_prefix}{self.order}"
 
+    def get_subregister(self, new_size: int) -> "PseudoRegister":
+        if new_size >= self.size:
+            raise Exception("cannot get subregister of a bigger size")
+
+        return PseudoRegister(order=self.order, size=new_size)
+
     def __add__(self, other: int):
         new_order = self.order + other
         return PseudoRegister(order=new_order)

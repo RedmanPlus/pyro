@@ -4,6 +4,26 @@ from enum import Enum
 
 
 X86_64_REGISTER_SCHEMA: dict[str, str] = {
+    "l0": "al",
+    "l1": "bl",
+    "l2": "cl",
+    "l3": "dl",
+    "h0": "ah",
+    "h1": "bh",
+    "h2": "ch",
+    "h3": "dh",
+    "x0": "ax",
+    "x1": "bx",
+    "x2": "cx",
+    "x3": "dx",
+    "e0": "eax",
+    "e1": "ebx",
+    "e2": "ecx",
+    "e3": "edx",
+    "e4": "esi",
+    "e5": "edi",
+    "e6": "esp",
+    "e7": "ebp",
     "r0": "rax",
     "r1": "rbx",
     "r2": "rcx",
@@ -48,11 +68,12 @@ class InstructionType(Enum):
     JGE = "jge"
     JL = "jl"
     JLE = "jle"
-    SETA = "seta"
-    SETAE = "setae"
-    SETB = "setb"
-    SETBE = "setbe"
+    SETG = "setg"
+    SETGE = "setge"
+    SETL = "setl"
+    SETLE = "setle"
     SETE = "sete"
+    SETNE = "setne"
     SYSCALL = "syscall"
     CALL = "call"
     EXTERN = "extern"

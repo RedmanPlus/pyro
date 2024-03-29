@@ -67,6 +67,24 @@ class Generation:
                 case CommandType.REMAIN:
                     instructions = self._generate_remain(command)
                     self.code_chunks += instructions
+                case CommandType.EQ:
+                    instructions = self._generate_eq(command)
+                    self.code_chunks += instructions
+                case CommandType.NEQ:
+                    instructions = self._generate_neq(command)
+                    self.code_chunks += instructions
+                case CommandType.GT:
+                    instructions = self._generate_gt(command)
+                    self.code_chunks += instructions
+                case CommandType.GTE:
+                    instructions = self._generate_gte(command)
+                    self.code_chunks += instructions
+                case CommandType.LT:
+                    instructions = self._generate_lt(command)
+                    self.code_chunks += instructions
+                case CommandType.LTE:
+                    instructions = self._generate_lte(command)
+                    self.code_chunks += instructions
                 case CommandType.BIT_AND:
                     instructions = self._generate_bit_and(command)
                     self.code_chunks += instructions
@@ -199,9 +217,35 @@ class Generation:
             variable_position = -1
         return variable_position
 
-    def _generate_logical_operation(self, command: Command):
-        # TODO: work out the process of creating boolean values in assembly
-        ...
+    def _generate_logical_operation(self, command: Command) -> list[ASMInstruction]:
+        if not isinstance(command.target, PseudoRegister):
+            raise Exception("Unreachable")
+        cmp_command = Command(
+            operation=CommandType.CMP, operand_a=command.operand_a, operand_b=command.operand_b
+        )
+        cmp_instructions = self._generate_cmp(cmp_command)
+        boolean_value_register = PseudoRegister(order=2)
+        bitshift_register = boolean_value_register.get_subregister(new_size=1)
+        clear_bool = DataMoveInstruction(
+            instruction_type=InstructionType.MOV,
+            register=X86_64_REGISTER_SCHEMA[boolean_value_register.name],
+            data="0",
+        )
+        save_comparison = MathLogicInstruction(
+            instruction_type=self._get_setcc_instruction(command_type=command.operation),
+            registers=(X86_64_REGISTER_SCHEMA[bitshift_register.name],),
+        )
+        move_to_target = DataMoveInstruction(
+            instruction_type=InstructionType.MOV,
+            register=X86_64_REGISTER_SCHEMA[command.target.name],
+            data=X86_64_REGISTER_SCHEMA[boolean_value_register.name],
+        )
+
+        store_instructions = [clear_bool, save_comparison, move_to_target]
+
+        result = cmp_instructions + store_instructions
+
+        return result
 
     def _generate_sum(self, command: Command) -> list[ASMInstruction]:
         return self._generate_binop(command=command, math_op_type=InstructionType.ADD)
@@ -262,6 +306,24 @@ class Generation:
             ),
         )
         return instructions
+
+    def _generate_eq(self, command: Command) -> list[ASMInstruction]:
+        return self._generate_logical_operation(command=command)
+
+    def _generate_neq(self, command: Command) -> list[ASMInstruction]:
+        return self._generate_logical_operation(command=command)
+
+    def _generate_gt(self, command: Command) -> list[ASMInstruction]:
+        return self._generate_logical_operation(command=command)
+
+    def _generate_gte(self, command: Command) -> list[ASMInstruction]:
+        return self._generate_logical_operation(command=command)
+
+    def _generate_lt(self, command: Command) -> list[ASMInstruction]:
+        return self._generate_logical_operation(command=command)
+
+    def _generate_lte(self, command: Command) -> list[ASMInstruction]:
+        return self._generate_logical_operation(command=command)
 
     def _generate_bit_and(self, command: Command) -> list[ASMInstruction]:
         return self._generate_binop(command=command, math_op_type=InstructionType.AND)
@@ -441,6 +503,23 @@ class Generation:
         if is_operand_a_register(command.operand_b):
             return True, False
         return False, True
+
+    def _get_setcc_instruction(self, command_type: CommandType) -> InstructionType:
+        match command_type:
+            case CommandType.EQ:
+                return InstructionType.SETE
+            case CommandType.NEQ:
+                return InstructionType.SETNE
+            case CommandType.GT:
+                return InstructionType.SETG
+            case CommandType.GTE:
+                return InstructionType.SETGE
+            case CommandType.LT:
+                return InstructionType.SETL
+            case CommandType.LTE:
+                return InstructionType.SETLE
+            case _:
+                raise Exception("Unreachable")
 
     def _process_operand(
         self,

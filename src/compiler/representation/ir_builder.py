@@ -78,10 +78,10 @@ class IRBuilder:
                 self.commands.append(command_declare)
 
     def _parse_if(self, node: Node, scope_depth: int):
-        self._parse_if_condition(node)
+        jump_type = self._parse_if_condition(node)
         if_label_name = self._generate_label_name(optype="if", scope_depth=scope_depth)
         if_end_label_name = self._generate_label_name(optype="if_end", scope_depth=scope_depth)
-        self.commands.append(Command(operation=CommandType.JE, operand_a=Label(name=if_label_name)))
+        self.commands.append(Command(operation=jump_type, operand_a=Label(name=if_label_name)))
         if_scope_node = node.children[1]
         self._parse_scope(if_scope_node, scope_depth=scope_depth + 1)
         self.commands.append(
@@ -91,12 +91,10 @@ class IRBuilder:
         for i, child in enumerate(node.children[2:]):
             if child.node_type == NodeType.NODE_ELIF:
                 self.commands.add_label(last_label)
-                self._parse_if_condition(child)
+                jump_type = self._parse_if_condition(child)
                 elif_scope_node = child.children[1]
                 last_label = self._generate_label_name(optype="elif", scope_depth=scope_depth)
-                self.commands.append(
-                    Command(operation=CommandType.JE, operand_a=Label(name=last_label))
-                )
+                self.commands.append(Command(operation=jump_type, operand_a=Label(name=last_label)))
                 self._parse_scope(elif_scope_node, scope_depth=scope_depth + 1)
                 self.commands.append(
                     Command(operation=CommandType.JMP, operand_a=Label(name=if_end_label_name))
@@ -106,10 +104,12 @@ class IRBuilder:
                 self._parse_scope(child, scope_depth=scope_depth + 1)
             if child.node_type == NodeType.NODE_SCOPE and i != len(node.children[2:]) - 1:
                 raise Exception("cannot have else before elif")
-        self.commands.add_label(if_end_label_name)
+        if len(node.children) > 2:
+            self.commands.add_label(if_end_label_name)
 
-    def _parse_if_condition(self, node: Node):
+    def _parse_if_condition(self, node: Node) -> CommandType:
         condition = node.children[0]
+        jump_type: CommandType
         if condition.node_type == NodeType.NODE_TERM:
             comparison_target: str | Variable
             comparison_target_node = condition.children[0]
@@ -128,8 +128,18 @@ class IRBuilder:
                 raise Exception("Unreachable")
             if comparison_target is None:
                 raise Exception("Unreachable")
+            operand_b: str
+            if (
+                isinstance(comparison_target, Variable)
+                and comparison_target.var_type == VarType.BOOL
+            ):
+                operand_b = "1"
+                jump_type = CommandType.JNE
+            else:
+                operand_b = "0"
+                jump_type = CommandType.JE
             self.commands.append(
-                Command(operation=CommandType.CMP, operand_a=comparison_target, operand_b="0")
+                Command(operation=CommandType.CMP, operand_a=comparison_target, operand_b=operand_b)
             )
         elif condition.node_type == NodeType.NODE_BIN_EXPR:
             comparison_target_expr = self._parse_bin_expr(condition)
@@ -142,6 +152,11 @@ class IRBuilder:
                     operand_b="0",
                 )
             )
+            jump_type = CommandType.JE
+        else:
+            raise Exception("Unreachable")
+
+        return jump_type
 
     def _parse_bin_expr(self, node: Node) -> Command:
         node_term_a: Node = node.children[0]

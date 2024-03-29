@@ -39,8 +39,8 @@ main_if_end_0_1:
    r9 = LT x, 5
    r8 = OR r8, r9
    a = STORE r8
-   CMP a, 0
-   JE main_if_0_1_2
+   CMP a, 1
+   JNE main_if_0_1_2
    b = STORE 2
-   JMP main_if_end_0_1_2
-main_if_end_0_1_2:
+   JMP main_if_0_1_2
+main_if_0_1_2:
