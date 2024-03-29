@@ -143,13 +143,13 @@ class IRBuilder:
             )
         elif condition.node_type == NodeType.NODE_BIN_EXPR:
             comparison_target_expr = self._parse_bin_expr(condition)
-            if comparison_target_expr.target is None:
+            if not self._is_boolean_bin_expr(comparison_target_expr):
                 raise Exception("Unreachable")
             self.commands.append(
                 Command(
                     operation=CommandType.CMP,
-                    operand_a=comparison_target_expr.target,
-                    operand_b="0",
+                    operand_a=comparison_target_expr.operand_a,
+                    operand_b=comparison_target_expr.operand_b,
                 )
             )
             jump_type = CommandType.JE
@@ -298,6 +298,19 @@ class IRBuilder:
                 return CommandType.BIT_SHR
             case _:
                 raise Exception("Unreachable")
+
+    def _is_boolean_bin_expr(self, command: Command) -> bool:
+        return command.operation in (
+            CommandType.LT,
+            CommandType.GT,
+            CommandType.LTE,
+            CommandType.GTE,
+            CommandType.EQ,
+            CommandType.NEQ,
+            CommandType.AND,
+            CommandType.OR,
+            CommandType.NOT,
+        )
 
     def _generate_label_name(self, optype: str, scope_depth: int) -> str:
         label_name = f"{self.commands.block_name}_{optype}_{scope_depth}"
