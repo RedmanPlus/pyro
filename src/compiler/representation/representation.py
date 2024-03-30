@@ -111,4 +111,6 @@ class Representation:
         return None
 
     def _add_label_intrinsic(self, label: Label):
+        if self.get_label(label_name=label.name) is not None:
+            return
         self.labels[label.name] = label

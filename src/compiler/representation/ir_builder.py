@@ -3,7 +3,7 @@ from src.compiler.representation.command import Command, CommandType
 from src.compiler.representation.label import Label
 from src.compiler.representation.pseudo_register import PseudoRegister
 from src.compiler.representation.representation import Representation
-from src.compiler.representation.utils import get_variable_type
+from src.compiler.representation.utils import get_variable_type, optype_jump_mapping
 from src.compiler.representation.variable import Variable, VarType
 
 
@@ -29,13 +29,34 @@ class IRBuilder:
                 case _:
                     raise Exception("Unreachable")
 
-    def _parse_scope(self, node: Node, scope_depth: int = 0):
+    def _parse_scope(
+        self,
+        node: Node,
+        scope_depth: int = 0,
+        break_label: str | None = None,
+        continue_label: str | None = None,
+    ):
         for child in node.children:
             match child.node_type:
                 case NodeType.NODE_STMT:
                     self._parse_stmt(child)
                 case NodeType.NODE_IF:
-                    self._parse_if(child, scope_depth=scope_depth)
+                    self._parse_if(
+                        child,
+                        scope_depth=scope_depth,
+                        break_label=break_label,
+                        continue_label=continue_label,
+                    )
+                case NodeType.NODE_WHILE:
+                    self._parse_while(child, scope_depth=scope_depth)
+                case NodeType.NODE_BREAK:
+                    if break_label is None:
+                        raise Exception("Unreachable")
+                    self._parse_break(child, label_to_return=break_label)
+                case NodeType.NODE_CONTINUE:
+                    if continue_label is None:
+                        raise Exception("Unreachable")
+                    self._parse_continue(child, label_to_return=continue_label)
                 case _:
                     raise Exception("Unreachable")
 
@@ -77,37 +98,95 @@ class IRBuilder:
                 )
                 self.commands.append(command_declare)
 
-    def _parse_if(self, node: Node, scope_depth: int):
-        jump_type = self._parse_if_condition(node)
+    def _parse_if(
+        self, node: Node, scope_depth: int, break_label: str | None, continue_label: str | None
+    ):
+        jump_type = self._parse_condition(node)
         if_label_name = self._generate_label_name(optype="if", scope_depth=scope_depth)
         if_end_label_name = self._generate_label_name(optype="if_end", scope_depth=scope_depth)
-        self.commands.append(Command(operation=jump_type, operand_a=Label(name=if_label_name)))
+        if len(node.children) <= 2:
+            self.commands.append(
+                Command(operation=jump_type, operand_a=Label(name=if_end_label_name))
+            )
+        else:
+            self.commands.append(Command(operation=jump_type, operand_a=Label(name=if_label_name)))
         if_scope_node = node.children[1]
-        self._parse_scope(if_scope_node, scope_depth=scope_depth + 1)
+        self._parse_scope(
+            if_scope_node,
+            scope_depth=scope_depth + 1,
+            break_label=break_label,
+            continue_label=continue_label,
+        )
         self.commands.append(
             Command(operation=CommandType.JMP, operand_a=Label(name=if_end_label_name))
         )
+        if len(node.children) == 2:
+            self.commands.add_label(if_end_label_name)
         last_label = if_label_name
         for i, child in enumerate(node.children[2:]):
             if child.node_type == NodeType.NODE_ELIF:
                 self.commands.add_label(last_label)
-                jump_type = self._parse_if_condition(child)
+                jump_type = self._parse_condition(child)
                 elif_scope_node = child.children[1]
                 last_label = self._generate_label_name(optype="elif", scope_depth=scope_depth)
                 self.commands.append(Command(operation=jump_type, operand_a=Label(name=last_label)))
-                self._parse_scope(elif_scope_node, scope_depth=scope_depth + 1)
+                self._parse_scope(
+                    elif_scope_node,
+                    scope_depth=scope_depth + 1,
+                    break_label=break_label,
+                    continue_label=continue_label,
+                )
                 self.commands.append(
                     Command(operation=CommandType.JMP, operand_a=Label(name=if_end_label_name))
                 )
             if child.node_type == NodeType.NODE_SCOPE and i == len(node.children[2:]) - 1:
                 self.commands.add_label(last_label)
-                self._parse_scope(child, scope_depth=scope_depth + 1)
+                self._parse_scope(
+                    child,
+                    scope_depth=scope_depth + 1,
+                    break_label=break_label,
+                    continue_label=continue_label,
+                )
             if child.node_type == NodeType.NODE_SCOPE and i != len(node.children[2:]) - 1:
                 raise Exception("cannot have else before elif")
         if len(node.children) > 2:
             self.commands.add_label(if_end_label_name)
 
-    def _parse_if_condition(self, node: Node) -> CommandType:
+    def _parse_while(self, node: Node, scope_depth: int):
+        while_begin_label = self._generate_label_name(optype="while_begin", scope_depth=scope_depth)
+        while_end_label = self._generate_label_name(optype="while_end", scope_depth=scope_depth)
+        self.commands.add_label(while_begin_label)
+        node_scope = node.children[1]
+        jump_type = self._parse_condition(node)
+        self.commands.append(Command(operation=jump_type, operand_a=Label(name=while_end_label)))
+        self._parse_scope(
+            node=node_scope,
+            scope_depth=scope_depth + 1,
+            break_label=while_end_label,
+            continue_label=while_begin_label,
+        )
+        self.commands.append(
+            Command(operation=CommandType.JMP, operand_a=Label(name=while_begin_label))
+        )
+        self.commands.add_label(while_end_label)
+
+    def _parse_break(self, node: Node, label_to_return: str):
+        if node.node_type != NodeType.NODE_BREAK:
+            raise Exception("Unreachable")
+
+        self.commands.append(
+            Command(operation=CommandType.JMP, operand_a=Label(name=label_to_return))
+        )
+
+    def _parse_continue(self, node: Node, label_to_return: str):
+        if node.node_type != NodeType.NODE_CONTINUE:
+            raise Exception("Unreachable")
+
+        self.commands.append(
+            Command(operation=CommandType.JMP, operand_a=Label(name=label_to_return))
+        )
+
+    def _parse_condition(self, node: Node) -> CommandType:
         condition = node.children[0]
         jump_type: CommandType
         if condition.node_type == NodeType.NODE_TERM:
@@ -152,7 +231,7 @@ class IRBuilder:
                     operand_b=comparison_target_expr.operand_b,
                 )
             )
-            jump_type = CommandType.JE
+            jump_type = optype_jump_mapping(comparison_target_expr.operation)
         else:
             raise Exception("Unreachable")
 

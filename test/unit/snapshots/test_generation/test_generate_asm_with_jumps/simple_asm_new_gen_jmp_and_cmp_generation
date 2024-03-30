@@ -8,9 +8,9 @@ _start:
     push rax
     mov rax, 7
     push rax
-    mov rax, QWORD [rsp + 16]
-    mov rbx, QWORD [rsp + 8]
-    cmp rax, rbx
+    mov r8, QWORD [rsp + 16]
+    mov r9, QWORD [rsp + 8]
+    cmp r8, r9
     jmp bar
     mov rax, 8
     push rax

@@ -2,12 +2,12 @@ main:
    x = STORE 1
    y = STORE 2
    CMP x, y
-   JE main_if_0
+   JNE main_if_0
    x = STORE 2
    JMP main_if_end_0
 main_if_0:
    CMP x, y
-   JE main_elif_0
+   JLE main_elif_0
    r10 = SUB y, x
    x = STORE r10
    JMP main_if_end_0
@@ -30,7 +30,7 @@ main_if_0_1:
    r8 = CONVERT r8, BOOL
    r9 = CONVERT r9, BOOL
    CMP r8, r9
-   JE main_elif_0_1
+   JNE main_elif_0_1
    y = STORE 10
    JMP main_if_end_0_1
 main_elif_0_1:
@@ -44,7 +44,7 @@ main_if_end_0_1:
    r8 = OR r8, r9
    a = STORE r8
    CMP a, 1
-   JNE main_if_0_1_2
+   JNE main_if_end_0_1_2
    b = STORE 2
-   JMP main_if_0_1_2
-main_if_0_1_2:
+   JMP main_if_end_0_1_2
+main_if_end_0_1_2:

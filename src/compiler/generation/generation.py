@@ -460,7 +460,7 @@ class Generation:
         return [LabelInstruction(instruction_type=InstructionType.LABEL, label_name=label.name)]
 
     def _generate_cmp(self, command: Command) -> list[ASMInstruction]:
-        command.target = PseudoRegister(order=0)
+        command.target = PseudoRegister(order=8)
         register_a, register_b = self._get_register_for_command(command=command)
         instruction: list[ASMInstruction] = []
         operand_a = self._process_operand(

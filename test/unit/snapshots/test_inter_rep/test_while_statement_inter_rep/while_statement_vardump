@@ -1,0 +1,4 @@
+main variables:
+    x: INT = None
+    count: INT = None
+    y: INT = None
