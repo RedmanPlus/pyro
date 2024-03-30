@@ -12,6 +12,9 @@ class NodeType(Enum):
     NODE_IF = auto()
     NODE_ELIF = auto()
     NODE_ELSE = auto()
+    NODE_WHILE = auto()
+    NODE_BREAK = auto()
+    NODE_CONTINUE = auto()
     NODE_EXPR = auto()
     NODE_BIN_EXPR = auto()
     NODE_TERM = auto()
@@ -131,6 +134,15 @@ class Parser:
                     raise Exception("else without if")
                 node_if.children.append(subscope)
                 if_started = False
+            elif isinstance(stmts, Node) and stmts.node_type == NodeType.NODE_WHILE:
+                subscope = self._parse_scope(depth=depth + 1)
+                stmts.children.append(subscope)
+                node_scope.children.append(stmts)
+            elif isinstance(stmts, Node) and stmts.node_type in (
+                NodeType.NODE_BREAK,
+                NodeType.NODE_CONTINUE,
+            ):
+                node_scope.children.append(stmts)
             else:
                 node_scope.children += stmts  # type: ignore
 
@@ -146,6 +158,12 @@ class Parser:
                 return self._parse_elif_stmt()
             case TokenType.ELSE:
                 return self._parse_else_stmt()
+            case TokenType.WHILE:
+                return self._parse_while_stmt()
+            case TokenType.BREAK:
+                return self._parse_constant(constant_type=NodeType.NODE_BREAK)
+            case TokenType.CONTINUE:
+                return self._parse_constant(constant_type=NodeType.NODE_CONTINUE)
             case _:
                 raise Exception("Unreachable")
 
@@ -192,6 +210,21 @@ class Parser:
             raise Exception(f"Expected colon after else statement, got {self._peek(0)}")
         self._consume()
         return node_else
+
+    def _parse_while_stmt(self) -> Node:
+        self._consume()
+        node_while = Node(node_type=NodeType.NODE_WHILE)
+        condition = self._parse_expr(expected_final=(TokenType.COLON,))
+        if (current := self._peek(0)).token_type != TokenType.COLON:
+            raise Exception(f"Missing colon for if statement at {current.line}:{current.pos}")
+
+        self._consume()
+        node_while.children.append(condition)
+        return node_while
+
+    def _parse_constant(self, constant_type: NodeType) -> Node:
+        self._consume()
+        return Node(node_type=constant_type)
 
     def _parse_idents(self) -> tuple[list[Node], Node | None]:
         token_ident = self._consume()
