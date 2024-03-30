@@ -46,6 +46,9 @@ class TokenType(Enum):
     IF = auto()
     ELIF = auto()
     ELSE = auto()
+    WHILE = auto()
+    BREAK = auto()
+    CONTINUE = auto()
     COLON = auto()
     INDENT = auto()
     NEWLINE = auto()
@@ -82,6 +85,9 @@ class Tokenizer:
             "and": TokenType.AND,
             "or": TokenType.OR,
             "not": TokenType.NOT,
+            "while": TokenType.WHILE,
+            "break": TokenType.BREAK,
+            "continue": TokenType.CONTINUE,
         }
 
     def __call__(self, code: str) -> list[Token]:

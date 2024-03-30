@@ -186,3 +186,28 @@ def test_logical_operators_inter_rep(snapshot):
     rep = int_rep(ast=node)
     snapshot.assert_match(rep.pprint(), "logical_operators_inter_rep")
     snapshot.assert_match(rep.pprint_vars(), "logical_operators_vardump")
+
+
+@pytest.mark.tokenizer
+def test_while_statement_inter_rep(snapshot):
+    code = (
+        "x = 0\n"
+        "count = 0\n"
+        "y = 10\n"
+        "while x < y:\n"
+        "    if x == 0:\n"
+        "        x += 1\n"
+        "        count += 1\n"
+        "        continue\n"
+        "    x *= 2\n"
+        "    count += 1\n"
+    )
+    tokenizer = Tokenizer()
+    tokens = tokenizer(code=code)
+    parser = Parser()
+    node = parser(tokens=tokens)
+
+    int_rep = IRBuilder()
+    rep = int_rep(ast=node)
+    snapshot.assert_match(rep.pprint(), "while_statement_inter_rep")
+    snapshot.assert_match(rep.pprint_vars(), "while_statement_vardump")
