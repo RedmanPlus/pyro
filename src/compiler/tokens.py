@@ -13,6 +13,15 @@ class TokenType(Enum):
     DIV_FLOOR = auto()
     REMAIN = auto()
     POV = auto()
+    AND = auto()
+    OR = auto()
+    NOT = auto()
+    EQUALS = auto()
+    NOT_EQUALS = auto()
+    GT = auto()
+    GTE = auto()
+    LT = auto()
+    LTE = auto()
     BIT_OR = auto()
     BIT_AND = auto()
     BIT_XOR = auto()
@@ -70,6 +79,9 @@ class Tokenizer:
             "if": TokenType.IF,
             "elif": TokenType.ELIF,
             "else": TokenType.ELSE,
+            "and": TokenType.AND,
+            "or": TokenType.OR,
+            "not": TokenType.NOT,
         }
 
     def __call__(self, code: str) -> list[Token]:
@@ -118,6 +130,8 @@ class Tokenizer:
                 self._process_open_paren()
             if current_char == ")":
                 self._process_closed_paren()
+            if current_char == "!":
+                self._process_exclam()
             if current_char == ":":
                 self._process_colon()
         self.tokens.append(Token(token_type=TokenType.NEWLINE))
@@ -158,7 +172,11 @@ class Tokenizer:
 
     def _process_eq(self):
         self._consume()
-        self.tokens.append(Token(token_type=TokenType.EQ, line=self.line, pos=self.pos))
+        if self._peek(0) == "=":
+            self._consume()
+            self.tokens.append(Token(token_type=TokenType.EQUALS, line=self.line, pos=self.pos))
+        else:
+            self.tokens.append(Token(token_type=TokenType.EQ, line=self.line, pos=self.pos))
 
     def _process_plus(self):
         self._consume()
@@ -266,25 +284,41 @@ class Tokenizer:
 
     def _process_bit_shl(self):
         self._consume()
-        if self._peek(0) != "<":
-            raise Exception(f"Expected shift left, got {self._peek(0)}")
-        self._consume()
-        if self._peek(0) == "=":
+        if self._peek(0) == "<":
             self._consume()
-            self.tokens.append(Token(token_type=TokenType.EQ_BIT_SHL, line=self.line, pos=self.pos))
+            if self._peek(0) == "=":
+                self._consume()
+                self.tokens.append(
+                    Token(token_type=TokenType.EQ_BIT_SHL, line=self.line, pos=self.pos)
+                )
+            else:
+                self.tokens.append(
+                    Token(token_type=TokenType.BIT_SHL, line=self.line, pos=self.pos)
+                )
+        elif self._peek(0) == "=":
+            self._consume()
+            self.tokens.append(Token(token_type=TokenType.LTE, line=self.line, pos=self.pos))
         else:
-            self.tokens.append(Token(token_type=TokenType.BIT_SHL, line=self.line, pos=self.pos))
+            self.tokens.append(Token(token_type=TokenType.LT, line=self.line, pos=self.pos))
 
     def _process_bit_shr(self):
         self._consume()
-        if self._peek(0) != ">":
-            raise Exception(f"Expected shift right, got {self._peek(0)}")
-        self._consume()
-        if self._peek(0) == "=":
+        if self._peek(0) == ">":
             self._consume()
-            self.tokens.append(Token(token_type=TokenType.EQ_BIT_SHR, line=self.line, pos=self.pos))
+            if self._peek(0) == "=":
+                self._consume()
+                self.tokens.append(
+                    Token(token_type=TokenType.EQ_BIT_SHR, line=self.line, pos=self.pos)
+                )
+            else:
+                self.tokens.append(
+                    Token(token_type=TokenType.BIT_SHR, line=self.line, pos=self.pos)
+                )
+        elif self._peek(0) == "=":
+            self._consume()
+            self.tokens.append(Token(token_type=TokenType.GTE, line=self.line, pos=self.pos))
         else:
-            self.tokens.append(Token(token_type=TokenType.BIT_SHR, line=self.line, pos=self.pos))
+            self.tokens.append(Token(token_type=TokenType.GT, line=self.line, pos=self.pos))
 
     def _process_open_paren(self):
         self._consume()
@@ -297,6 +331,13 @@ class Tokenizer:
     def _process_colon(self):
         self._consume()
         self.tokens.append(Token(token_type=TokenType.COLON, line=self.line, pos=self.pos))
+
+    def _process_exclam(self):
+        self._consume()
+        if self._peek(0) != "=":
+            raise Exception(f"Unknown token -> '!' must be followed by '=', not {self._peek(0)}")
+        self._consume()
+        self.tokens.append(Token(token_type=TokenType.NOT_EQUALS, line=self.line, pos=self.pos))
 
     def _peek(self, position: int) -> str | None:
         if self.code:

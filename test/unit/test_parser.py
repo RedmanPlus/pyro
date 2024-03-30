@@ -319,3 +319,33 @@ def test_if_elif_else_wrong_structure_statement():
         parser(tokens=tokens)
 
     assert e.value.args[0] == "Cannot write elif without if"
+
+
+@pytest.mark.tokenizer
+def test_parse_logical_operators(snapshot):
+    code = (
+        "x = 1\n"
+        "y = 2\n"
+        "if x == y:\n"
+        "    x = 2\n"
+        "elif x > y:\n"
+        "    x -= y\n"
+        "else:\n"
+        "    x += y\n"
+        "z = x + y\n"
+        "if z != x * 10:\n"
+        "    z *= 10\n"
+        "elif z == x * 10 and y != 10:\n"
+        "    y = 10\n"
+        "else:\n"
+        "    x *= 10\n"
+        "a = x > 10 or x < 5\n"
+        "if a:\n"
+        "    b = 2\n"
+    )
+    tokenizer = Tokenizer()
+    tokens = tokenizer(code=code)
+    parser = Parser()
+    core_node = parser(tokens=tokens)
+
+    snapshot.assert_match(core_node.pprint(), "parse_logical_operators")
