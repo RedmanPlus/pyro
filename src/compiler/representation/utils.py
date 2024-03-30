@@ -8,13 +8,17 @@ def get_variable_type(operation_type: CommandType) -> VarType | None:
     return operation_result_type.get(operation_type, None)
 
 
-def is_operand_a_register(operand: PseudoRegister | str | Variable | Label | None) -> bool:
+def is_operand_a_register(
+    operand: PseudoRegister | str | Variable | VarType | Label | None,
+) -> bool:
     return isinstance(operand, PseudoRegister)
 
 
-def is_operand_a_variable(operand: PseudoRegister | str | Variable | Label | None) -> bool:
+def is_operand_a_variable(
+    operand: PseudoRegister | str | Variable | VarType | Label | None,
+) -> bool:
     return isinstance(operand, Variable)
 
 
-def is_operand_a_value(operand: PseudoRegister | str | Variable | Label | None) -> bool:
+def is_operand_a_value(operand: PseudoRegister | str | Variable | Label | VarType | None) -> bool:
     return isinstance(operand, str)

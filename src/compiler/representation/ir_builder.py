@@ -196,10 +196,18 @@ class IRBuilder:
                     operand_b = node_term_b.children[0].value
             case _:
                 raise Exception("Unreachable")
+
         if command_a is not None:
             self.commands.append(command_a)
         if command_b is not None:
             self.commands.append(command_b)
+
+        if self._is_only_boolean(node_op):
+            if operand_a is None or operand_b is None:
+                raise Exception("Unreachable")
+            self._process_operands_for_boolean_only_operations(
+                operand_a=operand_a, operand_b=operand_b
+            )
 
         target: str | PseudoRegister | None
         if command_a is not None:
@@ -249,6 +257,29 @@ class IRBuilder:
         )
         self.used_register_count += 1
         return Command(target=target, operation=operation, operand_a=operand)  # type: ignore
+
+    def _process_operands_for_boolean_only_operations(
+        self, operand_a: PseudoRegister | Variable | str, operand_b: PseudoRegister | Variable | str
+    ):
+        conversion_commands_a = self._convert_operand_to_bool(operand=operand_a)
+        conversion_commands_b = self._convert_operand_to_bool(operand=operand_b)
+        if conversion_commands_a is not None:
+            self.commands.append(conversion_commands_a)
+        if conversion_commands_b is not None:
+            self.commands.append(conversion_commands_b)
+
+    def _convert_operand_to_bool(self, operand: PseudoRegister | Variable | str) -> Command | None:
+        if not isinstance(operand, Variable) or operand.var_type != bool:
+            command_compare = Command(
+                target=operand
+                if isinstance(operand, PseudoRegister)
+                else PseudoRegister(order=self.used_register_count + 1),
+                operation=CommandType.CONVERT,
+                operand_a=operand,
+                operand_b=VarType.BOOL,
+            )
+            return command_compare
+        return None
 
     def _parse_operand(self, node: Node) -> CommandType:
         match node.node_type:
@@ -311,6 +342,9 @@ class IRBuilder:
             CommandType.OR,
             CommandType.NOT,
         )
+
+    def _is_only_boolean(self, node: Node) -> bool:
+        return node.node_type in (NodeType.NODE_AND, NodeType.NODE_OR, NodeType.NODE_NOT)
 
     def _generate_label_name(self, optype: str, scope_depth: int) -> str:
         label_name = f"{self.commands.block_name}_{optype}_{scope_depth}"

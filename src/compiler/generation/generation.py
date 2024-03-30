@@ -17,7 +17,7 @@ from src.compiler.representation.utils import (
     is_operand_a_value,
     is_operand_a_variable,
 )
-from src.compiler.representation.variable import Variable
+from src.compiler.representation.variable import Variable, VarType
 
 
 class Generation:
@@ -66,6 +66,15 @@ class Generation:
                     self.code_chunks += instructions
                 case CommandType.REMAIN:
                     instructions = self._generate_remain(command)
+                    self.code_chunks += instructions
+                case CommandType.AND:
+                    instructions = self._generate_and(command)
+                    self.code_chunks += instructions
+                case CommandType.OR:
+                    instructions = self._generate_or(command)
+                    self.code_chunks += instructions
+                case CommandType.NOT:
+                    instructions = self._generate_not(command)
                     self.code_chunks += instructions
                 case CommandType.EQ:
                     instructions = self._generate_eq(command)
@@ -129,6 +138,9 @@ class Generation:
                     self.code_chunks += instructions
                 case CommandType.JLE:
                     instructions = self._generate_jump(command, jump_type=InstructionType.JLE)
+                    self.code_chunks += instructions
+                case CommandType.CONVERT:
+                    instructions = self._generate_convert(command)
                     self.code_chunks += instructions
                 case _:
                     raise Exception("Unreachable")
@@ -307,6 +319,15 @@ class Generation:
         )
         return instructions
 
+    def _generate_and(self, command: Command) -> list[ASMInstruction]:
+        return self._generate_binop(command=command, math_op_type=InstructionType.AND)
+
+    def _generate_or(self, command: Command) -> list[ASMInstruction]:
+        return self._generate_binop(command=command, math_op_type=InstructionType.OR)
+
+    def _generate_not(self, command: Command) -> list[ASMInstruction]:
+        return self._generate_binop(command=command, math_op_type=InstructionType.NOT)
+
     def _generate_eq(self, command: Command) -> list[ASMInstruction]:
         return self._generate_logical_operation(command=command)
 
@@ -343,6 +364,17 @@ class Generation:
     def _generate_bit_shr(self, command: Command) -> list[ASMInstruction]:
         return self._generate_binop(command=command, math_op_type=InstructionType.SHR)
 
+    def _generate_convert(self, command: Command) -> list[ASMInstruction]:
+        if isinstance(command.operand_a, str | Label):
+            raise Exception("Unreachable")
+        conversion_command = Command(
+            target=command.operand_a,
+            operation=CommandType.GT,
+            operand_a=command.operand_a,
+            operand_b="0",
+        )
+        return self._generate_logical_operation(conversion_command)
+
     def _generate_binop(
         self, command: Command, math_op_type: InstructionType
     ) -> list[ASMInstruction]:
@@ -352,6 +384,8 @@ class Generation:
         register_a, register_b = self._get_register_for_command(command)
         is_operand_a, is_operand_b = self._get_register_reassignment(command)
         if command.operand_a is None or command.operand_b is None:
+            raise Exception("Unreachable")
+        if isinstance(command.operand_a, VarType) or isinstance(command.operand_b, VarType):
             raise Exception("Unreachable")
         instruction_a = self._process_operand(
             command.operand_a, register_a, register_b, is_operand_b=is_operand_a
@@ -393,7 +427,7 @@ class Generation:
                 )
             )
         else:
-            if command.operand_b is None:
+            if command.operand_b is None or isinstance(command.operand_b, VarType):
                 raise Exception("Unreachable")
             operation = self._process_operand(command.operand_b, "rax", "rbx", True)
             if operation is None:
@@ -414,12 +448,12 @@ class Generation:
         instruction_a = self._process_operand(
             operand=command.operand_a, register_a=register, register_b="", is_operand_b=False
         )
-        if instruction_a is None:
-            raise Exception("Unreachable")
         instruction_b = MathLogicInstruction(
             instruction_type=math_op_type,
             registers=(register,),
         )
+        if instruction_a is None:
+            return [instruction_b]
         return [instruction_a, instruction_b]
 
     def _generate_label(self, label: Label) -> list[ASMInstruction]:

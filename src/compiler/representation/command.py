@@ -38,6 +38,7 @@ class CommandType(Enum):
     JGE = auto()
     JL = auto()
     JLE = auto()
+    CONVERT = auto()
     STORE = auto()
 
 
@@ -46,14 +47,14 @@ class Command:
     operation: CommandType
     target: PseudoRegister | Variable | None
     operand_a: PseudoRegister | str | Variable | Label
-    operand_b: PseudoRegister | str | Variable | None = None
+    operand_b: PseudoRegister | str | Variable | VarType | None = None
 
     def __init__(
         self,
         operation: CommandType,
         operand_a: PseudoRegister | str | Variable | Label,
         target: PseudoRegister | Variable | None = None,
-        operand_b: PseudoRegister | str | Variable | None = None,
+        operand_b: PseudoRegister | str | Variable | VarType | None = None,
     ):
         if (
             operation
