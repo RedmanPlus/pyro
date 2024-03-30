@@ -123,3 +123,22 @@ def test_tokenize_logical_operators(snapshot):
     tokenizer = Tokenizer()
     tokenizer(code=code)
     snapshot.assert_match(tokenizer.pprint(), "tokenize_logical_operators")
+
+
+@pytest.mark.tokenizer
+def test_tokenize_while_statement(snapshot):
+    code = (
+        "x = 0\n"
+        "count = 0\n"
+        "y = 10\n"
+        "while x < y:\n"
+        "    if x == 0:\n"
+        "        x += 1\n"
+        "        count += 1\n"
+        "        continue\n"
+        "    x *= 2\n"
+        "    count += 1\n"
+    )
+    tokenizer = Tokenizer()
+    tokenizer(code=code)
+    snapshot.assert_match(tokenizer.pprint(), "tokenize_while_statement")
