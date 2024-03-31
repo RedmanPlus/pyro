@@ -25,4 +25,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: code-coverage-report
-          path: junit/test-result.xml
+          path: /home/runner/work/pyro/pyro/junit/test-results.xml
