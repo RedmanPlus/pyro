@@ -1,7 +1,6 @@
+from src import CLI, Compiler
 from src.cli.args import MAIN_CLI_ARGS
-from src.cli.cli import CLI
 from src.cli.commands import handle_input_file, handle_output_file
-from src.compiler.compiler import Compiler
 
 
 def main():

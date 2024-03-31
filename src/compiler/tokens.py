@@ -145,7 +145,7 @@ class Tokenizer:
     def _process_alnum(self):
         char_buff: list[str] = []
         pos, line = self.pos, self.line
-        while self._peek(0) is not None and self._peek(0).isalnum():
+        while self._peek(0) is not None and self._peek(0).isalnum() or self._peek(0) == "_":
             current_char = self._consume()
             char_buff.append(current_char)
         value = "".join(char_buff)
