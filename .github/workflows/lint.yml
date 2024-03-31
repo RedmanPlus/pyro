@@ -1,0 +1,30 @@
+name: lint
+run-name: ${{ github.actor }} is linting the project for codestyle correctness
+on: [push]
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+      - name: Install all poetry dependencies
+        run: |
+          poetry install
+      - name: Lint with Ruff
+        run: |
+          poetry run ruff --output-format=github .
+        continue-on-error: true
+      - name: Run mypy
+        uses: sasanquaneuf/mypy-github-action@releases/v1
+        with:
+          checkName: 'lint'   # NOTE: this needs to be the same as the job name
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
