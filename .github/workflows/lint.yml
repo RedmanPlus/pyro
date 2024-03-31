@@ -21,7 +21,6 @@ jobs:
       - name: Lint with Ruff
         run: |
           poetry run ruff --output-format=github .
-        continue-on-error: true
       - name: Run mypy
         uses: sasanquaneuf/mypy-github-action@releases/v1
         with:
