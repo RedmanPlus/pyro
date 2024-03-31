@@ -20,9 +20,9 @@ jobs:
           poetry install
       - name: Test with pytest
         run: |
-          poetry run pytest . --doctest-modules --junitxml=junit/test-results-${{github.job}}.xml
+          poetry run pytest . --doctest-modules --junitxml=junit/test-results-${{github.job}}-${{matrix.python-version}}.xml
       - name: Store test results
         uses: actions/upload-artifact@v4
         with:
           name: code-coverage-report
-          path: /home/runner/work/pyro/pyro/junit/test-results-${{github.job}}.xml
+          path: /home/runner/work/pyro/pyro/junit/test-results-${{github.job}}-${{matrix.python-version}}.xml
