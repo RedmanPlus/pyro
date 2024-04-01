@@ -35,8 +35,8 @@ function test_one_case() {
     echo -e "    \033[91m FAILED - missmatch: \033[0m"
     echo "expected - ${actual_result}"
     echo "got - ${run_result}"
-    return 1
   fi
+  return 1
 }
 
 function cleanup() {
@@ -45,6 +45,7 @@ function cleanup() {
   rm -rf $filename_free
 }
 
+TOTAL=0
 SUCCESS=0
 FAILED=0
 
@@ -54,6 +55,7 @@ for file in python_files/*.py; do
   test_one_case $file
   cleanup $file
   status=$?
+  TOTAL=$(($TOTAL+1))
   if [[ $status == 1 ]]; then
       FAILED=$(($FAILED+1))
   elif [[ $status == 0 ]]; then
@@ -61,5 +63,6 @@ for file in python_files/*.py; do
   fi
 done
 echo -e "\033[96mTesting session finished\033[0m"
+echo -e "    \033[96mRan in total ${TOTAL} tests\033[0m"
 echo -e "    \033[96mSuccessfully finished ${SUCCESS} tests\033[0m"
 echo -e "    \033[96mFailed ${FAILED} tests\033[0m"
