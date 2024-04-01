@@ -33,7 +33,12 @@ class Generation:
         asm_header: str
         if self.debug:
             asm_header = (
-                "section .text\n    default rel\n    extern printf\n    global main\n\nmain:\n"
+                "section .text\n"
+                "    default rel\n"
+                "    extern printf\n"
+                "    extern exit\n"
+                "    global main\n"
+                "\nmain:\n"
             )
         else:
             asm_header = "section .text\nglobal _start\n\n_start:\n"
@@ -152,19 +157,23 @@ class Generation:
         if self.debug:
             self._add_debug_prints()
         asm_body: str = asm_header + "\n".join(chunk.to_asm() for chunk in self.code_chunks)
-        exit_chunk: list[ASMInstruction] = [
-            DataMoveInstruction(
-                instruction_type=InstructionType.MOV,
-                register="rax",
-                data="60",
-            ),
-            DataMoveInstruction(
-                instruction_type=InstructionType.MOV,
-                register="rdi",
-                data="0",
-            ),
-            CallInstruction(instruction_type=InstructionType.SYSCALL),
-        ]
+        exit_chunk: list[ASMInstruction]
+        if self.debug:
+            exit_chunk = [CallInstruction(instruction_type=InstructionType.CALL, callee="exit")]
+        else:
+            exit_chunk = [
+                DataMoveInstruction(
+                    instruction_type=InstructionType.MOV,
+                    register="rax",
+                    data="60",
+                ),
+                DataMoveInstruction(
+                    instruction_type=InstructionType.MOV,
+                    register="rdi",
+                    data="0",
+                ),
+                CallInstruction(instruction_type=InstructionType.SYSCALL),
+            ]
         result_asm: str = asm_body + "\n" + "\n".join(chunk.to_asm() for chunk in exit_chunk)
         if self.debug:
             result_asm += "\n\n\nsection .data\n    formatString: db '%d', 10, 0\n"
