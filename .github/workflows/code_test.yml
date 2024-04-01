@@ -19,9 +19,7 @@ jobs:
       - name: Install all poetry dependencies
         run: |
           poetry install
-      - name: Go to code_test directory
-        run: |
-          cd code_tests
       - name: Test with bash script
         run: |
+          cd code_tests &
           ./test_compilation.sh
