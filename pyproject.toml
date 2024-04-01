@@ -103,6 +103,7 @@ markers = [
     "parser: parser tests",
     "int_rep: intermediate representation tests",
     "gen: assembly generation",
+    "errors: error reporting framework tests",
     "integration: integration of multiple components"
 ]
 python_files = "test_*.py"

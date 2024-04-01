@@ -90,11 +90,20 @@ class IRBuilder:
                     raise Exception("Unreachable")
                 if node_dec.children[0].value is None:
                     raise Exception("Unreachable")
+                operand_a: str | Variable | None
+                if node_dec.children[0].node_type == NodeType.NODE_IDENT:
+                    operand_a = self.commands.get_var(node_dec.children[0].value)
+                    if operand_a is None:
+                        raise Exception("Unreachable")
+                elif node_dec.children[0].node_type == NodeType.NODE_VALUE:
+                    operand_a = node_dec.children[0].value
+                else:
+                    raise Exception("Unreachable")
                 var = self.commands.register_var(varname=node_term.children[0].value)
                 command_declare = Command(
                     operation=CommandType.STORE,
                     target=var,
-                    operand_a=node_dec.children[0].value,
+                    operand_a=operand_a,
                 )
                 self.commands.append(command_declare)
 

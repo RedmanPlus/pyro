@@ -1,0 +1,13 @@
+Compilation stopped due to several messages:
+\033[93mWARNING:
+
+    y = 2
+
+This is a test warning\033[0m
+
+\033[93mWARNING:
+
+    z = 3
+
+This is a test warning\033[0m
+

@@ -206,6 +206,21 @@ class Generation:
                         register=X86_64_REGISTER_SCHEMA[saved_value.name],
                     )
                 ]
+            if isinstance(saved_value, Variable):
+                saved_value_offset = self._calculate_variable_offset(
+                    saved_value.name, existing=True
+                )
+                instructions += [
+                    DataMoveInstruction(
+                        instruction_type=InstructionType.MOV,
+                        register="rax",
+                        data=saved_value_offset,
+                    ),
+                    DataMoveInstruction(
+                        instruction_type=InstructionType.PUSH,
+                        register="rax",
+                    ),
+                ]
             return instructions
         else:
             stack_offset = self._calculate_variable_offset(target.name)
@@ -598,11 +613,14 @@ class Generation:
             registers=(register_a, register_b),
         )
 
-    def _calculate_variable_offset(self, var_name: str) -> str:
+    def _calculate_variable_offset(self, var_name: str, existing: bool = False) -> str:
         variable_position = self._get_variable_index(var_name)
         if variable_position < 0:
             raise Exception("Unreachable")
-        stack_offset = f"QWORD [rsp + {(len(self.variables) - variable_position - 1) * 8}]"
+        offset = (len(self.variables) - variable_position - 1) * 8
+        if existing:
+            offset -= 8
+        stack_offset = f"QWORD [rsp + {offset}]"
         return stack_offset
 
     def _add_debug_prints(self):
