@@ -1,8 +1,8 @@
-name: pytest
+name: compiled binary test
 run-name: ${{ github.actor }} is testing project with pytest
 on: [push]
 jobs:
-  pytest:
+  compiled-tests:
     runs-on: ubuntu-latest
     strategy:
       matrix:
