@@ -1,5 +1,5 @@
 name: compiled binary test
-run-name: ${{ github.actor }} is testing project with pytest
+run-name: ${{ github.actor }} is testing compiled project binaries
 on: [push]
 jobs:
   compiled-tests:
@@ -21,6 +21,6 @@ jobs:
           poetry install
       - name: Test with bash script
         run: |
+          pwd &
           ls -al &
           ./test_compilation.sh
-          working-directory: ./code_tests
