@@ -128,7 +128,10 @@ class IRBuilder:
                 self.commands.add_label(last_label)
                 jump_type = self._parse_condition(child)
                 elif_scope_node = child.children[1]
-                last_label = self._generate_label_name(optype="elif", scope_depth=scope_depth)
+                if i == len(node.children[2:]) - 1:
+                    last_label = if_end_label_name
+                else:
+                    last_label = self._generate_label_name(optype="elif", scope_depth=scope_depth)
                 self.commands.append(Command(operation=jump_type, operand_a=Label(name=last_label)))
                 self._parse_scope(
                     elif_scope_node,
