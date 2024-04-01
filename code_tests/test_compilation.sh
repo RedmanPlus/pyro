@@ -24,7 +24,7 @@ function get_executable_command() {
 function test_one_case() {
   filename_free=$(get_free_filename $1)
   result_file=$(get_result_filename $filename_free)
-  _=$(python ../../main.py "$file" "$filename_free" -d)
+  _=$(python ../main.py "$file" "$filename_free" -d)
   executable=$(get_executable_command $filename_free)
   run_result=$($executable)
   actual_result=$(<$result_file)
