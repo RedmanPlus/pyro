@@ -1,0 +1,13 @@
+Compilation stopped due to several messages:
+\033[91mERROR:
+
+    1y = 2
+
+This is a test error\033[0m
+
+\033[91mERROR:
+
+    z = 'foo'
+
+This is a test error\033[0m
+
