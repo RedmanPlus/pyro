@@ -20,12 +20,14 @@ class MessageRegistry:
     message_factory: MessageFactoryT = message_factory
     is_blocking_message: IsBlockingMessageT = is_blocking_message
 
-    def register_message(self, line: int, pos: int, message_type: MessageType):
+    def register_message(self, line: int, pos: int, message_type: MessageType, **kwargs: str):
         code_lines = self.code.split("\n")
         code_line = code_lines[line - 1]
         if not self.is_blocking_compilation:
             self.is_blocking_compilation = self.is_blocking_message(message_type=message_type)
         message_str = self.get_message(message_type=message_type)
+        if kwargs:
+            message_str = message_str.format(**kwargs)
         message = self.message_factory(
             line=line,
             pos=pos,
