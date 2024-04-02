@@ -1,0 +1,13 @@
+Compilation stopped due to several messages:
+\033[91mERROR:
+
+    x = y + z
+
+Variable y used before assignment\033[0m
+
+\033[91mERROR:
+
+    x = y + z
+
+Variable z used before assignment\033[0m
+

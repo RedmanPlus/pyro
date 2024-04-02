@@ -97,3 +97,7 @@ class PatternMatcher(Generic[EnumVal, ResultVal]):
 
     def __str__(self) -> str:
         return f"PatternMatcher: {self.patterns}"
+
+
+class StopExecution(Exception):  # noqa N818
+    ...
