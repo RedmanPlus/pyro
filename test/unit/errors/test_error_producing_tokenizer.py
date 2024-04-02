@@ -14,4 +14,3 @@ def test_tokenizer_produce_errors(snapshot):
     errors = registry.display_messages()
     snapshot.assert_match(tokenizer.pprint(), "failed_tokens_result")
     snapshot.assert_match(errors, "error_trace_tokenizer")
-    raise AssertionError()
