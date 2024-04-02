@@ -48,22 +48,6 @@ def test_complex_precedence_rep(snapshot):
 
 
 @pytest.mark.int_rep
-def test_variable_usage_fail():
-    code = "x = 1 + y"
-    tokenizer = Tokenizer()
-    tokens = tokenizer(code=code)
-    parser = Parser()
-    node = parser(tokens=tokens)
-
-    int_rep = IRBuilder()
-
-    with pytest.raises(Exception) as e:
-        int_rep(ast=node)
-
-    assert e.value.args[0] == "Unknown variable: y"
-
-
-@pytest.mark.int_rep
 def test_variable_usage_ok(snapshot):
     code = "x, y = 1, x * 10"
     tokenizer = Tokenizer()

@@ -1,3 +1,4 @@
+from src.compiler.errors.error_type import ErrorType
 from src.compiler.errors.message_registry import MessageRegistry
 from src.compiler.parsing import Node, NodeType
 from src.compiler.representation.command import Command, CommandType
@@ -14,7 +15,7 @@ class IRBuilder:
         self.commands: Representation = Representation(block_name="main")
         self.label_names: list[str] = []
         self.used_register_count: int = 8
-        self.registry = registry
+        self.registry = registry if registry is not None else MessageRegistry(code="")
 
     def __call__(self, ast: Node) -> Representation:
         if self.ast is None:
@@ -272,7 +273,13 @@ class IRBuilder:
                 if node_term_a.children[0].node_type == NodeType.NODE_IDENT:
                     var = self.commands.get_var(node_term_a.children[0].value)  # type: ignore
                     if var is None:
-                        raise Exception(f"Unknown variable: {node_term_a.children[0].value}")
+                        self.registry.register_message(
+                            line=node_term_a.children[0].token.line,  # type: ignore
+                            pos=node_term_a.children[0].token.pos,  # type: ignore
+                            message_type=ErrorType.UNKNOWN_VARIABLE,
+                            varname=node_term_a.children[0].value,  # type: ignore
+                        )
+                        var = Variable("NOVAR")
                     operand_a = var
                 else:
                     operand_a = node_term_a.children[0].value
@@ -290,7 +297,13 @@ class IRBuilder:
                 if node_term_b.children[0].node_type == NodeType.NODE_IDENT:
                     var = self.commands.get_var(node_term_b.children[0].value)  # type: ignore
                     if var is None:
-                        raise Exception(f"Unknown variable: {node_term_b.children[0].value}")
+                        self.registry.register_message(
+                            line=node_term_b.children[0].token.line,  # type: ignore
+                            pos=node_term_b.children[0].token.pos,  # type: ignore
+                            message_type=ErrorType.UNKNOWN_VARIABLE,
+                            varname=node_term_b.children[0].value,  # type: ignore
+                        )
+                        var = Variable("NOVAR")
                     operand_b = var
                 else:
                     operand_b = node_term_b.children[0].value
@@ -345,7 +358,13 @@ class IRBuilder:
                 if node_term.children[0].node_type == NodeType.NODE_IDENT:
                     var = self.commands.get_var(node_term.children[0].value)  # type: ignore
                     if var is None:
-                        raise Exception(f"Unknown variable: {node_term.children[0].value}")
+                        self.registry.register_message(
+                            line=node_term.children[0].token.line,  # type: ignore
+                            pos=node_term.children[0].token.pos,  # type: ignore
+                            message_type=ErrorType.UNKNOWN_VARIABLE,
+                            varname=node_term.children[0].value,  # type: ignore
+                        )
+                        var = Variable("NOVAR")
                     operand = var
                 else:
                     operand = node_term.children[0].value  # type: ignore
