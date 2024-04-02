@@ -2,7 +2,9 @@ from dataclasses import dataclass, field
 from enum import Enum, auto
 from typing import Optional
 
+from src.compiler.errors.error_type import ErrorType
 from src.compiler.errors.message_registry import MessageRegistry
+from src.compiler.parsing.utils import StopExecution
 from src.compiler.tokens import Token, TokenType
 
 
@@ -82,11 +84,16 @@ class Parser:
         self.tokens: list[Token] = tokens
         self.core_node = Node(node_type=NodeType.NODE_PROG, children=[])
         self.parens: int = 0
-        self.registry = message_registry
+        self.registry = (
+            message_registry if message_registry is not None else MessageRegistry(code="")
+        )
 
     def __call__(self, tokens: list[Token]) -> Node:
         self.tokens = tokens
-        self._traverse_tokens()
+        try:
+            self._traverse_tokens()
+        except StopExecution:
+            ...
         return self.core_node
 
     def _traverse_tokens(self):
@@ -107,8 +114,12 @@ class Parser:
             if self._peek(0).token_type == TokenType.INDENT:
                 indent_level = self._count_indentation()
                 if indent_level > depth:
-                    raise Exception(
-                        "Indentation does not match the scope depth of the given code block"
+                    self.registry.register_message(
+                        line=self._peek(0).line,  # type: ignore
+                        pos=self._peek(0).pos,  # type: ignore
+                        message_type=ErrorType.MISMATCHING_INDENT,
+                        required=str(depth * 4),
+                        got=str(indent_level * 4),
                     )
                 if indent_level < depth:
                     return node_scope
@@ -120,27 +131,70 @@ class Parser:
             stmts = self._parse_stmts()
             if isinstance(stmts, Node) and stmts.node_type == NodeType.NODE_IF:
                 subscope = self._parse_scope(depth=depth + 1)
+                if len(subscope.children) == 0:
+                    self.registry.register_message(
+                        line=stmts.token.line,  # type: ignore
+                        pos=stmts.token.pos,  # type: ignore
+                        message_type=ErrorType.EMPTY_SCOPE,
+                        stmt_type="if",
+                    )
                 stmts.children.append(subscope)
                 node_scope.children.append(stmts)
                 if_started = True
             elif isinstance(stmts, Node) and stmts.node_type == NodeType.NODE_ELIF:
                 if not if_started:
-                    raise Exception("Cannot write elif without if")
+                    self.registry.register_message(
+                        line=stmts.token.line,  # type: ignore
+                        pos=stmts.token.pos,  # type: ignore
+                        message_type=ErrorType.ILLEGAL_IF_CONSTRUCT,
+                        reason="elif statement declared without if",
+                    )
                 subscope = self._parse_scope(depth=depth + 1)
+                if len(subscope.children) == 0:
+                    self.registry.register_message(
+                        line=stmts.token.line,  # type: ignore
+                        pos=stmts.token.pos,  # type: ignore
+                        message_type=ErrorType.EMPTY_SCOPE,
+                        stmt_type="elif",
+                    )
                 stmts.children.append(subscope)
                 node_if = node_scope.children[-1]
                 if node_if.node_type != NodeType.NODE_IF:
-                    raise Exception("else without if")
+                    self.registry.register_message(
+                        line=stmts.token.line,  # type: ignore
+                        pos=stmts.token.pos,  # type: ignore
+                        message_type=ErrorType.ILLEGAL_IF_CONSTRUCT,
+                        reason="elif statement declared without if",
+                    )
                 node_if.children.append(stmts)
             elif isinstance(stmts, Node) and stmts.node_type == NodeType.NODE_ELSE:
                 subscope = self._parse_scope(depth=depth + 1)
+                if len(subscope.children) == 0:
+                    self.registry.register_message(
+                        line=stmts.token.line,  # type: ignore
+                        pos=stmts.token.pos,  # type: ignore
+                        message_type=ErrorType.EMPTY_SCOPE,
+                        stmt_type="else",
+                    )
                 node_if = node_scope.children[-1]
                 if node_if.node_type != NodeType.NODE_IF:
-                    raise Exception("else without if")
+                    self.registry.register_message(
+                        line=stmts.token.line,  # type: ignore
+                        pos=stmts.token.pos,  # type: ignore
+                        message_type=ErrorType.ILLEGAL_IF_CONSTRUCT,
+                        reason="else statement declared without if",
+                    )
                 node_if.children.append(subscope)
                 if_started = False
             elif isinstance(stmts, Node) and stmts.node_type == NodeType.NODE_WHILE:
                 subscope = self._parse_scope(depth=depth + 1)
+                if len(subscope.children) == 0:
+                    self.registry.register_message(
+                        line=stmts.token.line,  # type: ignore
+                        pos=stmts.token.pos,  # type: ignore
+                        message_type=ErrorType.EMPTY_SCOPE,
+                        stmt_type="while",
+                    )
                 stmts.children.append(subscope)
                 node_scope.children.append(stmts)
             elif isinstance(stmts, Node) and stmts.node_type in (
@@ -170,14 +224,23 @@ class Parser:
             case TokenType.CONTINUE:
                 return self._parse_constant(constant_type=NodeType.NODE_CONTINUE)
             case _:
-                raise Exception("Unreachable")
+                self.registry.register_message(
+                    line=self._peek(0).line,  # type: ignore
+                    pos=self._peek(0).pos,  # type: ignore
+                    message_type=ErrorType.ILLEGAL_DECLARATION,
+                    reason="Unknown statement",
+                )
+                raise StopExecution()
 
     def _parse_assignment_stmts(self) -> list[Node]:
         idents, assign_op = self._parse_idents()
         exprs = self._parse_exprs(assign_op=assign_op, ident=idents[0])
         if len(idents) != len(exprs):
-            raise Exception(
-                "Illegal declaration: expected equal amount of declared variables and expressions"
+            self.registry.register_message(
+                line=idents[0].token.line,  # type: ignore
+                pos=idents[0].token.pos,  # type: ignore
+                message_type=ErrorType.ILLEGAL_DECLARATION,
+                reason="cannot assign less expressions than values declared",
             )
 
         stmts = [
@@ -190,8 +253,14 @@ class Parser:
         token = self._consume()
         node_if = Node(node_type=NodeType.NODE_IF, token=token)
         condition = self._parse_expr(expected_final=(TokenType.COLON,))
-        if (current := self._peek(0)).token_type != TokenType.COLON:
-            raise Exception(f"Missing colon for if statement at {current.line}:{current.pos}")
+        if self._peek(0).token_type != TokenType.COLON:
+            self.registry.register_message(
+                line=token.line,  # type: ignore
+                pos=token.pos,  # type: ignore
+                message_type=ErrorType.MISSING_TOKEN,
+                missing=":",
+                stmt_type="if",
+            )
 
         self._consume()
         node_if.children.append(condition)
@@ -201,8 +270,14 @@ class Parser:
         token = self._consume()
         node_elif = Node(node_type=NodeType.NODE_ELIF, token=token)
         condition = self._parse_expr(expected_final=(TokenType.COLON,))
-        if (current := self._peek(0)).token_type != TokenType.COLON:
-            raise Exception(f"Missing colon for if statement at {current.line}:{current.pos}")
+        if self._peek(0).token_type != TokenType.COLON:
+            self.registry.register_message(
+                line=token.line,  # type: ignore
+                pos=token.pos,  # type: ignore
+                message_type=ErrorType.MISSING_TOKEN,
+                missing=":",
+                stmt_type="elif",
+            )
 
         self._consume()
         node_elif.children.append(condition)
@@ -212,7 +287,13 @@ class Parser:
         token = self._consume()
         node_else = Node(node_type=NodeType.NODE_ELSE, token=token)
         if self._peek(0).token_type != TokenType.COLON:
-            raise Exception(f"Expected colon after else statement, got {self._peek(0)}")
+            self.registry.register_message(
+                line=token.line,  # type: ignore
+                pos=token.pos,  # type: ignore
+                message_type=ErrorType.MISSING_TOKEN,
+                missing=":",
+                stmt_type="else",
+            )
         self._consume()
         return node_else
 
@@ -220,8 +301,14 @@ class Parser:
         token = self._consume()
         node_while = Node(node_type=NodeType.NODE_WHILE, token=token)
         condition = self._parse_expr(expected_final=(TokenType.COLON,))
-        if (current := self._peek(0)).token_type != TokenType.COLON:
-            raise Exception(f"Missing colon for if statement at {current.line}:{current.pos}")
+        if self._peek(0).token_type != TokenType.COLON:
+            self.registry.register_message(
+                line=token.line,  # type: ignore
+                pos=token.pos,  # type: ignore
+                message_type=ErrorType.MISSING_TOKEN,
+                missing=":",
+                stmt_type="while",
+            )
 
         self._consume()
         node_while.children.append(condition)
@@ -234,7 +321,13 @@ class Parser:
     def _parse_idents(self) -> tuple[list[Node], Node | None]:
         token_ident = self._consume()
         if token_ident.token_type != TokenType.IDENT:
-            raise Exception(f"Illegal declaration: {token_ident}")
+            self.registry.register_message(
+                line=token_ident.line,  # type: ignore
+                pos=token_ident.pos,  # type: ignore
+                message_type=ErrorType.ILLEGAL_DECLARATION,
+                reason=f"can only assign to a variable name, got '{token_ident.content}'",
+            )
+            raise StopExecution()
 
         if self._is_assignment(self._peek(0)):
             assign = self._consume()
@@ -251,8 +344,11 @@ class Parser:
             self._consume()
             idents, assign_op = self._parse_idents()
             if assign_op is not None:
-                raise Exception(
-                    "Illegal declaration - multiple definition cannot have argument assignment"
+                self.registry.register_message(
+                    line=token_ident.line,  # type: ignore
+                    pos=token_ident.pos,  # type: ignore
+                    message_type=ErrorType.ILLEGAL_DECLARATION,
+                    reason="single-line definition cannot be used with argument assignment operators",
                 )
             idents.insert(
                 0,
@@ -264,7 +360,14 @@ class Parser:
             )
             return idents, None
         else:
-            raise Exception(f"Illegal declaration: {token_ident} -> missing '=' or ','")
+            self.registry.register_message(
+                line=token_ident.line,  # type: ignore
+                pos=token_ident.pos,  # type: ignore
+                message_type=ErrorType.MISSING_TOKEN,
+                missing="=",
+                stmt_type="declaration",
+            )
+            return [], None
 
     def _parse_exprs(self, assign_op: Node | None = None, ident: Node | None = None) -> list[Node]:
         node_expr = self._parse_expr()
@@ -281,7 +384,14 @@ class Parser:
             exprs.insert(0, node_expr)
             return exprs
         else:
-            raise Exception("Illegal expression, expected newline or new expression")
+            self.registry.register_message(
+                line=self._peek(0).line,  # type: ignore
+                pos=self._peek(0).pos,  # type: ignore
+                message_type=ErrorType.MISSING_TOKEN,
+                missing="newline",
+                stmt_type="declaration",
+            )
+            return []
 
     def _parse_expr(
         self, expected_final: tuple[TokenType, ...] = (TokenType.NEWLINE, TokenType.COMMA)
@@ -296,7 +406,11 @@ class Parser:
         if result is None:
             raise Exception("Unreachable")
         if self.parens > 0:
-            raise Exception("Unclosed paren")
+            self.registry.register_message(
+                line=self._peek(0).line,  # type: ignore
+                pos=self._peek(0).pos,  # type: ignore
+                message_type=ErrorType.MISSMATCH_PARENS_LESS,
+            )
         return result
 
     def _parse_bin_expr(self, min_prec: int = -1) -> Node | None:
@@ -319,7 +433,11 @@ class Parser:
         if self._is_closed_paren(next):
             self.parens -= 1
             if self.parens < 0:
-                raise Exception(f"Extra paren at {next.line}:{next.pos}")
+                self.registry.register_message(
+                    line=self._peek(0).line,  # type: ignore
+                    pos=self._peek(0).pos,  # type: ignore
+                    message_type=ErrorType.MISSMATCH_PARENS_MORE,
+                )
             self._consume()
             return left_operand
         if not self._is_binop(next):

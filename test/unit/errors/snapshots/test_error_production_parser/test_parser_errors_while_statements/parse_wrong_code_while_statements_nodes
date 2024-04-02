@@ -1,0 +1,83 @@
+NodeType.NODE_PROG {
+    NodeType.NODE_SCOPE {
+        NodeType.NODE_STMT {
+            NodeType.NODE_TERM {
+                NodeType.NODE_IDENT: x {}
+            }
+
+            NodeType.NODE_TERM {
+                NodeType.NODE_VALUE: 1 {}
+            }
+        }
+
+        NodeType.NODE_WHILE {
+            NodeType.NODE_BIN_EXPR {
+                NodeType.NODE_TERM {
+                    NodeType.NODE_IDENT: x {}
+                }
+
+                NodeType.NODE_LT {}
+
+                NodeType.NODE_TERM {
+                    NodeType.NODE_VALUE: 100 {}
+                }
+            }
+
+            NodeType.NODE_SCOPE {
+                NodeType.NODE_STMT {
+                    NodeType.NODE_TERM {
+                        NodeType.NODE_IDENT: x {}
+                    }
+
+                    NodeType.NODE_BIN_EXPR {
+                        NodeType.NODE_TERM {
+                            NodeType.NODE_VALUE: 1 {}
+                        }
+
+                        NodeType.NODE_PLUS {}
+
+                        NodeType.NODE_TERM {
+                            NodeType.NODE_IDENT: x {}
+                        }
+                    }
+                }
+
+                NodeType.NODE_STMT {
+                    NodeType.NODE_TERM {
+                        NodeType.NODE_IDENT: x {}
+                    }
+
+                    NodeType.NODE_BIN_EXPR {
+                        NodeType.NODE_TERM {
+                            NodeType.NODE_VALUE: 2 {}
+                        }
+
+                        NodeType.NODE_MULTI {}
+
+                        NodeType.NODE_TERM {
+                            NodeType.NODE_IDENT: x {}
+                        }
+                    }
+                }
+
+                NodeType.NODE_STMT {
+                    NodeType.NODE_TERM {
+                        NodeType.NODE_IDENT: y {}
+                    }
+
+                    NodeType.NODE_BIN_EXPR {
+                        NodeType.NODE_TERM {
+                            NodeType.NODE_IDENT: x {}
+                        }
+
+                        NodeType.NODE_MINUS {}
+
+                        NodeType.NODE_TERM {
+                            NodeType.NODE_VALUE: 5 {}
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
