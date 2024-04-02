@@ -1,3 +1,4 @@
+from src.compiler.errors.message_registry import MessageRegistry
 from src.compiler.parsing import Node, NodeType
 from src.compiler.representation.command import Command, CommandType
 from src.compiler.representation.label import Label
@@ -8,11 +9,12 @@ from src.compiler.representation.variable import Variable, VarType
 
 
 class IRBuilder:
-    def __init__(self, ast: Node | None = None):
+    def __init__(self, registry: MessageRegistry | None = None, ast: Node | None = None):
         self.ast: Node | None = ast
         self.commands: Representation = Representation(block_name="main")
         self.label_names: list[str] = []
         self.used_register_count: int = 8
+        self.registry = registry
 
     def __call__(self, ast: Node) -> Representation:
         if self.ast is None:
@@ -83,6 +85,7 @@ class IRBuilder:
                     operation=CommandType.STORE,
                     target=var,
                     operand_a=command_expr.target,  # type: ignore
+                    node=node,
                 )
                 self.commands.append(command_declare)
             case NodeType.NODE_TERM:
@@ -101,9 +104,7 @@ class IRBuilder:
                     raise Exception("Unreachable")
                 var = self.commands.register_var(varname=node_term.children[0].value)
                 command_declare = Command(
-                    operation=CommandType.STORE,
-                    target=var,
-                    operand_a=operand_a,
+                    operation=CommandType.STORE, target=var, operand_a=operand_a, node=node
                 )
                 self.commands.append(command_declare)
 
@@ -115,7 +116,7 @@ class IRBuilder:
         if_end_label_name = self._generate_label_name(optype="if_end", scope_depth=scope_depth)
         if len(node.children) <= 2:
             self.commands.append(
-                Command(operation=jump_type, operand_a=Label(name=if_end_label_name))
+                Command(operation=jump_type, operand_a=Label(name=if_end_label_name), node=node)
             )
         else:
             self.commands.append(Command(operation=jump_type, operand_a=Label(name=if_label_name)))
@@ -141,7 +142,9 @@ class IRBuilder:
                     last_label = if_end_label_name
                 else:
                     last_label = self._generate_label_name(optype="elif", scope_depth=scope_depth)
-                self.commands.append(Command(operation=jump_type, operand_a=Label(name=last_label)))
+                self.commands.append(
+                    Command(operation=jump_type, operand_a=Label(name=last_label), node=child)
+                )
                 self._parse_scope(
                     elif_scope_node,
                     scope_depth=scope_depth + 1,
@@ -230,7 +233,12 @@ class IRBuilder:
                 operand_b = "0"
                 jump_type = CommandType.JE
             self.commands.append(
-                Command(operation=CommandType.CMP, operand_a=comparison_target, operand_b=operand_b)
+                Command(
+                    operation=CommandType.CMP,
+                    operand_a=comparison_target,
+                    operand_b=operand_b,
+                    node=condition,
+                )
             )
         elif condition.node_type == NodeType.NODE_BIN_EXPR:
             comparison_target_expr = self._parse_bin_expr(condition)
@@ -241,6 +249,7 @@ class IRBuilder:
                     operation=CommandType.CMP,
                     operand_a=comparison_target_expr.operand_a,
                     operand_b=comparison_target_expr.operand_b,
+                    node=condition,
                 )
             )
             jump_type = optype_jump_mapping(comparison_target_expr.operation)
@@ -315,6 +324,7 @@ class IRBuilder:
             target=target,  # type: ignore
             operand_a=operand_a,
             operand_b=operand_b,
+            node=node,
         )
         if command_a is None and command_b is None:
             self.used_register_count += 1
@@ -347,7 +357,7 @@ class IRBuilder:
             else PseudoRegister(order=self.used_register_count)
         )
         self.used_register_count += 1
-        return Command(target=target, operation=operation, operand_a=operand)  # type: ignore
+        return Command(target=target, operation=operation, operand_a=operand, node=node)  # type: ignore
 
     def _process_operands_for_boolean_only_operations(
         self, operand_a: PseudoRegister | Variable | str, operand_b: PseudoRegister | Variable | str

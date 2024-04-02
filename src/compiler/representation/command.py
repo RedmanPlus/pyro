@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from enum import Enum, auto
 
+from src.compiler.parsing import Node
 from src.compiler.representation.label import Label
 from src.compiler.representation.pseudo_register import PseudoRegister
 from src.compiler.representation.variable import Variable, VarType
@@ -48,6 +49,7 @@ class Command:
     target: PseudoRegister | Variable | None
     operand_a: PseudoRegister | str | Variable | Label
     operand_b: PseudoRegister | str | Variable | VarType | None = None
+    node: Node | None = None
 
     def __init__(
         self,
@@ -55,6 +57,7 @@ class Command:
         operand_a: PseudoRegister | str | Variable | Label,
         target: PseudoRegister | Variable | None = None,
         operand_b: PseudoRegister | str | Variable | VarType | None = None,
+        node: Node | None = None,
     ):
         if (
             operation
@@ -76,6 +79,7 @@ class Command:
         self.target = target
         self.operand_a = operand_a
         self.operand_b = operand_b
+        self.node = node
 
     def __repr__(self) -> str:
         command_str = (

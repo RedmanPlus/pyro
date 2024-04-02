@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from enum import Enum, auto
 from typing import Optional
 
+from src.compiler.errors.message_registry import MessageRegistry
 from src.compiler.tokens import Token, TokenType
 
 
@@ -49,6 +50,7 @@ class Node:
     node_type: NodeType
     children: list["Node"] = field(default_factory=list)
     value: Optional[str] = None
+    token: Token | None = None
 
     def __repr__(self) -> str:
         return f"{self.node_type}: {self.value if self.value is not None else self.children}"
@@ -72,12 +74,15 @@ class Node:
 
 
 class Parser:
-    def __init__(self, tokens: list[Token] | None = None):
+    def __init__(
+        self, message_registry: MessageRegistry | None = None, tokens: list[Token] | None = None
+    ):
         if tokens is None:
             tokens = []
         self.tokens: list[Token] = tokens
         self.core_node = Node(node_type=NodeType.NODE_PROG, children=[])
         self.parens: int = 0
+        self.registry = message_registry
 
     def __call__(self, tokens: list[Token]) -> Node:
         self.tokens = tokens
@@ -182,8 +187,8 @@ class Parser:
         return stmts
 
     def _parse_if_stmt(self) -> Node:
-        self._consume()
-        node_if = Node(node_type=NodeType.NODE_IF)
+        token = self._consume()
+        node_if = Node(node_type=NodeType.NODE_IF, token=token)
         condition = self._parse_expr(expected_final=(TokenType.COLON,))
         if (current := self._peek(0)).token_type != TokenType.COLON:
             raise Exception(f"Missing colon for if statement at {current.line}:{current.pos}")
@@ -193,8 +198,8 @@ class Parser:
         return node_if
 
     def _parse_elif_stmt(self) -> Node:
-        self._consume()
-        node_elif = Node(node_type=NodeType.NODE_ELIF)
+        token = self._consume()
+        node_elif = Node(node_type=NodeType.NODE_ELIF, token=token)
         condition = self._parse_expr(expected_final=(TokenType.COLON,))
         if (current := self._peek(0)).token_type != TokenType.COLON:
             raise Exception(f"Missing colon for if statement at {current.line}:{current.pos}")
@@ -204,16 +209,16 @@ class Parser:
         return node_elif
 
     def _parse_else_stmt(self) -> Node:
-        self._consume()
-        node_else = Node(node_type=NodeType.NODE_ELSE)
+        token = self._consume()
+        node_else = Node(node_type=NodeType.NODE_ELSE, token=token)
         if self._peek(0).token_type != TokenType.COLON:
             raise Exception(f"Expected colon after else statement, got {self._peek(0)}")
         self._consume()
         return node_else
 
     def _parse_while_stmt(self) -> Node:
-        self._consume()
-        node_while = Node(node_type=NodeType.NODE_WHILE)
+        token = self._consume()
+        node_while = Node(node_type=NodeType.NODE_WHILE, token=token)
         condition = self._parse_expr(expected_final=(TokenType.COLON,))
         if (current := self._peek(0)).token_type != TokenType.COLON:
             raise Exception(f"Missing colon for if statement at {current.line}:{current.pos}")
@@ -223,8 +228,8 @@ class Parser:
         return node_while
 
     def _parse_constant(self, constant_type: NodeType) -> Node:
-        self._consume()
-        return Node(node_type=constant_type)
+        token = self._consume()
+        return Node(node_type=constant_type, token=token)
 
     def _parse_idents(self) -> tuple[list[Node], Node | None]:
         token_ident = self._consume()
@@ -237,9 +242,10 @@ class Parser:
                 Node(
                     node_type=NodeType.NODE_TERM,
                     children=[Node(node_type=NodeType.NODE_IDENT, value=token_ident.content)],
+                    token=token_ident,
                 )
             ], Node(
-                node_type=self._get_argument_assign_operator(token=assign)
+                node_type=self._get_argument_assign_operator(token=assign), token=assign
             ) if assign.token_type != TokenType.EQ else None
         elif self._peek(0).token_type == TokenType.COMMA:
             self._consume()
@@ -253,6 +259,7 @@ class Parser:
                 Node(
                     node_type=NodeType.NODE_TERM,
                     children=[Node(node_type=NodeType.NODE_IDENT, value=token_ident.content)],
+                    token=token_ident,
                 ),
             )
             return idents, None
@@ -341,6 +348,7 @@ class Parser:
                     else NodeType.NODE_IDENT,
                     children=[],
                     value=token.content,
+                    token=token,
                 )
             ],
         )
@@ -528,7 +536,7 @@ class Parser:
             case _:
                 raise Exception("Unreachable")
 
-        return Node(node_type=node_type, children=[])
+        return Node(node_type=node_type, children=[], token=token)
 
     def _get_argument_assign_operator(self, token: Token) -> NodeType:
         node_type: NodeType

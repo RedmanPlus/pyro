@@ -1,6 +1,9 @@
 from enum import Enum, auto
 from typing import Optional
 
+from src.compiler.errors.error_type import ErrorType
+from src.compiler.errors.message_registry import MessageRegistry
+
 
 class TokenType(Enum):
     IDENT = auto()
@@ -72,12 +75,13 @@ class Token:
 
 
 class Tokenizer:
-    def __init__(self, code: str = ""):
+    def __init__(self, message_registry: MessageRegistry | None = None, code: str = ""):
         self.code = code
         self.tokens: list[Token] = []
         self.line: int = 1
         self.pos: int = 1
         self.indent: bool = False
+        self.registry = message_registry
         self._build_in_ops: dict[str, TokenType] = {
             "if": TokenType.IF,
             "elif": TokenType.ELIF,
@@ -170,7 +174,9 @@ class Tokenizer:
             char_buff.append(current_char)
 
         if self._peek(0) is not None and self._peek(0).isalpha():
-            raise Exception(f"Variables cannot start with digits, given - {''.join(char_buff)}")
+            self.registry.register_message(
+                line=line, pos=pos, message_type=ErrorType.ILLEGAL_VARIABLE_NAME
+            )
 
         value = "".join(char_buff)
         token = Token(token_type=TokenType.NUMBER, content=value, line=line, pos=pos)
@@ -341,7 +347,13 @@ class Tokenizer:
     def _process_exclam(self):
         self._consume()
         if self._peek(0) != "=":
-            raise Exception(f"Unknown token -> '!' must be followed by '=', not {self._peek(0)}")
+            self.registry.register_message(
+                line=self.line,
+                pos=self.pos,
+                message_type=ErrorType.UNKNOWN_TOKEN,
+                token=f"!{self._peek(0)}",
+            )
+            return
         self._consume()
         self.tokens.append(Token(token_type=TokenType.NOT_EQUALS, line=self.line, pos=self.pos))
 
