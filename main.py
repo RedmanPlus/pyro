@@ -11,6 +11,9 @@ def main():
     code = handle_input_file(src=args["src"])
     compiler = Compiler(debug=debug)
     asm = compiler(code=code)
+    if compiler.registry.is_blocking_compilation:
+        print(asm)  # noqa T201
+        return
     handle_output_file(dst=args["dst"], asm=asm, debug=debug)
 
 

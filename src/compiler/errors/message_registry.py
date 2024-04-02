@@ -1,3 +1,4 @@
+import json
 from dataclasses import dataclass, field
 
 from src.compiler.errors.compile_time_message import CompileTimeMessage
@@ -48,3 +49,9 @@ class MessageRegistry:
             result += message_str + "\n\n"
 
         return result
+
+    def get_messages_as_json(self) -> str:
+        message_dicts: list[dict] = []
+        for message in self.messages:
+            message_dicts.append(message.__dict__)
+        return json.dumps(message_dicts)

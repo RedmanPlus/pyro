@@ -19,7 +19,7 @@ class CompileTimeMessage(ABC):
         ...
 
     def _apply_color(self, message: str) -> str:
-        return f"\\033[{self.color_code.value}m{message}\\033[0m"
+        return f"\033[{self.color_code.value}m{message}\033[0m"
 
 
 @dataclass

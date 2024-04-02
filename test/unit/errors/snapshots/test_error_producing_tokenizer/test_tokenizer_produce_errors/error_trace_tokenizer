@@ -1,19 +1,19 @@
 Compilation stopped due to several messages:
-\033[91mERROR:
+[91mERROR:
 
     1x = 1
 
-Variable name cannot start with digits\033[0m
+Variable name cannot start with digits[0m
 
-\033[91mERROR:
-
-    2x ! 2
-
-Variable name cannot start with digits\033[0m
-
-\033[91mERROR:
+[91mERROR:
 
     2x ! 2
 
-Unknown token: '! '\033[0m
+Variable name cannot start with digits[0m
+
+[91mERROR:
+
+    2x ! 2
+
+Unknown token: '! '[0m
 

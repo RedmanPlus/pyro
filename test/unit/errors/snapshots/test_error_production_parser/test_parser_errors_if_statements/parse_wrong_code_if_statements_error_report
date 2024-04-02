@@ -1,25 +1,25 @@
 Compilation stopped due to several messages:
-\033[91mERROR:
+[91mERROR:
 
     if x > 1
 
-Missing ':' for the if statement\033[0m
+Missing ':' for the if statement[0m
 
-\033[91mERROR:
-
-    elif y <= 5:
-
-Missing scope declarations for the elif statement\033[0m
-
-\033[91mERROR:
+[91mERROR:
 
     elif y <= 5:
 
-If-statement set up incorrectly: elif statement declared without if\033[0m
+Missing scope declarations for the elif statement[0m
 
-\033[91mERROR:
+[91mERROR:
+
+    elif y <= 5:
+
+If-statement set up incorrectly: elif statement declared without if[0m
+
+[91mERROR:
 
     else:
 
-If-statement set up incorrectly: else statement declared without if\033[0m
+If-statement set up incorrectly: else statement declared without if[0m
 
