@@ -1,13 +1,13 @@
 Compilation stopped due to several messages:
-\033[91mERROR:
+[91mERROR:
 
     while x < 100
 
-Missing ':' for the while statement\033[0m
+Missing ':' for the while statement[0m
 
-\033[91mERROR:
+[91mERROR:
 
             x *= 2
 
-Indentation missmatch, must be 4 spaces, but got 8\033[0m
+Indentation missmatch, must be 4 spaces, but got 8[0m
 

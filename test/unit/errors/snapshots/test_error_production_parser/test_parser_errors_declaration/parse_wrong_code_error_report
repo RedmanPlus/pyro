@@ -1,19 +1,19 @@
 Compilation stopped due to several messages:
-\033[91mERROR:
+[91mERROR:
 
     x, y, z = 1, 2
 
-Variable declaration set up incorrectly: cannot assign less expressions than values declared\033[0m
+Variable declaration set up incorrectly: cannot assign less expressions than values declared[0m
 
-\033[91mERROR:
+[91mERROR:
 
     a, b += 2, 4
 
-Variable declaration set up incorrectly: single-line definition cannot be used with argument assignment operators\033[0m
+Variable declaration set up incorrectly: single-line definition cannot be used with argument assignment operators[0m
 
-\033[91mERROR:
+[91mERROR:
 
     1 = x
 
-Variable declaration set up incorrectly: Unknown statement\033[0m
+Variable declaration set up incorrectly: Unknown statement[0m
 

@@ -11,7 +11,7 @@ class Compiler:
 
         self.tokenizer = Tokenizer(message_registry=self.registry)
         self.parser = Parser(message_registry=self.registry)
-        self.representation = IRBuilder()
+        self.representation = IRBuilder(registry=self.registry)
         self.generation = Generation(debug=debug)
 
     def __call__(self, code: str) -> str:
@@ -19,5 +19,7 @@ class Compiler:
         tokens = self.tokenizer(code=code)
         ast = self.parser(tokens=tokens)
         int_rep = self.representation(ast=ast)
+        if self.registry.is_blocking_compilation:
+            return self.registry.display_messages()
         asm = self.generation(representation=int_rep)
         return asm
