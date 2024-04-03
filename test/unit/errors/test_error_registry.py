@@ -1,7 +1,7 @@
 import pytest
 
-from src.compiler.errors.error_type import ErrorType, WarningType
-from src.compiler.errors.message_registry import MessageRegistry
+from pyro_compiler.compiler.errors.error_type import ErrorType, WarningType
+from pyro_compiler.compiler.errors.message_registry import MessageRegistry
 
 
 @pytest.mark.errors

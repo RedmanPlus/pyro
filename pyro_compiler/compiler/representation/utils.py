@@ -1,7 +1,7 @@
-from src.compiler.representation.command import CommandType, operation_result_type
-from src.compiler.representation.label import Label
-from src.compiler.representation.pseudo_register import PseudoRegister
-from src.compiler.representation.variable import Variable, VarType
+from pyro_compiler.compiler.representation.command import CommandType, operation_result_type
+from pyro_compiler.compiler.representation.label import Label
+from pyro_compiler.compiler.representation.pseudo_register import PseudoRegister
+from pyro_compiler.compiler.representation.variable import Variable, VarType
 
 
 comparison_jump_mapping: dict[CommandType, CommandType] = {

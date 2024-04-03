@@ -1,11 +1,11 @@
 from typing import Protocol
 
-from src.compiler.errors.compile_time_message import (
+from pyro_compiler.compiler.errors.compile_time_message import (
     CompileTimeMessage,
     ErrorMessage,
     WarningMessage,
 )
-from src.compiler.errors.error_type import (
+from pyro_compiler.compiler.errors.error_type import (
     ErrorType,
     MessageType,
     WarningType,

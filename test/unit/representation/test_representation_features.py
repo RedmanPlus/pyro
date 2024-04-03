@@ -1,9 +1,9 @@
 import pytest
 
-from src.compiler.representation.command import Command, CommandType
-from src.compiler.representation.label import Label
-from src.compiler.representation.representation import Representation
-from src.compiler.representation.variable import Variable
+from pyro_compiler.compiler.representation.command import Command, CommandType
+from pyro_compiler.compiler.representation.label import Label
+from pyro_compiler.compiler.representation.representation import Representation
+from pyro_compiler.compiler.representation.variable import Variable
 
 
 @pytest.mark.int_rep

@@ -1,11 +1,11 @@
 import pytest
 
-from src.compiler.compiler import Compiler
-from src.compiler.generation import Generation
-from src.compiler.representation.command import Command, CommandType
-from src.compiler.representation.label import Label
-from src.compiler.representation.representation import Representation
-from src.compiler.representation.variable import Variable
+from pyro_compiler.compiler.compiler import Compiler
+from pyro_compiler.compiler.generation import Generation
+from pyro_compiler.compiler.representation.command import Command, CommandType
+from pyro_compiler.compiler.representation.label import Label
+from pyro_compiler.compiler.representation.representation import Representation
+from pyro_compiler.compiler.representation.variable import Variable
 
 
 @pytest.mark.gen

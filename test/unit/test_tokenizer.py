@@ -1,6 +1,6 @@
 import pytest
 
-from src.compiler.tokens import Tokenizer, TokenType
+from pyro_compiler.compiler.tokens import Tokenizer, TokenType
 
 
 @pytest.mark.tokenizer

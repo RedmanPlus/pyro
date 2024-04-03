@@ -2,10 +2,10 @@ from dataclasses import dataclass, field
 from enum import Enum, auto
 from typing import Optional
 
-from src.compiler.errors.error_type import ErrorType
-from src.compiler.errors.message_registry import MessageRegistry
-from src.compiler.parsing.utils import StopExecution
-from src.compiler.tokens import Token, TokenType
+from pyro_compiler.compiler.errors.error_type import ErrorType
+from pyro_compiler.compiler.errors.message_registry import MessageRegistry
+from pyro_compiler.compiler.parsing.utils import StopExecution
+from pyro_compiler.compiler.tokens import Token, TokenType
 
 
 class NodeType(Enum):

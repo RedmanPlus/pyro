@@ -1,9 +1,9 @@
-from src.cli.utils import CLIArg
+from pyro_compiler.cli.utils import CLIArg
 
 
 MAIN_CLI_ARGS = [
     CLIArg(
-        name_or_flags="src",
+        name_or_flags="pyro_compiler",
         arg_type=str,
         help="Name of the python file to be compiled",
         metavar="<filename.py>",

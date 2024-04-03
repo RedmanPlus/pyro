@@ -1,7 +1,7 @@
 import pytest
 
-from src.compiler.errors.message_registry import MessageRegistry
-from src.compiler.tokens import Tokenizer
+from pyro_compiler.compiler.errors.message_registry import MessageRegistry
+from pyro_compiler.compiler.tokens import Tokenizer
 
 
 @pytest.mark.errors

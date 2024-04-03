@@ -1,6 +1,6 @@
 from argparse import ArgumentParser
 
-from src.cli.utils import CLIArg
+from pyro_compiler.cli.utils import CLIArg
 
 
 class CLI:

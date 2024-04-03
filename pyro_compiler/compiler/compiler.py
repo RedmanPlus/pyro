@@ -1,8 +1,8 @@
-from src.compiler.errors.message_registry import MessageRegistry
-from src.compiler.generation import Generation
-from src.compiler.parsing import Parser
-from src.compiler.representation import IRBuilder
-from src.compiler.tokens import Tokenizer
+from pyro_compiler.compiler.errors.message_registry import MessageRegistry
+from pyro_compiler.compiler.generation import Generation
+from pyro_compiler.compiler.parsing import Parser
+from pyro_compiler.compiler.representation import IRBuilder
+from pyro_compiler.compiler.tokens import Tokenizer
 
 
 class Compiler:

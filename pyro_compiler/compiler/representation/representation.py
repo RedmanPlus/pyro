@@ -1,8 +1,8 @@
 from dataclasses import dataclass, field
 
-from src.compiler.representation.command import Command
-from src.compiler.representation.label import Label
-from src.compiler.representation.variable import Variable, VarType
+from pyro_compiler.compiler.representation.command import Command
+from pyro_compiler.compiler.representation.label import Label
+from pyro_compiler.compiler.representation.variable import Variable, VarType
 
 
 @dataclass

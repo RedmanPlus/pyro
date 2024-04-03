@@ -1,7 +1,7 @@
 import pytest
 
-from src.compiler.parsing import Parser
-from src.compiler.tokens import Tokenizer
+from pyro_compiler.compiler.parsing import Parser
+from pyro_compiler.compiler.tokens import Tokenizer
 
 
 @pytest.mark.integration

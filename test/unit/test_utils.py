@@ -1,5 +1,5 @@
-from src.compiler.parsing import Pattern, PatternMatcher, Union
-from src.compiler.tokens import TokenType
+from pyro_compiler.compiler.parsing import Pattern, PatternMatcher, Union
+from pyro_compiler.compiler.tokens import TokenType
 
 
 def test_match_token_with_union():
