@@ -22,6 +22,4 @@ jobs:
       - name: Test with bash script
         working-directory: /home/runner/work/pyro_compiler/pyro_compiler/code_tests
         run: |
-          pwd &
-          ls -al &
           ./test_compilation.sh
