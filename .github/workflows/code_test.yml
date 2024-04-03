@@ -20,6 +20,6 @@ jobs:
         run: |
           poetry install
       - name: Test with bash script
-        working-directory: /home/runner/work/pyro_compiler/pyro_compiler/code_tests
+        working-directory: /home/runner/work/pyro/pyro/code_tests
         run: |
           ./test_compilation.sh
