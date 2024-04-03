@@ -1,6 +1,6 @@
 from typing import Protocol
 
-from src.compiler.errors.error_type import ErrorType, MessageType
+from pyro_compiler.compiler.errors.error_type import ErrorType, MessageType
 
 
 class IsBlockingMessageT(Protocol):

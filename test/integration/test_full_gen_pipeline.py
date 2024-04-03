@@ -1,6 +1,6 @@
 import pytest
 
-from src.compiler.compiler import Compiler
+from pyro_compiler.compiler.compiler import Compiler
 
 
 @pytest.mark.integration

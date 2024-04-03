@@ -1,15 +1,15 @@
 import json
 from dataclasses import dataclass, field
 
-from src.compiler.errors.compile_time_message import CompileTimeMessage
-from src.compiler.errors.error_type import MessageType
-from src.compiler.errors.message_factory import (
+from pyro_compiler.compiler.errors.compile_time_message import CompileTimeMessage
+from pyro_compiler.compiler.errors.error_type import MessageType
+from pyro_compiler.compiler.errors.message_factory import (
     GetMessageT,
     MessageFactoryT,
     get_message,
     message_factory,
 )
-from src.compiler.errors.utils import IsBlockingMessageT, is_blocking_message
+from pyro_compiler.compiler.errors.utils import IsBlockingMessageT, is_blocking_message
 
 
 @dataclass

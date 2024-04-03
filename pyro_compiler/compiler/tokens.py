@@ -1,8 +1,8 @@
 from enum import Enum, auto
 from typing import Optional
 
-from src.compiler.errors.error_type import ErrorType
-from src.compiler.errors.message_registry import MessageRegistry
+from pyro_compiler.compiler.errors.error_type import ErrorType
+from pyro_compiler.compiler.errors.message_registry import MessageRegistry
 
 
 class TokenType(Enum):

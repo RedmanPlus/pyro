@@ -1,8 +1,8 @@
 import pytest
 
-from src.compiler.parsing import Parser
-from src.compiler.representation import IRBuilder
-from src.compiler.tokens import Token, TokenType
+from pyro_compiler.compiler.parsing import Parser
+from pyro_compiler.compiler.representation import IRBuilder
+from pyro_compiler.compiler.tokens import Token, TokenType
 
 
 @pytest.mark.integration

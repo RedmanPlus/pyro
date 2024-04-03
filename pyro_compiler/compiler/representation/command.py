@@ -1,10 +1,10 @@
 from dataclasses import dataclass
 from enum import Enum, auto
 
-from src.compiler.parsing import Node
-from src.compiler.representation.label import Label
-from src.compiler.representation.pseudo_register import PseudoRegister
-from src.compiler.representation.variable import Variable, VarType
+from pyro_compiler.compiler.parsing import Node
+from pyro_compiler.compiler.representation.label import Label
+from pyro_compiler.compiler.representation.pseudo_register import PseudoRegister
+from pyro_compiler.compiler.representation.variable import Variable, VarType
 
 
 class CommandType(Enum):

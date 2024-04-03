@@ -4,3 +4,4 @@
 *.asm
 out
 experiment*
+/dist

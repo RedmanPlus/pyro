@@ -1,4 +1,4 @@
-from src.compiler.generation.utils import (
+from pyro_compiler.compiler.generation.utils import (
     X86_64_REGISTER_SCHEMA,
     ASMInstruction,
     CallInstruction,
@@ -8,16 +8,16 @@ from src.compiler.generation.utils import (
     LabelInstruction,
     MathLogicInstruction,
 )
-from src.compiler.representation.command import Command, CommandType
-from src.compiler.representation.label import Label
-from src.compiler.representation.pseudo_register import PseudoRegister
-from src.compiler.representation.representation import Representation
-from src.compiler.representation.utils import (
+from pyro_compiler.compiler.representation.command import Command, CommandType
+from pyro_compiler.compiler.representation.label import Label
+from pyro_compiler.compiler.representation.pseudo_register import PseudoRegister
+from pyro_compiler.compiler.representation.representation import Representation
+from pyro_compiler.compiler.representation.utils import (
     is_operand_a_register,
     is_operand_a_value,
     is_operand_a_variable,
 )
-from src.compiler.representation.variable import Variable, VarType
+from pyro_compiler.compiler.representation.variable import Variable, VarType
 
 
 class Generation:
