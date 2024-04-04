@@ -39,4 +39,15 @@ class Scope:
         return header
 
     def is_line_in_scope(self, line_id: int) -> bool:
-        return self.beginning_line < line_id < self.ending_line
+        return self.beginning_line <= line_id <= self.ending_line
+
+    def is_subscope(self, other: "Scope") -> bool:
+        return (self.beginning_line <= other.beginning_line) and (
+            self.ending_line >= other.ending_line
+        )
+
+    def __repr__(self) -> str:
+        return f"{self.scope_name}: {self.beginning_line} -> {self.ending_line}"
+
+    def __str__(self) -> str:
+        return self.__repr__()

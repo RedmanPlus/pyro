@@ -40,6 +40,7 @@ class CommandType(Enum):
     JL = auto()
     JLE = auto()
     CONVERT = auto()
+    DEALLOC = auto()
     STORE = auto()
 
 
@@ -71,6 +72,7 @@ class Command:
                 CommandType.JL,
                 CommandType.JLE,
                 CommandType.CMP,
+                CommandType.DEALLOC,
             ]
             and target is None
         ):

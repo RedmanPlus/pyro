@@ -21,7 +21,7 @@ class Representation:
         return self
 
     def __next__(self) -> tuple[Command, Scope, Label | None]:
-        if self.current_iteration_id > len(self.commands):
+        if self.current_iteration_id >= len(self.commands):
             raise StopIteration()
         command = self.commands[self.current_iteration_id]
         label = self._get_label_by_id(self.current_iteration_id)
@@ -135,9 +135,11 @@ class Representation:
         return None
 
     def _get_scope_by_line(self, line_id: int) -> Scope:
-        for scope in self.scopes[-1:]:
+        for scope in self.scopes[::-1]:
             if scope.is_line_in_scope(line_id=line_id):
                 return scope
+            else:
+                continue
 
         raise Exception("Unreachable")
 

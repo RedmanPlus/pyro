@@ -38,6 +38,7 @@ class IRBuilder:
         scope_depth: int = 0,
         break_label: str | None = None,
         continue_label: str | None = None,
+        is_dealloc_scope: bool = False,
     ):
         scope_name = self._get_scope_name_from_depth(scope_depth=scope_depth)
         self.commands.add_scope(
@@ -66,7 +67,8 @@ class IRBuilder:
                     self._parse_continue(child, label_to_return=continue_label)
                 case _:
                     raise Exception("Unreachable")
-
+        if is_dealloc_scope:
+            self.commands.append(Command(operation=CommandType.DEALLOC, operand_a=""))
         self.commands.close_current_scope(ending_line=len(self.commands.commands))
 
     def _parse_stmt(self, node: Node):
@@ -186,6 +188,7 @@ class IRBuilder:
             scope_depth=scope_depth + 1,
             break_label=while_end_label,
             continue_label=while_begin_label,
+            is_dealloc_scope=True,
         )
         self.commands.append(
             Command(operation=CommandType.JMP, operand_a=Label(name=while_begin_label))
@@ -219,7 +222,13 @@ class IRBuilder:
                     raise Exception("Unreachable")
                 var = self.commands.get_var(comparison_target_node.value)
                 if var is None:
-                    raise Exception("Unreachable")
+                    self.registry.register_message(
+                        line=comparison_target_node.children[0].token.line,  # type: ignore
+                        pos=comparison_target_node.children[0].token.pos,  # type: ignore
+                        message_type=ErrorType.UNKNOWN_VARIABLE,
+                        varname=comparison_target_node.children[0].value,  # type: ignore
+                    )
+                    var = Variable("NOVAR")
                 comparison_target = var
             elif comparison_target_node.node_type == NodeType.NODE_VALUE:
                 if comparison_target_node.value is None:
