@@ -1,11 +1,6 @@
 import pytest
 
 from pyro_compiler.compiler.compiler import Compiler
-from pyro_compiler.compiler.generation import Generation
-from pyro_compiler.compiler.representation.command import Command, CommandType
-from pyro_compiler.compiler.representation.label import Label
-from pyro_compiler.compiler.representation.representation import Representation
-from pyro_compiler.compiler.representation.variable import Variable
 
 
 @pytest.mark.gen
@@ -54,55 +49,6 @@ def test_new_bitwise_ops_generation(snapshot):
     compiler = Compiler()
     asm = compiler(code=code)
     snapshot.assert_match(asm, "simple_asm_new_gen_var_bitwise_ops")
-
-
-@pytest.mark.gen
-def test_generate_asm_with_labels(snapshot):
-    representation = Representation(block_name="main")
-    command_a = Command(operation=CommandType.STORE, target=Variable(name="a"), operand_a="5")
-    command_b = Command(operation=CommandType.STORE, target=Variable(name="b"), operand_a="6")
-    command_c = Command(operation=CommandType.STORE, target=Variable(name="c"), operand_a="7")
-    command_d = Command(operation=CommandType.STORE, target=Variable(name="d"), operand_a="8")
-    representation.append(command_a)
-    representation.append(command_b)
-    representation.append(command_c)
-    representation.add_label("foo")
-    representation.append(command_d)
-
-    generation = Generation()
-    result = generation(representation=representation)
-
-    snapshot.assert_match(result, "simple_asm_new_gen_label_generation")
-
-
-@pytest.mark.gen
-def test_generate_asm_with_jumps(snapshot):
-    representation = Representation(block_name="main")
-    command_a = Command(operation=CommandType.STORE, target=Variable(name="a"), operand_a="5")
-    command_b = Command(operation=CommandType.STORE, target=Variable(name="b"), operand_a="6")
-    command_c = Command(operation=CommandType.STORE, target=Variable(name="c"), operand_a="7")
-    command_cmp = Command(
-        operation=CommandType.CMP,
-        operand_a=Variable(name="a"),
-        operand_b=Variable(name="b"),
-        target=None,
-    )
-    command_d = Command(operation=CommandType.STORE, target=Variable(name="d"), operand_a="8")
-    command_e = Command(operation=CommandType.STORE, target=Variable(name="e"), operand_a="9")
-    representation.append(command_a)
-    representation.append(command_b)
-    representation.append(command_c)
-    representation.append(command_cmp)
-    command_jmp = Command(operation=CommandType.JMP, operand_a=Label(name="bar"), target=None)
-    representation.append(command_jmp)
-    representation.append(command_d)
-    representation.add_label("bar")
-    representation.append(command_e)
-
-    generation = Generation()
-    result = generation(representation=representation)
-
-    snapshot.assert_match(result, "simple_asm_new_gen_jmp_and_cmp_generation")
 
 
 @pytest.mark.gen

@@ -16,7 +16,7 @@ _start:
     mov rbx, 10
     mul rbx
     mov r8, rax
-    mov r9, QWORD [rsp + 0]
+    mov r9, QWORD [rbp + 8]
     add r8, r9
     mov r9, 1
     add r8, r9

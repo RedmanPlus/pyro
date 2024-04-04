@@ -52,13 +52,14 @@ class Generation:
                 instructions = self._generate_label(label)
                 self.code_chunks += instructions
             if processed_scope != scope:
-                if processed_scope is not None:
-                    if processed_scope.is_subscope(scope):
-                        instructions = self._generate_scope_escalation()
-                    else:
-                        last_boundary = self.scope_boundaries.pop()
-                        instructions = self._generate_scope_deescalation(new_boundary=last_boundary)
-                    self.code_chunks += instructions
+                if processed_scope is None:
+                    instructions = self._generate_scope_escalation(with_stack_pointer_push=False)
+                elif processed_scope.is_subscope(scope):
+                    instructions = self._generate_scope_escalation()
+                else:
+                    last_boundary = self.scope_boundaries.pop()
+                    instructions = self._generate_scope_deescalation(new_boundary=last_boundary)
+                self.code_chunks += instructions
                 processed_scope = scope
             match command.operation:
                 case CommandType.STORE:
@@ -193,7 +194,7 @@ class Generation:
             ]
         result_asm: str = asm_body + "\n" + "\n".join(chunk.to_asm() for chunk in exit_chunk)
         if self.debug:
-            result_asm += "\n\n\nsection .data\n    formatString: db '%d', 10, 0\n"
+            result_asm += "\n\n\nsection .data\n    formatString: db '%llu', 10, 0\n"
         return result_asm
 
     def _generate_store(self, command: Command) -> list[ASMInstruction]:
@@ -265,9 +266,14 @@ class Generation:
                 instructions += [
                     DataMoveInstruction(
                         instruction_type=InstructionType.MOV,
-                        register=stack_offset,
+                        register="rax",
                         data=saved_value_offset,
-                    )
+                    ),
+                    DataMoveInstruction(
+                        instruction_type=InstructionType.MOV,
+                        register=stack_offset,
+                        data="rax",
+                    ),
                 ]
             return instructions
 
@@ -509,13 +515,17 @@ class Generation:
     def _generate_label(self, label: Label) -> list[ASMInstruction]:
         return [LabelInstruction(instruction_type=InstructionType.LABEL, label_name=label.name)]
 
-    def _generate_scope_escalation(self) -> list[ASMInstruction]:
+    def _generate_scope_escalation(
+        self, with_stack_pointer_push: bool = True
+    ) -> list[ASMInstruction]:
         instructions: list[ASMInstruction] = [
             DataMoveInstruction(instruction_type=InstructionType.PUSH, register="rbp"),
             DataMoveInstruction(instruction_type=InstructionType.MOV, register="rbp", data="rsp"),
         ]
+        if not with_stack_pointer_push:
+            instructions.pop(0)
         self.scope_boundaries.append(self.current_scope_boundary)
-        self.current_scope_boundary = len(self.variables)
+        self.current_scope_boundary = len(self.variables) if len(self.variables) > 0 else -1
         return instructions
 
     def _generate_scope_deescalation(self, new_boundary: int) -> list[ASMInstruction]:
@@ -527,6 +537,7 @@ class Generation:
             DataMoveInstruction(instruction_type=InstructionType.MOV, register="rax", data="0"),
             DataMoveInstruction(instruction_type=InstructionType.POP, register="rbp"),
         ]
+        self.variables = self.variables[0 : self.current_scope_boundary]
         self.current_scope_boundary = new_boundary
         return instructions
 
@@ -664,11 +675,13 @@ class Generation:
         variable_position = self._get_variable_index(var_name)
         if variable_position is None:
             raise Exception("Unreachable")
+        if variable_position >= 0:
+            variable_position += len(self.scope_boundaries) - 1
         offset = variable_position * 8
         if offset >= 0:
-            stack_offset = f"QWORD [rbp + {offset}]"
+            stack_offset = f"QWORD [rbp - {offset}]"
         else:
-            stack_offset = f"QWORD [rbp - {abs(offset)}]"
+            stack_offset = f"QWORD [rbp + {abs(offset)}]"
         return stack_offset
 
     def _add_debug_prints(self):

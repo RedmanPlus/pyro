@@ -24,7 +24,7 @@ class Representation:
         if self.current_iteration_id >= len(self.commands):
             raise StopIteration()
         command = self.commands[self.current_iteration_id]
-        label = self._get_label_by_id(self.current_iteration_id)
+        label = self.take_label_by_id(self.current_iteration_id)
         scope = self._get_scope_by_line(self.current_iteration_id)
         self.current_iteration_id += 1
         return command, scope, label

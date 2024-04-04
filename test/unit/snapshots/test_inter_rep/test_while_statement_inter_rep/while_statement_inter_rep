@@ -18,5 +18,6 @@ main_if_end_1:
    x = STORE r8
    r8 = SUM 1, count
    count = STORE r8
+   DEALLOC 
    JMP main_while_begin_0
 main_while_end_0:
