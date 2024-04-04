@@ -1,6 +1,17 @@
-main variables:
+main scopes:
+scope scope_0 variables:
     x: INT = None
     y: INT = None
     z: INT = None
     a: BOOL = None
+scope scope_1 variables:
+    x: INT = None
+    z: INT = None
+    y: INT = None
     b: INT = None
+scope scope_1 variables:
+scope scope_1 variables:
+scope scope_1 variables:
+scope scope_1 variables:
+scope scope_1 variables:
+scope scope_1 variables:

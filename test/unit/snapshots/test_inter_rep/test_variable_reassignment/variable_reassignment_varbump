@@ -1,2 +1,3 @@
-main variables:
+main scopes:
+scope scope_0 variables:
     x: INT = None
