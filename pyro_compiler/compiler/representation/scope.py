@@ -7,6 +7,7 @@ from pyro_compiler.compiler.representation.variable import Variable, VarType
 class Scope:
     scope_name: str
     beginning_line: int
+    depth: int = 0
     ending_line: int = -1
     variable_table: dict[str, Variable] = field(default_factory=dict)
 

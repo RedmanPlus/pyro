@@ -35,12 +35,13 @@ class IRBuilder:
     def _parse_scope(
         self,
         node: Node,
+        scope_type: str = "main",
         scope_depth: int = 0,
         break_label: str | None = None,
         continue_label: str | None = None,
         is_dealloc_scope: bool = False,
     ):
-        scope_name = self._get_scope_name_from_depth(scope_depth=scope_depth)
+        scope_name = self._get_scope_name_from_depth(scope_depth=scope_depth, scope_type=scope_type)
         self.commands.add_scope(
             scope_name=scope_name, scope_beginning_line=len(self.commands.commands)
         )
@@ -132,9 +133,11 @@ class IRBuilder:
         if_scope_node = node.children[1]
         self._parse_scope(
             if_scope_node,
+            scope_type="if",
             scope_depth=scope_depth + 1,
             break_label=break_label,
             continue_label=continue_label,
+            is_dealloc_scope=True,
         )
         self.commands.append(
             Command(operation=CommandType.JMP, operand_a=Label(name=if_end_label_name))
@@ -156,9 +159,11 @@ class IRBuilder:
                 )
                 self._parse_scope(
                     elif_scope_node,
+                    scope_type="elif",
                     scope_depth=scope_depth + 1,
                     break_label=break_label,
                     continue_label=continue_label,
+                    is_dealloc_scope=True,
                 )
                 self.commands.append(
                     Command(operation=CommandType.JMP, operand_a=Label(name=if_end_label_name))
@@ -167,9 +172,11 @@ class IRBuilder:
                 self.commands.add_label(last_label)
                 self._parse_scope(
                     child,
+                    scope_type="else",
                     scope_depth=scope_depth + 1,
                     break_label=break_label,
                     continue_label=continue_label,
+                    is_dealloc_scope=True,
                 )
             if child.node_type == NodeType.NODE_SCOPE and i != len(node.children[2:]) - 1:
                 raise Exception("cannot have else before elif")
@@ -185,6 +192,7 @@ class IRBuilder:
         self.commands.append(Command(operation=jump_type, operand_a=Label(name=while_end_label)))
         self._parse_scope(
             node=node_scope,
+            scope_type="while",
             scope_depth=scope_depth + 1,
             break_label=while_end_label,
             continue_label=while_begin_label,
@@ -498,5 +506,5 @@ class IRBuilder:
         self.label_names.append(label_name)
         return label_name
 
-    def _get_scope_name_from_depth(self, scope_depth: int) -> str:
-        return f"scope_{scope_depth}"
+    def _get_scope_name_from_depth(self, scope_depth: int, scope_type: str) -> str:
+        return f"scope_{scope_type}_{scope_depth}"
