@@ -86,6 +86,20 @@ main_if_end_0:
     mov QWORD [rsp + 16], r8
     jmp main_if_end_0_1
 main_if_end_0_1:
+    pop rax
+    mov rax, 0
+    pop rax
+    mov rax, 0
+    pop rax
+    mov rax, 0
+    pop rax
+    mov rax, 0
+    pop rax
+    mov rax, 0
+    pop rax
+    mov rax, 0
+    pop rax
+    mov rax, 0
     mov rax, 60
     mov rdi, 0
     syscall

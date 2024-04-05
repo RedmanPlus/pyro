@@ -24,6 +24,8 @@ _start:
     xor r9, r10
     or r8, r9
     push r8
+    pop rax
+    mov rax, 0
     mov rax, 60
     mov rdi, 0
     syscall

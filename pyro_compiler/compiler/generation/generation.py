@@ -12,6 +12,7 @@ from pyro_compiler.compiler.representation.command import Command, CommandType
 from pyro_compiler.compiler.representation.label import Label
 from pyro_compiler.compiler.representation.pseudo_register import PseudoRegister
 from pyro_compiler.compiler.representation.representation import Representation
+from pyro_compiler.compiler.representation.scope import Scope
 from pyro_compiler.compiler.representation.utils import (
     is_operand_a_register,
     is_operand_a_value,
@@ -26,6 +27,8 @@ class Generation:
         self.representation = representation
         self.code_chunks: list[ASMInstruction] = []
         self.variables: list[str] = []
+        self.scope_boundaries: list[int] = []
+        self.current_scope_boundary: int = 0
 
     def __call__(self, representation: Representation) -> str:
         if self.representation is None:
@@ -42,11 +45,14 @@ class Generation:
             )
         else:
             asm_header = "section .text\nglobal _start\n\n_start:\n"
-        for i, command in enumerate(self.representation.commands):
-            label = self.representation.take_label_by_id(i)
+
+        processed_scope: Scope | None = None
+        for command, scope, label in self.representation:
             if label is not None:
                 instructions = self._generate_label(label)
                 self.code_chunks += instructions
+            if processed_scope != scope:
+                processed_scope = scope
             match command.operation:
                 case CommandType.STORE:
                     instructions = self._generate_store(command)
@@ -147,6 +153,16 @@ class Generation:
                 case CommandType.CONVERT:
                     instructions = self._generate_convert(command)
                     self.code_chunks += instructions
+                case CommandType.ESCALATE:
+                    self.scope_boundaries.append(self.current_scope_boundary)
+                    self.current_scope_boundary = len(self.variables)
+                case CommandType.DEESCALATE:
+                    if self.debug and not self.representation.is_last_command(command):
+                        instructions = self._deescalate()
+                        self.code_chunks += instructions
+                    if not self.debug:
+                        instructions = self._deescalate()
+                        self.code_chunks += instructions
                 case _:
                     raise Exception("Unreachable")
         if len(self.representation.labels) != 0:
@@ -176,8 +192,20 @@ class Generation:
             ]
         result_asm: str = asm_body + "\n" + "\n".join(chunk.to_asm() for chunk in exit_chunk)
         if self.debug:
-            result_asm += "\n\n\nsection .data\n    formatString: db '%d', 10, 0\n"
+            result_asm += "\n\n\nsection .data\n    formatString: db '%llu', 10, 0\n"
         return result_asm
+
+    def _deescalate(self) -> list[ASMInstruction]:
+        instructions: list[ASMInstruction] = []
+        for _ in self.variables[self.current_scope_boundary :]:
+            instructions += [
+                DataMoveInstruction(instruction_type=InstructionType.POP, register="rax"),
+                DataMoveInstruction(instruction_type=InstructionType.MOV, register="rax", data="0"),
+            ]
+        new_boundary = self.scope_boundaries.pop()
+        self.variables = self.variables[: self.current_scope_boundary]
+        self.current_scope_boundary = new_boundary
+        return instructions
 
     def _generate_store(self, command: Command) -> list[ASMInstruction]:
         instructions: list[ASMInstruction] = []
@@ -186,7 +214,7 @@ class Generation:
         if not isinstance(target, Variable):
             raise Exception("Unreachable")
         variable_position = self._get_variable_index(target.name)
-        if variable_position < 0:
+        if variable_position is None:
             if isinstance(saved_value, str):
                 instructions += [
                     DataMoveInstruction(
@@ -207,9 +235,7 @@ class Generation:
                     )
                 ]
             if isinstance(saved_value, Variable):
-                saved_value_offset = self._calculate_variable_offset(
-                    saved_value.name, existing=True
-                )
+                saved_value_offset = self._calculate_variable_offset(saved_value.name)
                 instructions += [
                     DataMoveInstruction(
                         instruction_type=InstructionType.MOV,
@@ -243,15 +269,31 @@ class Generation:
                         data=X86_64_REGISTER_SCHEMA[saved_value.name],
                     ),
                 ]
+            if isinstance(saved_value, Variable):
+                saved_value_offset = self._calculate_variable_offset(saved_value.name)
+                if saved_value_offset is None:
+                    raise Exception("Unreachable")
+                instructions += [
+                    DataMoveInstruction(
+                        instruction_type=InstructionType.MOV,
+                        register="rax",
+                        data=saved_value_offset,
+                    ),
+                    DataMoveInstruction(
+                        instruction_type=InstructionType.MOV,
+                        register=stack_offset,
+                        data="rax",
+                    ),
+                ]
             return instructions
 
-    def _get_variable_index(self, varname: str) -> int:
+    def _get_variable_index(self, varname: str) -> int | None:
         try:
             variable_position = self.variables.index(varname)
+            return variable_position
         except ValueError:
             self.variables.append(varname)
-            variable_position = -1
-        return variable_position
+            return None
 
     def _generate_logical_operation(self, command: Command) -> list[ASMInstruction]:
         if not isinstance(command.target, PseudoRegister):
@@ -613,13 +655,11 @@ class Generation:
             registers=(register_a, register_b),
         )
 
-    def _calculate_variable_offset(self, var_name: str, existing: bool = False) -> str:
+    def _calculate_variable_offset(self, var_name: str) -> str:
         variable_position = self._get_variable_index(var_name)
-        if variable_position < 0:
+        if variable_position is None:
             raise Exception("Unreachable")
         offset = (len(self.variables) - variable_position - 1) * 8
-        if existing:
-            offset -= 8
         stack_offset = f"QWORD [rsp + {offset}]"
         return stack_offset
 

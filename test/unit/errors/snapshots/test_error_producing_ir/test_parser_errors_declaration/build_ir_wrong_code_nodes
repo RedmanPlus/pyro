@@ -1,3 +1,5 @@
 main: 
+   ESCALATE 
    r8 = SUM NOVAR, NOVAR
    x = STORE r8
+   DEESCALATE 

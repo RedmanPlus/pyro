@@ -1,0 +1,54 @@
+main: 
+   ESCALATE 
+   target = STORE 2
+   pov = STORE 10
+   CMP pov, 0
+   JNE main_if_0
+   ESCALATE 
+   target = STORE 1
+   DEESCALATE 
+   JMP main_if_end_0
+main_if_0:
+   ESCALATE 
+   intermediary = STORE 1
+main_while_begin_1:
+   CMP pov, 0
+   JLE main_while_end_1
+   ESCALATE 
+   r10 = REMAIN pov, 2
+   val = STORE r10
+   CMP val, 0
+   JNE main_if_2
+   ESCALATE 
+   r9 = FLOOR pov, 2
+   number_of_muls = STORE r9
+   r8 = SUB number_of_muls, pov
+   pov = STORE r8
+main_while_begin_3:
+   CMP number_of_muls, 0
+   JLE main_while_end_3
+   ESCALATE 
+   r9 = MUL target, intermediary
+   intermediary = STORE r9
+   r8 = SUB 1, number_of_muls
+   number_of_muls = STORE r8
+   DEESCALATE 
+   JMP main_while_begin_3
+main_while_end_3:
+   DEESCALATE 
+   JMP main_if_end_2
+main_if_2:
+   ESCALATE 
+   r8 = MUL target, target
+   target = STORE r8
+   r8 = SUB 1, pov
+   pov = STORE r8
+   DEESCALATE 
+main_if_end_2:
+   DEESCALATE 
+   JMP main_while_begin_1
+main_while_end_1:
+   target = STORE intermediary
+   DEESCALATE 
+main_if_end_0:
+   DEESCALATE 

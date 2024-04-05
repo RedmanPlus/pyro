@@ -40,6 +40,8 @@ class CommandType(Enum):
     JL = auto()
     JLE = auto()
     CONVERT = auto()
+    ESCALATE = auto()
+    DEESCALATE = auto()
     STORE = auto()
 
 
@@ -71,6 +73,8 @@ class Command:
                 CommandType.JL,
                 CommandType.JLE,
                 CommandType.CMP,
+                CommandType.ESCALATE,
+                CommandType.DEESCALATE,
             ]
             and target is None
         ):

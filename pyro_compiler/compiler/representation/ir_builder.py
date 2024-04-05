@@ -35,10 +35,16 @@ class IRBuilder:
     def _parse_scope(
         self,
         node: Node,
+        scope_type: str = "main",
         scope_depth: int = 0,
         break_label: str | None = None,
         continue_label: str | None = None,
     ):
+        scope_name = self._get_scope_name_from_depth(scope_depth=scope_depth, scope_type=scope_type)
+        self.commands.add_scope(
+            scope_name=scope_name, scope_beginning_line=len(self.commands.commands)
+        )
+        self.commands.append(command=Command(operation=CommandType.ESCALATE, operand_a=""))
         for child in node.children:
             match child.node_type:
                 case NodeType.NODE_STMT:
@@ -62,6 +68,8 @@ class IRBuilder:
                     self._parse_continue(child, label_to_return=continue_label)
                 case _:
                     raise Exception("Unreachable")
+        self.commands.append(Command(operation=CommandType.DEESCALATE, operand_a=""))
+        self.commands.close_current_scope(ending_line=len(self.commands.commands))
 
     def _parse_stmt(self, node: Node):
         node_term: Node = node.children[0]
@@ -124,6 +132,7 @@ class IRBuilder:
         if_scope_node = node.children[1]
         self._parse_scope(
             if_scope_node,
+            scope_type="if",
             scope_depth=scope_depth + 1,
             break_label=break_label,
             continue_label=continue_label,
@@ -148,6 +157,7 @@ class IRBuilder:
                 )
                 self._parse_scope(
                     elif_scope_node,
+                    scope_type="elif",
                     scope_depth=scope_depth + 1,
                     break_label=break_label,
                     continue_label=continue_label,
@@ -159,6 +169,7 @@ class IRBuilder:
                 self.commands.add_label(last_label)
                 self._parse_scope(
                     child,
+                    scope_type="else",
                     scope_depth=scope_depth + 1,
                     break_label=break_label,
                     continue_label=continue_label,
@@ -177,6 +188,7 @@ class IRBuilder:
         self.commands.append(Command(operation=jump_type, operand_a=Label(name=while_end_label)))
         self._parse_scope(
             node=node_scope,
+            scope_type="while",
             scope_depth=scope_depth + 1,
             break_label=while_end_label,
             continue_label=while_begin_label,
@@ -213,7 +225,13 @@ class IRBuilder:
                     raise Exception("Unreachable")
                 var = self.commands.get_var(comparison_target_node.value)
                 if var is None:
-                    raise Exception("Unreachable")
+                    self.registry.register_message(
+                        line=comparison_target_node.children[0].token.line,  # type: ignore
+                        pos=comparison_target_node.children[0].token.pos,  # type: ignore
+                        message_type=ErrorType.UNKNOWN_VARIABLE,
+                        varname=comparison_target_node.children[0].value,  # type: ignore
+                    )
+                    var = Variable("NOVAR")
                 comparison_target = var
             elif comparison_target_node.node_type == NodeType.NODE_VALUE:
                 if comparison_target_node.value is None:
@@ -482,3 +500,6 @@ class IRBuilder:
             label_exists = False
         self.label_names.append(label_name)
         return label_name
+
+    def _get_scope_name_from_depth(self, scope_depth: int, scope_type: str) -> str:
+        return f"scope_{scope_type}_{scope_depth}"

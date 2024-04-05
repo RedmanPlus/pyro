@@ -1,2 +1,4 @@
 main: 
+   ESCALATE 
    x = STORE 1
+   DEESCALATE 

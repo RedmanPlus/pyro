@@ -1,27 +1,36 @@
 main: 
+   ESCALATE 
    x = STORE 1
    y = STORE 2
    CMP x, y
    JNE main_if_0
+   ESCALATE 
    x = STORE 2
+   DEESCALATE 
    JMP main_if_end_0
 main_if_0:
    CMP x, y
    JLE main_elif_0
+   ESCALATE 
    r10 = SUB y, x
    x = STORE r10
+   DEESCALATE 
    JMP main_if_end_0
 main_elif_0:
+   ESCALATE 
    r8 = SUM y, x
    x = STORE r8
+   DEESCALATE 
 main_if_end_0:
    r8 = SUM x, y
    z = STORE r8
    r8 = MUL x, 10
    CMP z, r8
    JE main_if_0_1
+   ESCALATE 
    r9 = MUL 10, z
    z = STORE r9
+   DEESCALATE 
    JMP main_if_end_0_1
 main_if_0_1:
    r8 = MUL x, 10
@@ -31,11 +40,15 @@ main_if_0_1:
    r9 = CONVERT r9, BOOL
    CMP r8, r9
    JNE main_elif_0_1
+   ESCALATE 
    y = STORE 10
+   DEESCALATE 
    JMP main_if_end_0_1
 main_elif_0_1:
+   ESCALATE 
    r9 = MUL 10, x
    x = STORE r9
+   DEESCALATE 
 main_if_end_0_1:
    r8 = GT x, 10
    r9 = LT x, 5
@@ -45,6 +58,9 @@ main_if_end_0_1:
    a = STORE r8
    CMP a, 1
    JNE main_if_end_0_1_2
+   ESCALATE 
    b = STORE 2
+   DEESCALATE 
    JMP main_if_end_0_1_2
 main_if_end_0_1_2:
+   DEESCALATE 

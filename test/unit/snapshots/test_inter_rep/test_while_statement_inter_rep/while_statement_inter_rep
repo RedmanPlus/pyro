@@ -1,22 +1,28 @@
 main: 
+   ESCALATE 
    x = STORE 0
    count = STORE 0
    y = STORE 10
 main_while_begin_0:
    CMP x, y
    JGE main_while_end_0
+   ESCALATE 
    CMP x, 0
    JNE main_if_end_1
+   ESCALATE 
    r10 = SUM 1, x
    x = STORE r10
    r8 = SUM 1, count
    count = STORE r8
    JMP main_while_begin_0
+   DEESCALATE 
    JMP main_if_end_1
 main_if_end_1:
    r8 = MUL 2, x
    x = STORE r8
    r8 = SUM 1, count
    count = STORE r8
+   DEESCALATE 
    JMP main_while_begin_0
 main_while_end_0:
+   DEESCALATE 
