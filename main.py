@@ -8,7 +8,7 @@ def main():
     args = cli()
     debug = args.get("debug", False)
 
-    code = handle_input_file(src=args["pyro_compiler"])
+    code = handle_input_file(src=args["src"])
     compiler = Compiler(debug=debug)
     asm = compiler(code=code)
     if compiler.registry.is_blocking_compilation:

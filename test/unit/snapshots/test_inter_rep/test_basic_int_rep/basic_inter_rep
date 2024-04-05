@@ -1,3 +1,5 @@
 main: 
+   ESCALATE 
    x = STORE 1
    y = STORE 2
+   DEESCALATE 

@@ -1,0 +1,18 @@
+main scopes:
+scope scope_main_0 variables:
+    target: INT = None
+    pov: INT = None
+scope scope_if_1 variables:
+    target: INT = None
+    intermediary: INT = None
+scope scope_else_1 variables:
+    val: INT = None
+scope scope_while_2 variables:
+    number_of_muls: INT = None
+    pov: INT = None
+    target: INT = None
+scope scope_if_3 variables:
+    intermediary: INT = None
+    number_of_muls: INT = None
+scope scope_while_4 variables:
+scope scope_else_3 variables:

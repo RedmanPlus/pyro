@@ -1,4 +1,6 @@
 main: 
+   ESCALATE 
    x = STORE 1
    r8 = MUL x, 10
    y = STORE r8
+   DEESCALATE 

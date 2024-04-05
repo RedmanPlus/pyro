@@ -28,7 +28,7 @@ class Generation:
         self.code_chunks: list[ASMInstruction] = []
         self.variables: list[str] = []
         self.scope_boundaries: list[int] = []
-        self.current_scope_boundary: int = -1
+        self.current_scope_boundary: int = 0
 
     def __call__(self, representation: Representation) -> str:
         if self.representation is None:
@@ -52,14 +52,6 @@ class Generation:
                 instructions = self._generate_label(label)
                 self.code_chunks += instructions
             if processed_scope != scope:
-                if processed_scope is None:
-                    instructions = self._generate_scope_escalation(with_stack_pointer_push=False)
-                elif processed_scope.is_subscope(scope):
-                    instructions = self._generate_scope_escalation()
-                else:
-                    last_boundary = self.scope_boundaries.pop()
-                    instructions = self._generate_scope_deescalation(new_boundary=last_boundary)
-                self.code_chunks += instructions
                 processed_scope = scope
             match command.operation:
                 case CommandType.STORE:
@@ -161,10 +153,16 @@ class Generation:
                 case CommandType.CONVERT:
                     instructions = self._generate_convert(command)
                     self.code_chunks += instructions
-                case CommandType.DEALLOC:
-                    new_boundary = self.scope_boundaries.pop()
-                    instructions = self._generate_scope_deescalation(new_boundary=new_boundary)
-                    self.code_chunks += instructions
+                case CommandType.ESCALATE:
+                    self.scope_boundaries.append(self.current_scope_boundary)
+                    self.current_scope_boundary = len(self.variables)
+                case CommandType.DEESCALATE:
+                    if self.debug and not self.representation.is_last_command(command):
+                        instructions = self._deescalate()
+                        self.code_chunks += instructions
+                    if not self.debug:
+                        instructions = self._deescalate()
+                        self.code_chunks += instructions
                 case _:
                     raise Exception("Unreachable")
         if len(self.representation.labels) != 0:
@@ -196,6 +194,18 @@ class Generation:
         if self.debug:
             result_asm += "\n\n\nsection .data\n    formatString: db '%llu', 10, 0\n"
         return result_asm
+
+    def _deescalate(self) -> list[ASMInstruction]:
+        instructions: list[ASMInstruction] = []
+        for _ in self.variables[self.current_scope_boundary :]:
+            instructions += [
+                DataMoveInstruction(instruction_type=InstructionType.POP, register="rax"),
+                DataMoveInstruction(instruction_type=InstructionType.MOV, register="rax", data="0"),
+            ]
+        new_boundary = self.scope_boundaries.pop()
+        self.variables = self.variables[: self.current_scope_boundary]
+        self.current_scope_boundary = new_boundary
+        return instructions
 
     def _generate_store(self, command: Command) -> list[ASMInstruction]:
         instructions: list[ASMInstruction] = []
@@ -280,10 +290,10 @@ class Generation:
     def _get_variable_index(self, varname: str) -> int | None:
         try:
             variable_position = self.variables.index(varname)
+            return variable_position
         except ValueError:
             self.variables.append(varname)
             return None
-        return variable_position - self.current_scope_boundary
 
     def _generate_logical_operation(self, command: Command) -> list[ASMInstruction]:
         if not isinstance(command.target, PseudoRegister):
@@ -515,32 +525,6 @@ class Generation:
     def _generate_label(self, label: Label) -> list[ASMInstruction]:
         return [LabelInstruction(instruction_type=InstructionType.LABEL, label_name=label.name)]
 
-    def _generate_scope_escalation(
-        self, with_stack_pointer_push: bool = True
-    ) -> list[ASMInstruction]:
-        instructions: list[ASMInstruction] = [
-            DataMoveInstruction(instruction_type=InstructionType.PUSH, register="rbp"),
-            DataMoveInstruction(instruction_type=InstructionType.MOV, register="rbp", data="rsp"),
-        ]
-        if not with_stack_pointer_push:
-            instructions.pop(0)
-        self.scope_boundaries.append(self.current_scope_boundary)
-        self.current_scope_boundary = len(self.variables) if len(self.variables) > 0 else -1
-        return instructions
-
-    def _generate_scope_deescalation(self, new_boundary: int) -> list[ASMInstruction]:
-        instructions: list[ASMInstruction] = [
-            DataMoveInstruction(instruction_type=InstructionType.POP, register="rax")
-            for _ in range(len(self.variables), self.current_scope_boundary, -1)
-        ]
-        instructions += [
-            DataMoveInstruction(instruction_type=InstructionType.MOV, register="rax", data="0"),
-            DataMoveInstruction(instruction_type=InstructionType.POP, register="rbp"),
-        ]
-        self.variables = self.variables[0 : self.current_scope_boundary]
-        self.current_scope_boundary = new_boundary
-        return instructions
-
     def _generate_cmp(self, command: Command) -> list[ASMInstruction]:
         command.target = PseudoRegister(order=8)
         register_a, register_b = self._get_register_for_command(command=command)
@@ -675,13 +659,8 @@ class Generation:
         variable_position = self._get_variable_index(var_name)
         if variable_position is None:
             raise Exception("Unreachable")
-        if variable_position >= 0:
-            variable_position += len(self.scope_boundaries) - 1
-        offset = variable_position * 8
-        if offset >= 0:
-            stack_offset = f"QWORD [rbp - {offset}]"
-        else:
-            stack_offset = f"QWORD [rbp + {abs(offset)}]"
+        offset = (len(self.variables) - variable_position - 1) * 8
+        stack_offset = f"QWORD [rsp + {offset}]"
         return stack_offset
 
     def _add_debug_prints(self):

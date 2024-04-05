@@ -16,11 +16,15 @@ _start:
     mov rbx, 10
     mul rbx
     mov r8, rax
-    mov r9, QWORD [rbp + 8]
+    mov r9, QWORD [rsp + 0]
     add r8, r9
     mov r9, 1
     add r8, r9
     push r8
+    pop rax
+    mov rax, 0
+    pop rax
+    mov rax, 0
     mov rax, 60
     mov rdi, 0
     syscall

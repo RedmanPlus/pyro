@@ -1,0 +1,19 @@
+main: 
+   ESCALATE 
+   a = STORE 0
+   b = STORE 1
+   count = STORE 0
+main_while_begin_0:
+   CMP a, 10
+   JG main_while_end_0
+   ESCALATE 
+   r9 = SUM a, b
+   c = STORE r9
+   a = STORE b
+   b = STORE c
+   r8 = SUM 1, count
+   count = STORE r8
+   DEESCALATE 
+   JMP main_while_begin_0
+main_while_end_0:
+   DEESCALATE 

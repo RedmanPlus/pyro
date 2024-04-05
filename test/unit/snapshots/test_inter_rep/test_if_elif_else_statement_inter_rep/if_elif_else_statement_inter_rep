@@ -1,19 +1,29 @@
 main: 
+   ESCALATE 
    x = STORE 1
    CMP x, 0
    JE main_if_0
+   ESCALATE 
    x = STORE 2
+   DEESCALATE 
    JMP main_if_end_0
 main_if_0:
    CMP 1, 0
    JE main_elif_0
+   ESCALATE 
    x = STORE 3
+   DEESCALATE 
    JMP main_if_end_0
 main_elif_0:
    CMP 2, 0
    JE main_elif_0_1
+   ESCALATE 
    x = STORE 4
+   DEESCALATE 
    JMP main_if_end_0
 main_elif_0_1:
+   ESCALATE 
    x = STORE 1
+   DEESCALATE 
 main_if_end_0:
+   DEESCALATE 

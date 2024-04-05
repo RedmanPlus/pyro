@@ -1,11 +1,11 @@
 main scopes:
-scope scope_0 variables:
+scope scope_main_0 variables:
     x: INT = None
     count: INT = None
     y: INT = None
-scope scope_1 variables:
+scope scope_while_1 variables:
     x: INT = None
     count: INT = None
-scope scope_2 variables:
+scope scope_if_2 variables:
     x: INT = None
     count: INT = None

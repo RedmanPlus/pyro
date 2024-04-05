@@ -3,7 +3,7 @@ from pyro_compiler.cli.utils import CLIArg
 
 MAIN_CLI_ARGS = [
     CLIArg(
-        name_or_flags="pyro_compiler",
+        name_or_flags="src",
         arg_type=str,
         help="Name of the python file to be compiled",
         metavar="<filename.py>",

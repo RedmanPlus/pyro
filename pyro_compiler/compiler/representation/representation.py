@@ -127,6 +127,9 @@ class Representation:
             if command.operand_a == old_label:
                 command.operand_a = new_label
 
+    def is_last_command(self, command: Command) -> bool:
+        return command is self.commands[-1]
+
     def _get_label_by_id(self, label_id: int) -> Label | None:
         for label in self.labels.values():
             if label.position == label_id:

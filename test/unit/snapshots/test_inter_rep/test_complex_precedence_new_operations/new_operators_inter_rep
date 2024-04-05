@@ -1,4 +1,5 @@
 main: 
+   ESCALATE 
    r8 = MUL 5, 6
    r8 = SUB r8, 1
    r10 = BIT_NOT 1
@@ -8,3 +9,4 @@ main:
    r9 = BIT_XOR r9, r10
    r8 = BIT_OR r8, r9
    x = STORE r8
+   DEESCALATE 
