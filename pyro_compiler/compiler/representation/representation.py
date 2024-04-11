@@ -2,6 +2,7 @@ from builtins import StopIteration
 from dataclasses import dataclass, field
 
 from pyro_compiler.compiler.representation.command import Command
+from pyro_compiler.compiler.representation.declaration import Declaration
 from pyro_compiler.compiler.representation.label import Label
 from pyro_compiler.compiler.representation.scope import Scope
 from pyro_compiler.compiler.representation.variable import Variable, VarType
@@ -13,6 +14,7 @@ class Representation:
     commands: list[Command] = field(default_factory=list)
     labels: dict[str, Label] = field(default_factory=dict)
     scopes: list[Scope] = field(default_factory=list)
+    declarations: list[Declaration] = field(default_factory=list)
     current_scope_id: int = -1
     current_iteration_id: int = 0
     variable_table: dict[str, Variable] = field(default_factory=dict)
@@ -88,7 +90,13 @@ class Representation:
         return self.labels.get(label_name, None)
 
     def pprint(self) -> str:
+        decl_block: str = ""
+        for declaration in self.declarations:
+            decl_block += declaration.pprint()
+            decl_block += "\n"
         header = f"{self.block_name}: " + "\n"
+        if decl_block != "":
+            header = decl_block + "\n" + header
         for i, command in enumerate(self.commands):
             label = self.take_label_by_id(i)
             if label is not None:
