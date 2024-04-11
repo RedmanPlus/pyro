@@ -1,4 +1,4 @@
 Structure Foo:
-    a<<Nested>> -> 2
-    b<<Nested>> -> 2
+    a<Nested> -> 2
+    b<Nested> -> 2
     c<BASE_64> -> 1
