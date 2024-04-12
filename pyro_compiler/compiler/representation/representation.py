@@ -14,10 +14,10 @@ class Representation:
     commands: list[Command] = field(default_factory=list)
     labels: dict[str, Label] = field(default_factory=dict)
     scopes: list[Scope] = field(default_factory=list)
-    declarations: list[Declaration] = field(default_factory=list)
     current_scope_id: int = -1
     current_iteration_id: int = 0
     variable_table: dict[str, Variable] = field(default_factory=dict)
+    declarations: dict[str, Declaration] = field(default_factory=dict)
 
     def __iter__(self) -> "Representation":
         return self
@@ -57,6 +57,20 @@ class Representation:
         self.scopes.append(Scope(scope_name=scope_name, beginning_line=scope_beginning_line))
         self.current_scope_id += 1
 
+    def add_declaration(self, decl_name: str, fields: dict[str, str | int]):
+        decl_fields: dict[str, Declaration | int] = {}
+        for key, decl_field in fields.items():
+            if isinstance(decl_field, str):
+                declaration = self.get_declaration_by_name(decl_field)
+                if declaration is None:
+                    raise Exception("Field uses undeclated type")
+                decl_fields[key] = declaration
+            elif isinstance(decl_field, int):
+                decl_fields[key] = 0
+
+        declaration = Declaration(decl_name=decl_name, fields=decl_fields)
+        self.declarations[decl_name] = declaration
+
     def close_current_scope(self, ending_line: int):
         self.scopes[self.current_scope_id].ending_line = ending_line
         self.current_scope_id -= 1
@@ -89,9 +103,12 @@ class Representation:
     def get_label(self, label_name: str) -> Label | None:
         return self.labels.get(label_name, None)
 
+    def get_declaration_by_name(self, decl_name: str) -> Declaration | None:
+        return self.declarations.get(decl_name, None)
+
     def pprint(self) -> str:
         decl_block: str = ""
-        for declaration in self.declarations:
+        for declaration in self.declarations.values():
             decl_block += declaration.pprint()
             decl_block += "\n"
         header = f"{self.block_name}: " + "\n"
