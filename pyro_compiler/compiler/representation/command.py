@@ -31,6 +31,7 @@ class CommandType(Enum):
     BIT_NOT = auto()
     BIT_SHL = auto()
     BIT_SHR = auto()
+    GETATTR = auto()
     CMP = auto()
     JMP = auto()
     JE = auto()
