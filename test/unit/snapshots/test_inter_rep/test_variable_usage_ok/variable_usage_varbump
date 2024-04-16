@@ -1,4 +1,4 @@
 main scopes:
 scope scope_main_0 variables:
-    x: INT = None
-    y: INT = None
+    x: INT
+    y: INT

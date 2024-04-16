@@ -1,13 +1,13 @@
-from dataclasses import dataclass
-from typing import Self
+from dataclasses import dataclass, field
+from typing import Self, Union
 
 
 @dataclass
-class Declaration:
+class Structure:
     decl_name: str
-    offsets: list[int]
-    types: list[str]
-    names: list[str]
+    offsets: list[int] = field(default_factory=list)
+    types: list[Union["Structure", str]] = field(default_factory=list)
+    names: list[str] = field(default_factory=list)
 
     def __init__(self, decl_name: str, fields: dict[str, Self | int]):
         self.decl_name = decl_name
@@ -15,8 +15,8 @@ class Declaration:
         self.offsets = []
         self.types = []
         for val in fields.values():
-            if isinstance(val, Declaration):
-                self.types.append(val.decl_name)
+            if isinstance(val, Structure):
+                self.types.append(val)
                 self.offsets.append(val.calculate_size())
             else:
                 self.types.append("BASE_64")

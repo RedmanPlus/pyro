@@ -4,6 +4,7 @@ from enum import Enum, auto
 from pyro_compiler.compiler.parsing import Node
 from pyro_compiler.compiler.representation.label import Label
 from pyro_compiler.compiler.representation.pseudo_register import PseudoRegister
+from pyro_compiler.compiler.representation.struct_declaration import StructDeclaration
 from pyro_compiler.compiler.representation.variable import Variable, VarType
 
 
@@ -49,14 +50,14 @@ class CommandType(Enum):
 class Command:
     operation: CommandType
     target: PseudoRegister | Variable | None
-    operand_a: PseudoRegister | str | Variable | Label
+    operand_a: PseudoRegister | str | Variable | Label | StructDeclaration
     operand_b: PseudoRegister | str | Variable | VarType | None = None
     node: Node | None = None
 
     def __init__(
         self,
         operation: CommandType,
-        operand_a: PseudoRegister | str | Variable | Label,
+        operand_a: PseudoRegister | str | Variable | Label | StructDeclaration,
         target: PseudoRegister | Variable | None = None,
         operand_b: PseudoRegister | str | Variable | VarType | None = None,
         node: Node | None = None,
@@ -79,6 +80,13 @@ class Command:
             and target is None
         ):
             raise Exception(f"target cannot be None for operation {operation.name}")
+
+        if isinstance(operand_a, StructDeclaration) and operation != CommandType.STORE:
+            raise Exception("Cannot use structure declaration aside command STORE")
+
+        if isinstance(operand_b, VarType) and operation != CommandType.CONVERT:
+            raise Exception("Cannot use type as operand in not CONVERT command")
+
         self.operation = operation
         self.target = target
         self.operand_a = operand_a
@@ -86,10 +94,16 @@ class Command:
         self.node = node
 
     def __repr__(self) -> str:
-        command_str = (
-            f"{self.operation.name} "
-            f"{self.operand_a if isinstance(self.operand_a, str) else self.operand_a.name}"
-        )
+        operand_a_text: str
+        if isinstance(self.operand_a, str):
+            operand_a_text = self.operand_a
+        elif isinstance(self.operand_a, StructDeclaration):
+            operand_a_text = self.operand_a.pprint()
+        elif isinstance(self.operand_a, Variable | PseudoRegister | Label):
+            operand_a_text = self.operand_a.name
+        else:
+            raise Exception("Unreachable")
+        command_str = f"{self.operation.name} {operand_a_text}"
         if self.target is not None:
             target = self.target if isinstance(self.target, str) else self.target.name
             command_str = target + " = " + command_str

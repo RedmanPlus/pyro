@@ -13,12 +13,14 @@ from pyro_compiler.compiler.representation.label import Label
 from pyro_compiler.compiler.representation.pseudo_register import PseudoRegister
 from pyro_compiler.compiler.representation.representation import Representation
 from pyro_compiler.compiler.representation.scope import Scope
+from pyro_compiler.compiler.representation.struct_declaration import StructDeclaration
 from pyro_compiler.compiler.representation.utils import (
     is_operand_a_register,
     is_operand_a_value,
     is_operand_a_variable,
 )
 from pyro_compiler.compiler.representation.variable import Variable, VarType
+from pyro_compiler.compiler.utils import OperandAT
 
 
 class Generation:
@@ -209,7 +211,7 @@ class Generation:
 
     def _generate_store(self, command: Command) -> list[ASMInstruction]:
         instructions: list[ASMInstruction] = []
-        saved_value: PseudoRegister | str | Variable | Label = command.operand_a
+        saved_value: OperandAT = command.operand_a
         target = command.target
         if not isinstance(target, Variable):
             raise Exception("Unreachable")
@@ -431,7 +433,7 @@ class Generation:
         return self._generate_binop(command=command, math_op_type=InstructionType.SHR)
 
     def _generate_convert(self, command: Command) -> list[ASMInstruction]:
-        if isinstance(command.operand_a, str | Label):
+        if isinstance(command.operand_a, str | Label | StructDeclaration):
             raise Exception("Unreachable")
         conversion_command = Command(
             target=command.operand_a,
@@ -560,6 +562,8 @@ class Generation:
         return [ControllFlowInstruction(instruction_type=jump_type, data=(resulting_target.name,))]
 
     def _get_register_for_command(self, command: Command) -> tuple[str, str]:
+        if isinstance(command.operand_b, VarType):
+            raise Exception("Unreachable")
         if is_operand_a_register(command.operand_a) and is_operand_a_register(command.operand_b):
             register_a = X86_64_REGISTER_SCHEMA[command.operand_a.name]  # type: ignore
             register_b = X86_64_REGISTER_SCHEMA[command.operand_b.name]  # type: ignore
@@ -579,6 +583,8 @@ class Generation:
         return register_a, register_b
 
     def _get_register_for_carried_command(self, command: Command) -> tuple[str, str]:
+        if isinstance(command.operand_b, VarType):
+            raise Exception("Unreachable")
         if is_operand_a_register(command.operand_a) and is_operand_a_register(command.operand_b):
             register_a = X86_64_REGISTER_SCHEMA[command.operand_a.name]  # type: ignore
             register_b = X86_64_REGISTER_SCHEMA[command.operand_b.name]  # type: ignore
@@ -596,6 +602,8 @@ class Generation:
         return register_a, register_b
 
     def _get_register_reassignment(self, command: Command) -> tuple[bool, bool]:
+        if isinstance(command.operand_b, VarType):
+            raise Exception("Unreachable")
         if is_operand_a_register(command.operand_a) and is_operand_a_register(command.operand_b):
             return False, False
         if is_operand_a_register(command.operand_a):
@@ -623,7 +631,7 @@ class Generation:
 
     def _process_operand(
         self,
-        operand: PseudoRegister | Variable | str | Label,
+        operand: OperandAT,
         register_a: str,
         register_b: str,
         is_operand_b: bool,
