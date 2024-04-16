@@ -1,7 +1,7 @@
 from pyro_compiler.compiler.representation.command import CommandType, operation_result_type
-from pyro_compiler.compiler.representation.label import Label
 from pyro_compiler.compiler.representation.pseudo_register import PseudoRegister
 from pyro_compiler.compiler.representation.variable import Variable, VarType
+from pyro_compiler.compiler.utils import OperandANullT
 
 
 comparison_jump_mapping: dict[CommandType, CommandType] = {
@@ -22,18 +22,18 @@ def get_variable_type(operation_type: CommandType) -> VarType | None:
 
 
 def is_operand_a_register(
-    operand: PseudoRegister | str | Variable | VarType | Label | None,
+    operand: OperandANullT,
 ) -> bool:
     return isinstance(operand, PseudoRegister)
 
 
 def is_operand_a_variable(
-    operand: PseudoRegister | str | Variable | VarType | Label | None,
+    operand: OperandANullT,
 ) -> bool:
     return isinstance(operand, Variable)
 
 
-def is_operand_a_value(operand: PseudoRegister | str | Variable | Label | VarType | None) -> bool:
+def is_operand_a_value(operand: OperandANullT) -> bool:
     return isinstance(operand, str)
 
 

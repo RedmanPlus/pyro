@@ -1,0 +1,19 @@
+Structure Foo:
+    a<BASE_64> -> 1
+
+Structure Bar:
+    a<BASE_64> -> 1
+    b<BASE_64> -> 1
+
+Structure Baz:
+    a<<Foo>> -> 1
+    b<<Bar>> -> 2
+    c<<Bar>> -> 2
+    d<BASE_64> -> 1
+
+
+main: 
+   foo = STORE Foo(a=1)
+   bar_a = STORE Bar(a=1, b=2)
+   bar_b = STORE Bar(a=1, b=2)
+   baz = STORE Baz(a=foo: <Foo>, b=bar_a: <Bar>, c=bar_b: <Bar>, d=1)

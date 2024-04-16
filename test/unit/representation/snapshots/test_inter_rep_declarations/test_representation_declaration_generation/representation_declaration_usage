@@ -5,9 +5,9 @@ Structure Bar:
     b<BASE_64> -> 1
 
 Structure Baz:
-    a<Foo> -> 0
-    b<Bar> -> 2
-    c<Bar> -> 2
+    a<<Foo>> -> 0
+    b<<Bar>> -> 2
+    c<<Bar>> -> 2
     d<BASE_64> -> 1
 
 

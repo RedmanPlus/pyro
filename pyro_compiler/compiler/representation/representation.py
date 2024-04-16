@@ -2,9 +2,9 @@ from builtins import StopIteration
 from dataclasses import dataclass, field
 
 from pyro_compiler.compiler.representation.command import Command
-from pyro_compiler.compiler.representation.declaration import Declaration
 from pyro_compiler.compiler.representation.label import Label
 from pyro_compiler.compiler.representation.scope import Scope
+from pyro_compiler.compiler.representation.structure import Structure
 from pyro_compiler.compiler.representation.variable import Variable, VarType
 
 
@@ -17,7 +17,7 @@ class Representation:
     current_scope_id: int = -1
     current_iteration_id: int = 0
     variable_table: dict[str, Variable] = field(default_factory=dict)
-    declarations: dict[str, Declaration] = field(default_factory=dict)
+    declarations: dict[str, Structure] = field(default_factory=dict)
 
     def __iter__(self) -> "Representation":
         return self
@@ -37,7 +37,7 @@ class Representation:
         self.commands.append(command)
 
     def register_var(
-        self, varname: str, value: str | None = None, var_type: VarType = VarType.INT
+        self, varname: str, value: str | None = None, var_type: VarType | Structure = VarType.INT
     ) -> Variable:
         var = self.scopes[self.current_scope_id].register_var(
             varname=varname, var_type=var_type, value=value
@@ -58,7 +58,7 @@ class Representation:
         self.current_scope_id += 1
 
     def add_declaration(self, decl_name: str, fields: dict[str, str | int]):
-        decl_fields: dict[str, Declaration | int] = {}
+        decl_fields: dict[str, Structure | int] = {}
         for key, decl_field in fields.items():
             if isinstance(decl_field, str):
                 declaration = self.get_declaration_by_name(decl_field)
@@ -68,7 +68,7 @@ class Representation:
             elif isinstance(decl_field, int):
                 decl_fields[key] = 0
 
-        declaration = Declaration(decl_name=decl_name, fields=decl_fields)
+        declaration = Structure(decl_name=decl_name, fields=decl_fields)
         self.declarations[decl_name] = declaration
 
     def close_current_scope(self, ending_line: int):
@@ -103,7 +103,7 @@ class Representation:
     def get_label(self, label_name: str) -> Label | None:
         return self.labels.get(label_name, None)
 
-    def get_declaration_by_name(self, decl_name: str) -> Declaration | None:
+    def get_declaration_by_name(self, decl_name: str) -> Structure | None:
         return self.declarations.get(decl_name, None)
 
     def pprint(self) -> str:

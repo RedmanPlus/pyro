@@ -1,10 +1,10 @@
 main scopes:
 scope scope_main_0 variables:
-    a: INT = None
-    b: INT = None
-    count: INT = None
+    a: INT
+    b: INT
+    count: INT
 scope scope_while_1 variables:
-    c: INT = None
-    a: INT = None
-    b: INT = None
-    count: INT = None
+    c: INT
+    a: INT
+    b: INT
+    count: INT

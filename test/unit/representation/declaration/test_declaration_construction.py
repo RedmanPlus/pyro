@@ -1,17 +1,17 @@
 import pytest
 
-from pyro_compiler.compiler.representation.declaration import Declaration
+from pyro_compiler.compiler.representation.structure import Structure
 
 
 @pytest.mark.int_rep
 def test_basic_declaration(snapshot):
-    declaration = Declaration(decl_name="Foo", fields={})
+    declaration = Structure(decl_name="Foo", fields={})
     snapshot.assert_match(declaration.pprint(), "basic_declaration_structure")
 
 
 @pytest.mark.int_rep
 def test_declaration_with_fields(snapshot):
-    declaration = Declaration(
+    declaration = Structure(
         decl_name="Foo",
         fields={
             "a": 0,
@@ -23,12 +23,12 @@ def test_declaration_with_fields(snapshot):
 
 @pytest.mark.int_rep
 def test_nested_declaration(snapshot):
-    nested = Declaration(
+    nested = Structure(
         decl_name="Nested",
         fields={
             "a": 0,
             "b": 0,
         },
     )
-    declaration = Declaration(decl_name="Foo", fields={"a": nested, "b": nested, "c": 0})
+    declaration = Structure(decl_name="Foo", fields={"a": nested, "b": nested, "c": 0})
     snapshot.assert_match(declaration.pprint(), "nested_declaration_structure")

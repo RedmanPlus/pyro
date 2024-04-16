@@ -3,10 +3,10 @@ from typing import Self
 
 
 @dataclass
-class Declaration:
+class Structure:
     decl_name: str
     offsets: list[int]
-    types: list[str]
+    types: list[str | "Structure"]
     names: list[str]
 
     def __init__(self, decl_name: str, fields: dict[str, Self | int]):
@@ -15,8 +15,8 @@ class Declaration:
         self.offsets = []
         self.types = []
         for val in fields.values():
-            if isinstance(val, Declaration):
-                self.types.append(val.decl_name)
+            if isinstance(val, Structure):
+                self.types.append(val)
                 self.offsets.append(val.calculate_size())
             else:
                 self.types.append("BASE_64")
