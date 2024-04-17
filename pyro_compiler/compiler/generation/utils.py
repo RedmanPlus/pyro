@@ -148,3 +148,23 @@ class LabelInstruction(ASMInstruction):
 
     def to_asm(self) -> str:
         return f"{self.label_name}:"
+
+
+@dataclass
+class MemoryValue:
+    name: str
+    addr: int
+    size_t: int
+    is_pointer: bool = False
+
+    def get_inner_offset(self, offset: int) -> int:
+        if self.is_pointer:
+            raise Exception("Cannot take offsets from a pointer")
+        if offset < 0:
+            raise Exception("Cannot take negative offset values")
+        if offset - 1 > self.size_t:
+            raise Exception(
+                "Trying to get a value outside of the memory block bounds:\n"
+                f"    memory block size is {self.size_t}, trying to take value {offset}"
+            )
+        return self.addr + offset

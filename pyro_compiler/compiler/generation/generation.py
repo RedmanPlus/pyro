@@ -7,6 +7,7 @@ from pyro_compiler.compiler.generation.utils import (
     InstructionType,
     LabelInstruction,
     MathLogicInstruction,
+    MemoryValue,
 )
 from pyro_compiler.compiler.representation.command import Command, CommandType
 from pyro_compiler.compiler.representation.label import Label
@@ -14,6 +15,7 @@ from pyro_compiler.compiler.representation.pseudo_register import PseudoRegister
 from pyro_compiler.compiler.representation.representation import Representation
 from pyro_compiler.compiler.representation.scope import Scope
 from pyro_compiler.compiler.representation.struct_declaration import StructDeclaration
+from pyro_compiler.compiler.representation.structure import Structure
 from pyro_compiler.compiler.representation.utils import (
     is_operand_a_register,
     is_operand_a_value,
@@ -28,7 +30,7 @@ class Generation:
         self.debug = debug
         self.representation = representation
         self.code_chunks: list[ASMInstruction] = []
-        self.variables: list[str] = []
+        self.variables: list[MemoryValue] = []
         self.scope_boundaries: list[int] = []
         self.current_scope_boundary: int = 0
 
@@ -197,6 +199,118 @@ class Generation:
             result_asm += "\n\n\nsection .data\n    formatString: db '%llu', 10, 0\n"
         return result_asm
 
+    def _store(
+        self,
+        val: str | PseudoRegister | Variable,
+        destination: Variable | None = None,
+        derefference: bool = False,
+    ) -> list[ASMInstruction]:
+        instructions: list[ASMInstruction] = []
+        if destination is not None:
+            variable_position = self._get_variable_index(destination.name)
+            if variable_position is None:
+                raise Exception("Unreachable")
+            destination_offset = self._calculate_variable_offset(variable_position)
+        else:
+            destination_offset = None
+        if isinstance(val, PseudoRegister):
+            if destination_offset is not None:
+                instructions += [
+                    DataMoveInstruction(
+                        instruction_type=InstructionType.MOV,
+                        register=destination_offset,
+                        data=X86_64_REGISTER_SCHEMA[val.name],
+                    )
+                ]
+            else:
+                instructions += [
+                    DataMoveInstruction(
+                        instruction_type=InstructionType.PUSH,
+                        register=X86_64_REGISTER_SCHEMA[val.name],
+                    )
+                ]
+        if isinstance(val, str):
+            instructions += [
+                DataMoveInstruction(instruction_type=InstructionType.MOV, register="rax", data=val),
+            ]
+            if destination_offset is not None:
+                instructions += [
+                    DataMoveInstruction(
+                        instruction_type=InstructionType.MOV,
+                        register=destination_offset,
+                        data="rax",
+                    ),
+                ]
+            else:
+                instructions += [
+                    DataMoveInstruction(instruction_type=InstructionType.PUSH, register="rax")
+                ]
+        if isinstance(val, Variable):
+            var_id = self._get_variable_index(val.name)
+            if var_id is None:
+                raise Exception("Unreachable")
+            offset = self._calculate_variable_offset(var_id, derefferenced=derefference)
+            instructions += [
+                DataMoveInstruction(
+                    instruction_type=InstructionType.MOV,
+                    register="rax",
+                    data=offset,
+                ),
+            ]
+            if destination_offset is not None:
+                instructions += [
+                    DataMoveInstruction(
+                        instruction_type=InstructionType.MOV,
+                        register=destination_offset,
+                        data="rax",
+                    )
+                ]
+            else:
+                instructions += [
+                    DataMoveInstruction(instruction_type=InstructionType.PUSH, register="rax")
+                ]
+
+        return instructions
+
+    def _generate_declaration(self, declaration: StructDeclaration) -> list[ASMInstruction]:
+        instructions: list[ASMInstruction] = []
+        for field_value in declaration.field_values:
+            instructions += self._store(field_value, derefference=False)
+
+        return instructions
+
+    def _register_memory_value(
+        self, name: str, structure: Structure | str, is_pointer: bool = False
+    ):
+        current_index: int = len(self.variables)
+        size_t: int
+        if isinstance(structure, Structure):
+            size_t = structure.calculate_size()
+        else:
+            size_t = 1
+        return MemoryValue(name=name, addr=current_index, size_t=size_t, is_pointer=is_pointer)
+
+    def _get_variable_index(self, varname: str) -> int | None:
+        try:
+            variable_position = list(filter(lambda n: n.name == varname, self.variables))[0]
+            return variable_position.addr
+        except IndexError:
+            return None
+
+    def _calculate_variable_offset(self, variable_id: int, derefferenced: bool = True) -> str:
+        total_stack_size: int = 0
+        for var in self.variables:
+            total_stack_size += var.size_t
+        cumulative_size: int = 0
+        for var in self.variables[:variable_id]:
+            cumulative_size += var.size_t
+        offset = (total_stack_size - cumulative_size - 1) * 8
+        if derefferenced:
+            stack_offset = f"QWORD [rsp + {offset}]"
+        else:
+            stack_offset = f"QWORD rsp + {offset}"
+        return stack_offset
+
     def _deescalate(self) -> list[ASMInstruction]:
         instructions: list[ASMInstruction] = []
         for _ in self.variables[self.current_scope_boundary :]:
@@ -217,85 +331,25 @@ class Generation:
             raise Exception("Unreachable")
         variable_position = self._get_variable_index(target.name)
         if variable_position is None:
-            if isinstance(saved_value, str):
-                instructions += [
-                    DataMoveInstruction(
-                        instruction_type=InstructionType.MOV,
-                        register="rax",
-                        data=saved_value,
-                    ),
-                    DataMoveInstruction(
-                        instruction_type=InstructionType.PUSH,
-                        register="rax",
-                    ),
-                ]
-            if isinstance(saved_value, PseudoRegister):
-                instructions += [
-                    DataMoveInstruction(
-                        instruction_type=InstructionType.PUSH,
-                        register=X86_64_REGISTER_SCHEMA[saved_value.name],
-                    )
-                ]
-            if isinstance(saved_value, Variable):
-                saved_value_offset = self._calculate_variable_offset(saved_value.name)
-                instructions += [
-                    DataMoveInstruction(
-                        instruction_type=InstructionType.MOV,
-                        register="rax",
-                        data=saved_value_offset,
-                    ),
-                    DataMoveInstruction(
-                        instruction_type=InstructionType.PUSH,
-                        register="rax",
-                    ),
-                ]
+            memory = self._register_memory_value(
+                name=target.name,
+                structure=target.name
+                if not isinstance(command.operand_a, StructDeclaration)
+                else command.operand_a.structure,
+                is_pointer=False,
+            )
+            self.variables.append(memory)
+            if isinstance(saved_value, str | PseudoRegister | Variable):
+                instructions += self._store(saved_value, derefference=True)
+            if isinstance(saved_value, StructDeclaration):
+                instructions += self._generate_declaration(saved_value)
             return instructions
         else:
-            stack_offset = self._calculate_variable_offset(target.name)
-            if isinstance(saved_value, str):
-                instructions += [
-                    DataMoveInstruction(
-                        instruction_type=InstructionType.MOV,
-                        register="rax",
-                        data=saved_value,
-                    ),
-                    DataMoveInstruction(
-                        instruction_type=InstructionType.MOV, register=stack_offset, data="rax"
-                    ),
-                ]
-            if isinstance(saved_value, PseudoRegister):
-                instructions += [
-                    DataMoveInstruction(
-                        instruction_type=InstructionType.MOV,
-                        register=stack_offset,
-                        data=X86_64_REGISTER_SCHEMA[saved_value.name],
-                    ),
-                ]
-            if isinstance(saved_value, Variable):
-                saved_value_offset = self._calculate_variable_offset(saved_value.name)
-                if saved_value_offset is None:
-                    raise Exception("Unreachable")
-                instructions += [
-                    DataMoveInstruction(
-                        instruction_type=InstructionType.MOV,
-                        register="rax",
-                        data=saved_value_offset,
-                    ),
-                    DataMoveInstruction(
-                        instruction_type=InstructionType.MOV,
-                        register=stack_offset,
-                        data="rax",
-                    ),
-                ]
+            if isinstance(saved_value, str | PseudoRegister | Variable):
+                instructions += self._store(saved_value, destination=target, derefference=True)
+            if isinstance(saved_value, StructDeclaration):
+                instructions += self._generate_declaration(saved_value)
             return instructions
-
-    def _get_variable_index(self, varname: str) -> int | None:
-        try:
-            variable_position = self.variables.index(varname)
-            return variable_position
-        except ValueError:
-            self.variables.append(varname)
-            return None
 
     def _generate_logical_operation(self, command: Command) -> list[ASMInstruction]:
         if not isinstance(command.target, PseudoRegister):
@@ -639,7 +693,10 @@ class Generation:
         if is_operand_a_register(operand):
             return None
         if is_operand_a_variable(operand):
-            stack_offset = self._calculate_variable_offset(operand.name)  # type: ignore
+            operand_id = self._get_variable_index(operand.name)  # type: ignore
+            if operand_id is None:
+                raise Exception("Unreachable")
+            stack_offset = self._calculate_variable_offset(operand_id)  # type: ignore
             return DataMoveInstruction(
                 instruction_type=InstructionType.MOV,
                 register=register_b if is_operand_b else register_a,
@@ -663,17 +720,12 @@ class Generation:
             registers=(register_a, register_b),
         )
 
-    def _calculate_variable_offset(self, var_name: str) -> str:
-        variable_position = self._get_variable_index(var_name)
-        if variable_position is None:
-            raise Exception("Unreachable")
-        offset = (len(self.variables) - variable_position - 1) * 8
-        stack_offset = f"QWORD [rsp + {offset}]"
-        return stack_offset
-
     def _add_debug_prints(self):
         instructions = []
         for variable in self.variables:
+            variable_id = self._get_variable_index(variable.name)
+            if variable_id is None:
+                raise Exception("Unreachable")
             instructions += [
                 DataMoveInstruction(
                     instruction_type=InstructionType.LEA,
@@ -683,7 +735,7 @@ class Generation:
                 DataMoveInstruction(
                     instruction_type=InstructionType.MOV,
                     register="rsi",
-                    data=self._calculate_variable_offset(variable),
+                    data=self._calculate_variable_offset(variable_id),
                 ),
                 DataMoveInstruction(instruction_type=InstructionType.MOV, register="rax", data="0"),
                 CallInstruction(instruction_type=InstructionType.CALL, callee="printf"),
