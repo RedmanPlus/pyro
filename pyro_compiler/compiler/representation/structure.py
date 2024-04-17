@@ -4,6 +4,9 @@ from typing import Self, Union
 
 @dataclass
 class Structure:
+    # TODO: work on compile-time differentiation between cases when the
+    #       value should be nested within the structure or referenced by
+    #       pointer
     decl_name: str
     offsets: list[int] = field(default_factory=list)
     types: list[Union["Structure", str]] = field(default_factory=list)

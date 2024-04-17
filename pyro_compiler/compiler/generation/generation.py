@@ -203,7 +203,7 @@ class Generation:
         self,
         val: str | PseudoRegister | Variable,
         destination: Variable | None = None,
-        derefference: bool = False,
+        dereference: bool = False,
     ) -> list[ASMInstruction]:
         instructions: list[ASMInstruction] = []
         if destination is not None:
@@ -249,7 +249,7 @@ class Generation:
             var_id = self._get_variable_index(val.name)
             if var_id is None:
                 raise Exception("Unreachable")
-            offset = self._calculate_variable_offset(var_id, derefferenced=derefference)
+            offset = self._calculate_variable_offset(var_id, derefferenced=dereference)
             instructions += [
                 DataMoveInstruction(
                     instruction_type=InstructionType.MOV,
@@ -275,7 +275,7 @@ class Generation:
     def _generate_declaration(self, declaration: StructDeclaration) -> list[ASMInstruction]:
         instructions: list[ASMInstruction] = []
         for field_value in declaration.field_values:
-            instructions += self._store(field_value, derefference=False)
+            instructions += self._store(field_value, dereference=False)
 
         return instructions
 
@@ -340,13 +340,13 @@ class Generation:
             )
             self.variables.append(memory)
             if isinstance(saved_value, str | PseudoRegister | Variable):
-                instructions += self._store(saved_value, derefference=True)
+                instructions += self._store(saved_value, dereference=True)
             if isinstance(saved_value, StructDeclaration):
                 instructions += self._generate_declaration(saved_value)
             return instructions
         else:
             if isinstance(saved_value, str | PseudoRegister | Variable):
-                instructions += self._store(saved_value, destination=target, derefference=True)
+                instructions += self._store(saved_value, destination=target, dereference=True)
             if isinstance(saved_value, StructDeclaration):
                 instructions += self._generate_declaration(saved_value)
             return instructions
