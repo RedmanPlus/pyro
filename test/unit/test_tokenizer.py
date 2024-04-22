@@ -1,3 +1,5 @@
+from textwrap import dedent
+
 import pytest
 
 from pyro_compiler.compiler.tokens import Tokenizer, TokenType
@@ -142,3 +144,46 @@ def test_tokenize_while_statement(snapshot):
     tokenizer = Tokenizer()
     tokenizer(code=code)
     snapshot.assert_match(tokenizer.pprint(), "tokenize_while_statement")
+
+
+@pytest.mark.tokenizer
+def test_tokenize_class_definitions(snapshot):
+    code = dedent(
+        """
+    class Foo:
+        a
+
+    class Bar:
+        a: Foo
+        b: Foo
+
+    class Baz:
+        a: Bar
+        b: Foo
+        c
+    """
+    )
+    tokenizer = Tokenizer()
+    tokenizer(code=code)
+    snapshot.assert_match(tokenizer.pprint(), "tokenize_class_definitions")
+
+
+@pytest.mark.tokenizer
+def test_tokenize_class_declarations(snapshot):
+    code = dedent(
+        """
+    class int:
+        value
+
+    class Point:
+        x: int
+        y: int
+
+    x = int(value=1)
+    y = int(2)
+    point = Point(x, y)
+    """
+    )
+    tokenizer = Tokenizer()
+    tokenizer(code=code)
+    snapshot.assert_match(tokenizer.pprint(), "tokenize_class_declarations")

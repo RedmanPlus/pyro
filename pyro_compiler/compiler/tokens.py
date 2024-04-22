@@ -52,6 +52,7 @@ class TokenType(Enum):
     WHILE = auto()
     BREAK = auto()
     CONTINUE = auto()
+    CLASS = auto()
     COLON = auto()
     INDENT = auto()
     NEWLINE = auto()
@@ -92,6 +93,7 @@ class Tokenizer:
             "while": TokenType.WHILE,
             "break": TokenType.BREAK,
             "continue": TokenType.CONTINUE,
+            "class": TokenType.CLASS,
         }
 
     def __call__(self, code: str) -> list[Token]:
