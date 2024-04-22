@@ -1,3 +1,9 @@
+from pyro_compiler.compiler.generation.memory import MemoryManager
+from pyro_compiler.compiler.generation.registers import (
+    get_register_for_carried_command,
+    get_register_for_command,
+    get_register_reassignment,
+)
 from pyro_compiler.compiler.generation.utils import (
     X86_64_REGISTER_SCHEMA,
     ASMInstruction,
@@ -7,6 +13,7 @@ from pyro_compiler.compiler.generation.utils import (
     InstructionType,
     LabelInstruction,
     MathLogicInstruction,
+    dereference_offset,
 )
 from pyro_compiler.compiler.representation.command import Command, CommandType
 from pyro_compiler.compiler.representation.label import Label
@@ -28,9 +35,7 @@ class Generation:
         self.debug = debug
         self.representation = representation
         self.code_chunks: list[ASMInstruction] = []
-        self.variables: list[str] = []
-        self.scope_boundaries: list[int] = []
-        self.current_scope_boundary: int = 0
+        self.memory_manager: MemoryManager = MemoryManager()
 
     def __call__(self, representation: Representation) -> str:
         if self.representation is None:
@@ -156,14 +161,13 @@ class Generation:
                     instructions = self._generate_convert(command)
                     self.code_chunks += instructions
                 case CommandType.ESCALATE:
-                    self.scope_boundaries.append(self.current_scope_boundary)
-                    self.current_scope_boundary = len(self.variables)
+                    self.memory_manager.escalate()
                 case CommandType.DEESCALATE:
                     if self.debug and not self.representation.is_last_command(command):
-                        instructions = self._deescalate()
+                        instructions = self.memory_manager.deescalate()
                         self.code_chunks += instructions
                     if not self.debug:
-                        instructions = self._deescalate()
+                        instructions = self.memory_manager.deescalate()
                         self.code_chunks += instructions
                 case _:
                     raise Exception("Unreachable")
@@ -173,7 +177,7 @@ class Generation:
             self.code_chunks += instructions
 
         if self.debug:
-            self._add_debug_prints()
+            self.code_chunks += self.memory_manager.debug_memory()
         asm_body: str = asm_header + "\n".join(chunk.to_asm() for chunk in self.code_chunks)
         exit_chunk: list[ASMInstruction]
         if self.debug:
@@ -197,105 +201,27 @@ class Generation:
             result_asm += "\n\n\nsection .data\n    formatString: db '%llu', 10, 0\n"
         return result_asm
 
-    def _deescalate(self) -> list[ASMInstruction]:
-        instructions: list[ASMInstruction] = []
-        for _ in self.variables[self.current_scope_boundary :]:
-            instructions += [
-                DataMoveInstruction(instruction_type=InstructionType.POP, register="rax"),
-                DataMoveInstruction(instruction_type=InstructionType.MOV, register="rax", data="0"),
-            ]
-        new_boundary = self.scope_boundaries.pop()
-        self.variables = self.variables[: self.current_scope_boundary]
-        self.current_scope_boundary = new_boundary
-        return instructions
-
     def _generate_store(self, command: Command) -> list[ASMInstruction]:
         instructions: list[ASMInstruction] = []
         saved_value: OperandAT = command.operand_a
         target = command.target
         if not isinstance(target, Variable):
             raise Exception("Unreachable")
-        variable_position = self._get_variable_index(target.name)
+        variable_position = self.memory_manager.get_region_index(target.name)
         if variable_position is None:
-            if isinstance(saved_value, str):
-                instructions += [
-                    DataMoveInstruction(
-                        instruction_type=InstructionType.MOV,
-                        register="rax",
-                        data=saved_value,
-                    ),
-                    DataMoveInstruction(
-                        instruction_type=InstructionType.PUSH,
-                        register="rax",
-                    ),
-                ]
-            if isinstance(saved_value, PseudoRegister):
-                instructions += [
-                    DataMoveInstruction(
-                        instruction_type=InstructionType.PUSH,
-                        register=X86_64_REGISTER_SCHEMA[saved_value.name],
-                    )
-                ]
-            if isinstance(saved_value, Variable):
-                saved_value_offset = self._calculate_variable_offset(saved_value.name)
-                instructions += [
-                    DataMoveInstruction(
-                        instruction_type=InstructionType.MOV,
-                        register="rax",
-                        data=saved_value_offset,
-                    ),
-                    DataMoveInstruction(
-                        instruction_type=InstructionType.PUSH,
-                        register="rax",
-                    ),
-                ]
+            if isinstance(saved_value, str | PseudoRegister | Variable):
+                instructions += self.memory_manager.store_region(name=target.name, val=saved_value)
+            if isinstance(saved_value, StructDeclaration):
+                instructions += self.memory_manager.store_declaration(target.name, saved_value)
             return instructions
         else:
-            stack_offset = self._calculate_variable_offset(target.name)
-            if isinstance(saved_value, str):
-                instructions += [
-                    DataMoveInstruction(
-                        instruction_type=InstructionType.MOV,
-                        register="rax",
-                        data=saved_value,
-                    ),
-                    DataMoveInstruction(
-                        instruction_type=InstructionType.MOV, register=stack_offset, data="rax"
-                    ),
-                ]
-            if isinstance(saved_value, PseudoRegister):
-                instructions += [
-                    DataMoveInstruction(
-                        instruction_type=InstructionType.MOV,
-                        register=stack_offset,
-                        data=X86_64_REGISTER_SCHEMA[saved_value.name],
-                    ),
-                ]
-            if isinstance(saved_value, Variable):
-                saved_value_offset = self._calculate_variable_offset(saved_value.name)
-                if saved_value_offset is None:
-                    raise Exception("Unreachable")
-                instructions += [
-                    DataMoveInstruction(
-                        instruction_type=InstructionType.MOV,
-                        register="rax",
-                        data=saved_value_offset,
-                    ),
-                    DataMoveInstruction(
-                        instruction_type=InstructionType.MOV,
-                        register=stack_offset,
-                        data="rax",
-                    ),
-                ]
+            if isinstance(saved_value, str | PseudoRegister | Variable):
+                instructions += self.memory_manager.store_region(
+                    name=target.name, val=saved_value, destination=target
+                )
+            if isinstance(saved_value, StructDeclaration):
+                raise Exception("Cannot reallocate memory for the variable of a different dtype")
             return instructions
-
-    def _get_variable_index(self, varname: str) -> int | None:
-        try:
-            variable_position = self.variables.index(varname)
-            return variable_position
-        except ValueError:
-            self.variables.append(varname)
-            return None
 
     def _generate_logical_operation(self, command: Command) -> list[ASMInstruction]:
         if not isinstance(command.target, PseudoRegister):
@@ -449,8 +375,8 @@ class Generation:
         if command.operand_b is None:
             return self._generate_unary(command=command, math_op_type=math_op_type)
         instructions: list[ASMInstruction] = []
-        register_a, register_b = self._get_register_for_command(command)
-        is_operand_a, is_operand_b = self._get_register_reassignment(command)
+        register_a, register_b = get_register_for_command(command)
+        is_operand_a, is_operand_b = get_register_reassignment(command)
         if command.operand_a is None or command.operand_b is None:
             raise Exception("Unreachable")
         if isinstance(command.operand_a, VarType) or isinstance(command.operand_b, VarType):
@@ -476,7 +402,7 @@ class Generation:
             DataMoveInstruction(instruction_type=InstructionType.MOV, register="rdx", data="0")
         ]
         # argument extraction
-        register_a, register_b = self._get_register_for_carried_command(command)
+        register_a, register_b = get_register_for_carried_command(command)
         if register_a != "rax":
             instructions.append(
                 DataMoveInstruction(
@@ -529,7 +455,7 @@ class Generation:
 
     def _generate_cmp(self, command: Command) -> list[ASMInstruction]:
         command.target = PseudoRegister(order=8)
-        register_a, register_b = self._get_register_for_command(command=command)
+        register_a, register_b = get_register_for_command(command=command)
         instruction: list[ASMInstruction] = []
         operand_a = self._process_operand(
             operand=command.operand_a,
@@ -561,57 +487,6 @@ class Generation:
 
         return [ControllFlowInstruction(instruction_type=jump_type, data=(resulting_target.name,))]
 
-    def _get_register_for_command(self, command: Command) -> tuple[str, str]:
-        if isinstance(command.operand_b, VarType):
-            raise Exception("Unreachable")
-        if is_operand_a_register(command.operand_a) and is_operand_a_register(command.operand_b):
-            register_a = X86_64_REGISTER_SCHEMA[command.operand_a.name]  # type: ignore
-            register_b = X86_64_REGISTER_SCHEMA[command.operand_b.name]  # type: ignore
-            return register_a, register_b
-        if is_operand_a_register(command.operand_a):
-            next_register = command.operand_a + 1  # type: ignore
-            register_a = X86_64_REGISTER_SCHEMA[command.operand_a.name]  # type: ignore
-            register_b = X86_64_REGISTER_SCHEMA[next_register.name]  # type: ignore
-            return register_a, register_b
-        if is_operand_a_register(command.operand_b):
-            next_register = command.operand_b + 1  # type: ignore
-            register_a = X86_64_REGISTER_SCHEMA[command.operand_b.name]  # type: ignore
-            register_b = X86_64_REGISTER_SCHEMA[next_register.name]  # type: ignore
-            return register_a, register_b
-        register_a = X86_64_REGISTER_SCHEMA[command.target.name]  # type: ignore
-        register_b = X86_64_REGISTER_SCHEMA[(command.target + 1).name]  # type: ignore
-        return register_a, register_b
-
-    def _get_register_for_carried_command(self, command: Command) -> tuple[str, str]:
-        if isinstance(command.operand_b, VarType):
-            raise Exception("Unreachable")
-        if is_operand_a_register(command.operand_a) and is_operand_a_register(command.operand_b):
-            register_a = X86_64_REGISTER_SCHEMA[command.operand_a.name]  # type: ignore
-            register_b = X86_64_REGISTER_SCHEMA[command.operand_b.name]  # type: ignore
-            return register_a, register_b
-        if is_operand_a_register(command.operand_a):
-            register_a = X86_64_REGISTER_SCHEMA[command.operand_a.name]  # type: ignore
-            register_b = X86_64_REGISTER_SCHEMA["r1"]
-            return register_a, register_b
-        if is_operand_a_register(command.operand_b):
-            register_a = X86_64_REGISTER_SCHEMA["r0"]  # type: ignore
-            register_b = X86_64_REGISTER_SCHEMA[command.operand_b.name]  # type: ignore
-            return register_a, register_b
-        register_a = X86_64_REGISTER_SCHEMA["r0"]  # type: ignore
-        register_b = X86_64_REGISTER_SCHEMA["r1"]  # type: ignore
-        return register_a, register_b
-
-    def _get_register_reassignment(self, command: Command) -> tuple[bool, bool]:
-        if isinstance(command.operand_b, VarType):
-            raise Exception("Unreachable")
-        if is_operand_a_register(command.operand_a) and is_operand_a_register(command.operand_b):
-            return False, False
-        if is_operand_a_register(command.operand_a):
-            return False, True
-        if is_operand_a_register(command.operand_b):
-            return True, False
-        return False, True
-
     def _get_setcc_instruction(self, command_type: CommandType) -> InstructionType:
         match command_type:
             case CommandType.EQ:
@@ -639,11 +514,14 @@ class Generation:
         if is_operand_a_register(operand):
             return None
         if is_operand_a_variable(operand):
-            stack_offset = self._calculate_variable_offset(operand.name)  # type: ignore
+            operand_id = self.memory_manager.get_region_index(operand.name)  # type: ignore
+            if operand_id is None:
+                raise Exception("Unreachable")
+            stack_offset = self.memory_manager.calculate_region_offset(operand_id)  # type: ignore
             return DataMoveInstruction(
                 instruction_type=InstructionType.MOV,
                 register=register_b if is_operand_b else register_a,
-                data=stack_offset,
+                data=dereference_offset(stack_offset),
             )
         if is_operand_a_value(operand):
             return DataMoveInstruction(
@@ -662,30 +540,3 @@ class Generation:
             instruction_type=math_op_type,
             registers=(register_a, register_b),
         )
-
-    def _calculate_variable_offset(self, var_name: str) -> str:
-        variable_position = self._get_variable_index(var_name)
-        if variable_position is None:
-            raise Exception("Unreachable")
-        offset = (len(self.variables) - variable_position - 1) * 8
-        stack_offset = f"QWORD [rsp + {offset}]"
-        return stack_offset
-
-    def _add_debug_prints(self):
-        instructions = []
-        for variable in self.variables:
-            instructions += [
-                DataMoveInstruction(
-                    instruction_type=InstructionType.LEA,
-                    register="rdi",
-                    data="[formatString]",
-                ),
-                DataMoveInstruction(
-                    instruction_type=InstructionType.MOV,
-                    register="rsi",
-                    data=self._calculate_variable_offset(variable),
-                ),
-                DataMoveInstruction(instruction_type=InstructionType.MOV, register="rax", data="0"),
-                CallInstruction(instruction_type=InstructionType.CALL, callee="printf"),
-            ]
-        self.code_chunks += instructions

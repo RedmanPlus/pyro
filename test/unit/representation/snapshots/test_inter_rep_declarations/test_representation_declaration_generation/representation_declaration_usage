@@ -1,14 +1,14 @@
 Structure Foo:
 
 Structure Bar:
-    a<BASE_64> -> 1
+    a<BASE_64> -> 0
     b<BASE_64> -> 1
 
 Structure Baz:
     a<<Foo>> -> 0
-    b<<Bar>> -> 2
+    b<<Bar>> -> 1
     c<<Bar>> -> 2
-    d<BASE_64> -> 1
+    d<BASE_64> -> 3
 
 
 main: 

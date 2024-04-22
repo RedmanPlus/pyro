@@ -6,8 +6,7 @@ _start:
     push rax
     mov rax, 2
     mov QWORD [rsp + 0], rax
-    pop rax
-    mov rax, 0
+    add rsp, 8
     mov rax, 60
     mov rdi, 0
     syscall

@@ -148,3 +148,7 @@ class LabelInstruction(ASMInstruction):
 
     def to_asm(self) -> str:
         return f"{self.label_name}:"
+
+
+def dereference_offset(offset: int) -> str:
+    return f"QWORD [rsp + {offset}]"
