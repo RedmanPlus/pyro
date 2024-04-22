@@ -16,8 +16,7 @@ _start:
     mov r9, rax
     sub r8, r9
     push r8
-    pop rax
-    mov rax, 0
+    add rsp, 8
     mov rax, 60
     mov rdi, 0
     syscall

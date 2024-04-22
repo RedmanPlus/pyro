@@ -7,6 +7,16 @@ from pyro_compiler.compiler.representation.variable import Variable, VarType
 
 @dataclass
 class StructDeclaration:
+    """Representation of a structure declaration in Intermediate Representation
+    On `__init__` validates that the structure field value data types are in accordance with
+    Structure field types
+
+    Fields:
+        - `structure[Structure]`: a reference to the declared structure
+        - `field_values[PseudoRegister | Variable | str]`: data sources for the structure fields
+
+    """
+
     structure: Structure
     field_values: list[PseudoRegister | Variable | str] = field(default_factory=list)
 
