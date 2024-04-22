@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 
 
@@ -151,11 +151,20 @@ class LabelInstruction(ASMInstruction):
 
 
 @dataclass
-class MemoryValue:
+class MemoryRegion:
     name: str
     addr: int
     size_t: int
+    inner_values: list["MemoryRegion"] = field(default_factory=list)
     is_pointer: bool = False
+
+    def nest_memory(self, nested: "MemoryRegion"):
+        self.inner_values.append(nested)
+        self.size_t += nested.size_t
+
+    def unnest_last(self):
+        unnested = self.inner_values.pop()
+        self.size_t -= unnested.size_t
 
     def get_inner_offset(self, offset: int) -> int:
         if self.is_pointer:
@@ -168,3 +177,7 @@ class MemoryValue:
                 f"    memory block size is {self.size_t}, trying to take value {offset}"
             )
         return self.addr + offset
+
+
+def dereference_offset(offset: int) -> str:
+    return f"QWORD [rsp + {offset}]"

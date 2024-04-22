@@ -12,11 +12,11 @@ _start:
     push rax
     mov rax, 2
     push rax
-    mov rax, QWORD rsp + 80
+    mov rax, QWORD [rsp + 72]
     push rax
-    mov rax, QWORD rsp + 72
+    mov rax, QWORD [rsp + 56]
     push rax
-    mov rax, QWORD rsp + 56
+    mov rax, QWORD [rsp + 24]
     push rax
     mov rax, 1
     push rax

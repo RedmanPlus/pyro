@@ -1,3 +1,3 @@
 Structure Foo:
-    a<BASE_64> -> 1
+    a<BASE_64> -> 0
     b<BASE_64> -> 1
