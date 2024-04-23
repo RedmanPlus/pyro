@@ -58,6 +58,8 @@ class IRBuilder:
                     )
                 case NodeType.NODE_WHILE:
                     self._parse_while(child, scope_depth=scope_depth)
+                case NodeType.NODE_CLASS:
+                    self._parse_class(child)
                 case NodeType.NODE_BREAK:
                     if break_label is None:
                         raise Exception("Unreachable")
@@ -197,6 +199,28 @@ class IRBuilder:
             Command(operation=CommandType.JMP, operand_a=Label(name=while_begin_label))
         )
         self.commands.add_label(while_end_label)
+
+    def _parse_class(self, node: Node):
+        class_name = node.children[0].children[0].value
+        if class_name is None:
+            raise Exception("Unreachable")
+        class_fields = node.children[1]
+        field_values: dict[str, str | int] = {}
+        for field in class_fields.children:
+            field_name = field.children[0].value
+            if field_name is None:
+                raise Exception("Unreachable")
+            field_type: str | int
+            try:
+                if field.children[1].children[0].value is None:
+                    raise Exception("Unreachable")
+                field_type = field.children[1].children[0].value
+            except IndexError:
+                field_type = 0
+
+            field_values[field_name] = field_type
+
+        self.commands.add_declaration(decl_name=class_name, fields=field_values)
 
     def _parse_break(self, node: Node, label_to_return: str):
         if node.node_type != NodeType.NODE_BREAK:

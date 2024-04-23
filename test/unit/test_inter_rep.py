@@ -1,3 +1,5 @@
+from textwrap import dedent
+
 import pytest
 
 from pyro_compiler.compiler.parsing import Parser
@@ -116,7 +118,7 @@ def test_if_else_statement_inter_rep(snapshot):
     snapshot.assert_match(rep.pprint(), "if_else_statements_inter_rep")
 
 
-@pytest.mark.parser
+@pytest.mark.int_rep
 def test_if_elif_else_statement_inter_rep(snapshot):
     code = (
         "x = 1\n"
@@ -139,7 +141,7 @@ def test_if_elif_else_statement_inter_rep(snapshot):
     snapshot.assert_match(rep.pprint(), "if_elif_else_statement_inter_rep")
 
 
-@pytest.mark.tokenizer
+@pytest.mark.int_rep
 def test_logical_operators_inter_rep(snapshot):
     code = (
         "x = 1\n"
@@ -172,7 +174,7 @@ def test_logical_operators_inter_rep(snapshot):
     snapshot.assert_match(rep.pprint_vars(), "logical_operators_vardump")
 
 
-@pytest.mark.tokenizer
+@pytest.mark.int_rep
 def test_while_statement_inter_rep(snapshot):
     code = (
         "x = 0\n"
@@ -195,3 +197,33 @@ def test_while_statement_inter_rep(snapshot):
     rep = int_rep(ast=node)
     snapshot.assert_match(rep.pprint(), "while_statement_inter_rep")
     snapshot.assert_match(rep.pprint_vars(), "while_statement_vardump")
+
+
+@pytest.mark.int_rep
+def test_class_definitions_inter_rep(snapshot):
+    code = dedent(
+        """
+    class Foo:
+        a
+
+    class Bar:
+        a: Foo
+        b: Foo
+
+    class Baz:
+        a: Bar
+        b: Foo
+        c
+
+    a = 1 + 2
+    """
+    )
+    tokenizer = Tokenizer()
+    tokens = tokenizer(code=code)
+    parser = Parser()
+    node = parser(tokens=tokens)
+
+    int_rep = IRBuilder()
+    rep = int_rep(ast=node)
+    snapshot.assert_match(rep.pprint(), "class_definitions_inter_rep")
+    snapshot.assert_match(rep.pprint_vars(), "class_definitions_vardump")

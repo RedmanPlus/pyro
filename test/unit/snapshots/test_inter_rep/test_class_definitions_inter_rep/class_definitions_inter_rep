@@ -1,0 +1,18 @@
+Structure Foo:
+    a<BASE_64> -> 0
+
+Structure Bar:
+    a<<Foo>> -> 0
+    b<<Foo>> -> 1
+
+Structure Baz:
+    a<<Bar>> -> 0
+    b<<Foo>> -> 1
+    c<BASE_64> -> 2
+
+
+main: 
+   ESCALATE 
+   r8 = SUM 1, 2
+   a = STORE r8
+   DEESCALATE 
