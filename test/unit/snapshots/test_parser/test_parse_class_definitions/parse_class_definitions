@@ -1,0 +1,67 @@
+NodeType.NODE_PROG {
+    NodeType.NODE_SCOPE {
+        NodeType.NODE_CLASS {
+            NodeType.NODE_TERM {
+                NodeType.NODE_IDENT: Foo {}
+            }
+
+            NodeType.NODE_SCOPE {
+                NodeType.NODE_TERM {
+                    NodeType.NODE_IDENT: a {}
+                }
+            }
+        }
+
+        NodeType.NODE_CLASS {
+            NodeType.NODE_TERM {
+                NodeType.NODE_IDENT: Bar {}
+            }
+
+            NodeType.NODE_SCOPE {
+                NodeType.NODE_TERM {
+                    NodeType.NODE_IDENT: a {}
+
+                    NodeType.NODE_TERM {
+                        NodeType.NODE_IDENT: Foo {}
+                    }
+                }
+
+                NodeType.NODE_TERM {
+                    NodeType.NODE_IDENT: b {}
+
+                    NodeType.NODE_TERM {
+                        NodeType.NODE_IDENT: Foo {}
+                    }
+                }
+            }
+        }
+
+        NodeType.NODE_CLASS {
+            NodeType.NODE_TERM {
+                NodeType.NODE_IDENT: Baz {}
+            }
+
+            NodeType.NODE_SCOPE {
+                NodeType.NODE_TERM {
+                    NodeType.NODE_IDENT: a {}
+
+                    NodeType.NODE_TERM {
+                        NodeType.NODE_IDENT: Bar {}
+                    }
+                }
+
+                NodeType.NODE_TERM {
+                    NodeType.NODE_IDENT: b {}
+
+                    NodeType.NODE_TERM {
+                        NodeType.NODE_IDENT: Foo {}
+                    }
+                }
+
+                NodeType.NODE_TERM {
+                    NodeType.NODE_IDENT: c {}
+                }
+            }
+        }
+    }
+}

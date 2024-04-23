@@ -62,8 +62,8 @@ class Token:
     def __init__(
         self,
         token_type: TokenType,
-        line: int | None = None,
-        pos: int | None = None,
+        line: int,
+        pos: int,
         content: Optional[str] = None,
     ):
         self.token_type = token_type
@@ -146,7 +146,7 @@ class Tokenizer:
                 self._process_exclam()
             if current_char == ":":
                 self._process_colon()
-        self.tokens.append(Token(token_type=TokenType.NEWLINE))
+        self.tokens.append(Token(token_type=TokenType.NEWLINE, line=self.line, pos=self.pos))
 
     def _process_alnum(self):
         char_buff: list[str] = []

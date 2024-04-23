@@ -1,3 +1,5 @@
+from textwrap import dedent
+
 import pytest
 
 from pyro_compiler.compiler.parsing import Parser
@@ -349,3 +351,28 @@ def test_parse_while_statement(snapshot):
     core_node = parser(tokens=tokens)
 
     snapshot.assert_match(core_node.pprint(), "parse_while_statement")
+
+
+@pytest.mark.tokenizer
+def test_parse_class_definitions(snapshot):
+    code = dedent(
+        """
+    class Foo:
+        a
+
+    class Bar:
+        a: Foo
+        b: Foo
+
+    class Baz:
+        a: Bar
+        b: Foo
+        c
+    """
+    )
+    tokenizer = Tokenizer()
+    tokens = tokenizer(code=code)
+    parser = Parser()
+    core_node = parser(tokens=tokens)
+
+    snapshot.assert_match(core_node.pprint(), "parse_class_definitions")

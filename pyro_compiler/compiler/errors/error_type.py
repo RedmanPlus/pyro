@@ -15,6 +15,7 @@ class ErrorType(MessageType):
     MISSING_TOKEN = auto()
     MISSMATCH_PARENS_LESS = auto()
     MISSMATCH_PARENS_MORE = auto()
+    MISSMATCH_TOKEN = auto()
     EMPTY_SCOPE = auto()
     UNKNOWN_VARIABLE = auto()
 
@@ -29,6 +30,7 @@ error_to_message: dict[ErrorType, str] = {
     ErrorType.MISSING_TOKEN: "Missing '{missing}' for the {stmt_type} statement",
     ErrorType.MISSMATCH_PARENS_LESS: "Some parentheses are not closed",
     ErrorType.MISSMATCH_PARENS_MORE: "Closing non-existing parentheses",
+    ErrorType.MISSMATCH_TOKEN: "Expected {expected_type} here, but got {got_type}",
     ErrorType.EMPTY_SCOPE: "Missing scope declarations for the {stmt_type} statement",
     ErrorType.UNKNOWN_VARIABLE: "Variable {varname} used before assignment",
 }

@@ -18,6 +18,7 @@ class NodeType(Enum):
     NODE_WHILE = auto()
     NODE_BREAK = auto()
     NODE_CONTINUE = auto()
+    NODE_CLASS = auto()
     NODE_EXPR = auto()
     NODE_BIN_EXPR = auto()
     NODE_TERM = auto()
@@ -197,6 +198,17 @@ class Parser:
                     )
                 stmts.children.append(subscope)
                 node_scope.children.append(stmts)
+            elif isinstance(stmts, Node) and stmts.node_type == NodeType.NODE_CLASS:
+                subscope = self._parse_scope(depth=depth + 1)
+                if len(subscope.children) == 0:
+                    self.registry.register_message(
+                        line=stmts.token.line,  # type: ignore
+                        pos=stmts.token.pos,  # type: ignore
+                        message_type=ErrorType.EMPTY_SCOPE,
+                        stmt_type="while",
+                    )
+                stmts.children.append(subscope)
+                node_scope.children.append(stmts)
             elif isinstance(stmts, Node) and stmts.node_type in (
                 NodeType.NODE_BREAK,
                 NodeType.NODE_CONTINUE,
@@ -219,6 +231,8 @@ class Parser:
                 return self._parse_else_stmt()
             case TokenType.WHILE:
                 return self._parse_while_stmt()
+            case TokenType.CLASS:
+                return self._parse_class()
             case TokenType.BREAK:
                 return self._parse_constant(constant_type=NodeType.NODE_BREAK)
             case TokenType.CONTINUE:
@@ -234,6 +248,8 @@ class Parser:
 
     def _parse_assignment_stmts(self) -> list[Node]:
         idents, assign_op = self._parse_idents()
+        if self._peek(0).token_type == TokenType.NEWLINE:
+            return idents
         exprs = self._parse_exprs(assign_op=assign_op, ident=idents[0])
         if len(idents) != len(exprs):
             self.registry.register_message(
@@ -314,6 +330,33 @@ class Parser:
         node_while.children.append(condition)
         return node_while
 
+    def _parse_class(self) -> Node:
+        token = self._consume()
+        class_name = self._consume()
+        if class_name.token_type != TokenType.IDENT:
+            self.registry.register_message(
+                line=class_name.line,
+                pos=class_name.pos,
+                message_type=ErrorType.MISSMATCH_TOKEN,
+                expected_type="ident",
+                got_type=class_name.token_type.name,
+            )
+        node_class_name = Node(
+            node_type=NodeType.NODE_TERM,
+            children=[Node(node_type=NodeType.NODE_IDENT, value=class_name.content)],
+        )
+        node_class = Node(node_type=NodeType.NODE_CLASS, token=token, children=[node_class_name])
+        if self._peek(0).token_type != TokenType.COLON:
+            self.registry.register_message(
+                line=token.line,  # type: ignore
+                pos=token.pos,  # type: ignore
+                message_type=ErrorType.MISSING_TOKEN,
+                missing=":",
+                stmt_type="class definition",
+            )
+        self._consume()
+        return node_class
+
     def _parse_constant(self, constant_type: NodeType) -> Node:
         token = self._consume()
         return Node(node_type=constant_type, token=token)
@@ -329,12 +372,22 @@ class Parser:
             )
             raise StopExecution()
 
+        typedef: Node | None
+        if self._peek(0).token_type == TokenType.COLON:
+            self._consume()
+            typedef = self._parse_type_definition()
+        else:
+            typedef = None
+
         if self._is_assignment(self._peek(0)):
             assign = self._consume()
+            term_children = [Node(node_type=NodeType.NODE_IDENT, value=token_ident.content)]
+            if typedef is not None:
+                term_children.append(typedef)
             return [
                 Node(
                     node_type=NodeType.NODE_TERM,
-                    children=[Node(node_type=NodeType.NODE_IDENT, value=token_ident.content)],
+                    children=term_children,
                     token=token_ident,
                 )
             ], Node(
@@ -350,15 +403,29 @@ class Parser:
                     message_type=ErrorType.ILLEGAL_DECLARATION,
                     reason="single-line definition cannot be used with argument assignment operators",
                 )
+            term_children = [Node(node_type=NodeType.NODE_IDENT, value=token_ident.content)]
+            if typedef is not None:
+                term_children.append(typedef)
             idents.insert(
                 0,
                 Node(
                     node_type=NodeType.NODE_TERM,
-                    children=[Node(node_type=NodeType.NODE_IDENT, value=token_ident.content)],
+                    children=term_children,
                     token=token_ident,
                 ),
             )
             return idents, None
+        elif self._peek(0).token_type == TokenType.NEWLINE:
+            term_children = [Node(node_type=NodeType.NODE_IDENT, value=token_ident.content)]
+            if typedef is not None:
+                term_children.append(typedef)
+            return [
+                Node(
+                    node_type=NodeType.NODE_TERM,
+                    children=term_children,
+                    token=token_ident,
+                )
+            ], None
         else:
             self.registry.register_message(
                 line=token_ident.line,  # type: ignore
@@ -368,6 +435,21 @@ class Parser:
                 stmt_type="declaration",
             )
             return [], None
+
+    def _parse_type_definition(self) -> Node:
+        if self._peek(0).token_type != TokenType.IDENT:
+            self.registry.register_message(
+                line=self._peek(0).line,
+                pos=self._peek(0).pos,
+                message_type=ErrorType.MISSING_TOKEN,
+                missing="ident",
+                stmt_type="type definition",
+            )
+            return Node(node_type=NodeType.NODE_TERM)
+        return Node(
+            node_type=NodeType.NODE_TERM,
+            children=[Node(node_type=NodeType.NODE_IDENT, value=self._consume().content)],
+        )
 
     def _parse_exprs(self, assign_op: Node | None = None, ident: Node | None = None) -> list[Node]:
         node_expr = self._parse_expr()
