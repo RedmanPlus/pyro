@@ -11,6 +11,7 @@ from pyro_compiler.compiler.tokens import Token, TokenType
 class NodeType(Enum):
     NODE_PROG = auto()
     NODE_SCOPE = auto()
+    NODE_PARAMS = auto()
     NODE_STMT = auto()
     NODE_IF = auto()
     NODE_ELIF = auto()
@@ -46,6 +47,7 @@ class NodeType(Enum):
     NODE_BIT_NOT = auto()
     NODE_BIT_SHL = auto()
     NODE_BIT_SHR = auto()
+    NODE_CALL = auto()
 
 
 @dataclass
@@ -116,8 +118,8 @@ class Parser:
                 indent_level = self._count_indentation()
                 if indent_level > depth:
                     self.registry.register_message(
-                        line=self._peek(0).line,  # type: ignore
-                        pos=self._peek(0).pos,  # type: ignore
+                        line=self._peek(0).line,
+                        pos=self._peek(0).pos,
                         message_type=ErrorType.MISMATCHING_INDENT,
                         required=str(depth * 4),
                         got=str(indent_level * 4),
@@ -239,16 +241,16 @@ class Parser:
                 return self._parse_constant(constant_type=NodeType.NODE_CONTINUE)
             case _:
                 self.registry.register_message(
-                    line=self._peek(0).line,  # type: ignore
-                    pos=self._peek(0).pos,  # type: ignore
+                    line=self._peek(0).line,
+                    pos=self._peek(0).pos,
                     message_type=ErrorType.ILLEGAL_DECLARATION,
                     reason="Unknown statement",
                 )
                 raise StopExecution()
 
-    def _parse_assignment_stmts(self) -> list[Node]:
+    def _parse_assignment_stmts(self, final: TokenType = TokenType.NEWLINE) -> list[Node]:
         idents, assign_op = self._parse_idents()
-        if self._peek(0).token_type == TokenType.NEWLINE:
+        if self._peek(0).token_type == final:
             return idents
         exprs = self._parse_exprs(assign_op=assign_op, ident=idents[0])
         if len(idents) != len(exprs):
@@ -271,8 +273,8 @@ class Parser:
         condition = self._parse_expr(expected_final=(TokenType.COLON,))
         if self._peek(0).token_type != TokenType.COLON:
             self.registry.register_message(
-                line=token.line,  # type: ignore
-                pos=token.pos,  # type: ignore
+                line=token.line,
+                pos=token.pos,
                 message_type=ErrorType.MISSING_TOKEN,
                 missing=":",
                 stmt_type="if",
@@ -288,8 +290,8 @@ class Parser:
         condition = self._parse_expr(expected_final=(TokenType.COLON,))
         if self._peek(0).token_type != TokenType.COLON:
             self.registry.register_message(
-                line=token.line,  # type: ignore
-                pos=token.pos,  # type: ignore
+                line=token.line,
+                pos=token.pos,
                 message_type=ErrorType.MISSING_TOKEN,
                 missing=":",
                 stmt_type="elif",
@@ -304,8 +306,8 @@ class Parser:
         node_else = Node(node_type=NodeType.NODE_ELSE, token=token)
         if self._peek(0).token_type != TokenType.COLON:
             self.registry.register_message(
-                line=token.line,  # type: ignore
-                pos=token.pos,  # type: ignore
+                line=token.line,
+                pos=token.pos,
                 message_type=ErrorType.MISSING_TOKEN,
                 missing=":",
                 stmt_type="else",
@@ -319,8 +321,8 @@ class Parser:
         condition = self._parse_expr(expected_final=(TokenType.COLON,))
         if self._peek(0).token_type != TokenType.COLON:
             self.registry.register_message(
-                line=token.line,  # type: ignore
-                pos=token.pos,  # type: ignore
+                line=token.line,
+                pos=token.pos,
                 message_type=ErrorType.MISSING_TOKEN,
                 missing=":",
                 stmt_type="while",
@@ -348,8 +350,8 @@ class Parser:
         node_class = Node(node_type=NodeType.NODE_CLASS, token=token, children=[node_class_name])
         if self._peek(0).token_type != TokenType.COLON:
             self.registry.register_message(
-                line=token.line,  # type: ignore
-                pos=token.pos,  # type: ignore
+                line=token.line,
+                pos=token.pos,
                 message_type=ErrorType.MISSING_TOKEN,
                 missing=":",
                 stmt_type="class definition",
@@ -365,8 +367,8 @@ class Parser:
         token_ident = self._consume()
         if token_ident.token_type != TokenType.IDENT:
             self.registry.register_message(
-                line=token_ident.line,  # type: ignore
-                pos=token_ident.pos,  # type: ignore
+                line=token_ident.line,
+                pos=token_ident.pos,
                 message_type=ErrorType.ILLEGAL_DECLARATION,
                 reason=f"can only assign to a variable name, got '{token_ident.content}'",
             )
@@ -398,8 +400,8 @@ class Parser:
             idents, assign_op = self._parse_idents()
             if assign_op is not None:
                 self.registry.register_message(
-                    line=token_ident.line,  # type: ignore
-                    pos=token_ident.pos,  # type: ignore
+                    line=token_ident.line,
+                    pos=token_ident.pos,
                     message_type=ErrorType.ILLEGAL_DECLARATION,
                     reason="single-line definition cannot be used with argument assignment operators",
                 )
@@ -428,8 +430,8 @@ class Parser:
             ], None
         else:
             self.registry.register_message(
-                line=token_ident.line,  # type: ignore
-                pos=token_ident.pos,  # type: ignore
+                line=token_ident.line,
+                pos=token_ident.pos,
                 message_type=ErrorType.MISSING_TOKEN,
                 missing="=",
                 stmt_type="declaration",
@@ -467,8 +469,8 @@ class Parser:
             return exprs
         else:
             self.registry.register_message(
-                line=self._peek(0).line,  # type: ignore
-                pos=self._peek(0).pos,  # type: ignore
+                line=self._peek(0).line,
+                pos=self._peek(0).pos,
                 message_type=ErrorType.MISSING_TOKEN,
                 missing="newline",
                 stmt_type="declaration",
@@ -489,13 +491,19 @@ class Parser:
             raise Exception("Unreachable")
         if self.parens > 0:
             self.registry.register_message(
-                line=self._peek(0).line,  # type: ignore
-                pos=self._peek(0).pos,  # type: ignore
+                line=self._peek(0).line,
+                pos=self._peek(0).pos,
                 message_type=ErrorType.MISSMATCH_PARENS_LESS,
             )
         return result
 
     def _parse_bin_expr(self, min_prec: int = -1) -> Node | None:
+        next = self._peek(0)
+        if self._is_open_paren(next):
+            self.parens += 1
+            self._consume()
+            return self._parse_bin_expr()
+
         left_operand: Node | None = self._parse_leaf()
 
         while True:
@@ -508,28 +516,39 @@ class Parser:
 
     def _parse_increasing_precedence(self, left_operand: Node | None, min_prec: int) -> Node | None:
         next = self._peek(0)
-        if self._is_open_paren(next):
-            self.parens += 1
-            self._consume()
-            return self._parse_bin_expr()
-        if self._is_closed_paren(next):
-            self.parens -= 1
-            if self.parens < 0:
-                self.registry.register_message(
-                    line=self._peek(0).line,  # type: ignore
-                    pos=self._peek(0).pos,  # type: ignore
-                    message_type=ErrorType.MISSMATCH_PARENS_MORE,
-                )
-            self._consume()
-            return left_operand
         if not self._is_binop(next):
             return left_operand
+        if next.token_type == TokenType.OPEN_PAREN:
+            self._consume()
+            params = self._parse_call_parameters()
+            if self._peek(0).token_type != TokenType.CLOSED_PAREN:
+                self.registry.register_message(
+                    line=self._peek(0).line,
+                    pos=self._peek(0).pos,
+                    message_type=ErrorType.MISSMATCH_PARENS_LESS,
+                )
+            self._consume()
+            if left_operand is None:
+                raise Exception("Unreachable")
+            return self._make_binary(
+                left_operand=left_operand, operator=self._to_operator(next), right_operand=params
+            )
 
         next_prec = self._get_precedence(next)
         if next_prec <= min_prec:
             return left_operand
         self._consume()
         right_operand = self._parse_bin_expr(next_prec)
+        is_paren = self._peek(0)
+        if self._is_closed_paren(is_paren):
+            self.parens -= 1
+            if self.parens < 0:
+                self.registry.register_message(
+                    line=self._peek(0).line,
+                    pos=self._peek(0).pos,
+                    message_type=ErrorType.MISSMATCH_PARENS_MORE,
+                )
+            self._consume()
         if left_operand is None:
             return self._make_unary(self._to_operator(next), right_operand)
         return self._make_binary(left_operand, self._to_operator(next), right_operand)
@@ -552,6 +571,90 @@ class Parser:
                 )
             ],
         )
+
+    def _parse_call_parameters(self) -> Node:
+        node_params = Node(node_type=NodeType.NODE_PARAMS)
+        kwargs: bool = False
+        while self._peek(0).token_type != TokenType.CLOSED_PAREN:
+            ident = self._consume()
+            if ident.token_type not in (TokenType.IDENT, TokenType.NUMBER):
+                self.registry.register_message(
+                    line=ident.line,
+                    pos=ident.pos,
+                    message_type=ErrorType.MISSMATCH_TOKEN,
+                    expected_type="ident",
+                    got_type=ident.token_type.name,
+                )
+            if self._peek(0).token_type == TokenType.COMMA and kwargs:
+                self.registry.register_message(
+                    line=self._peek(0).line,
+                    pos=self._peek(0).pos,
+                    message_type=ErrorType.CALLABLE_ARGUMENT_ERROR,
+                )
+                continue
+
+            arg_type: NodeType
+            if self._peek(0).token_type == TokenType.EQ:
+                kwargs = True
+                self._consume()
+                value = self._peek(0)
+                if value.token_type not in (TokenType.IDENT, TokenType.NUMBER):
+                    self.registry.register_message(
+                        line=ident.line,
+                        pos=ident.pos,
+                        message_type=ErrorType.MISSMATCH_TOKEN,
+                        expected_type="ident",
+                        got_type=ident.token_type.name,
+                    )
+                    arg_type = NodeType.NODE_IDENT
+                elif value.token_type == TokenType.IDENT:
+                    arg_type = NodeType.NODE_IDENT
+                else:
+                    arg_type = NodeType.NODE_VALUE
+                node_stmt = Node(
+                    node_type=NodeType.NODE_STMT,
+                    children=[
+                        Node(
+                            NodeType.NODE_TERM,
+                            children=[Node(node_type=NodeType.NODE_IDENT, value=ident.content)],
+                        ),
+                        Node(
+                            NodeType.NODE_TERM,
+                            children=[Node(node_type=arg_type, value=value.content)],
+                        ),
+                    ],
+                )
+                node_params.children.append(node_stmt)
+                self._consume()
+            elif self._peek(0).token_type in (TokenType.COMMA, TokenType.CLOSED_PAREN):
+                if ident.token_type == TokenType.IDENT:
+                    arg_type = NodeType.NODE_IDENT
+                elif ident.token_type == TokenType.NUMBER:
+                    arg_type = NodeType.NODE_VALUE
+                else:
+                    self.registry.register_message(
+                        line=ident.line,
+                        pos=ident.pos,
+                        message_type=ErrorType.MISSMATCH_TOKEN,
+                        expected_type="ident",
+                        got_type=ident.token_type.name,
+                    )
+                    arg_type = NodeType.NODE_IDENT
+
+                node_stmt = Node(NodeType.NODE_TERM, children=[Node(arg_type, value=ident.content)])
+                node_params.children.append(node_stmt)
+                if self._peek(0).token_type == TokenType.COMMA:
+                    self._consume()
+            else:
+                self.registry.register_message(
+                    line=self._peek(0).line,
+                    pos=self._peek(0).pos,
+                    message_type=ErrorType.MISSMATCH_TOKEN,
+                    expected_type="ident",
+                    got_type=self._peek(0).token_type.name,
+                )
+
+        return node_params
 
     def _consume(self) -> Token:
         return self.tokens.pop(0)
@@ -607,6 +710,7 @@ class Parser:
             TokenType.BIT_SHL,
             TokenType.BIT_SHR,
             TokenType.BIT_NOT,
+            TokenType.OPEN_PAREN,
         )
 
     @staticmethod
@@ -682,6 +786,8 @@ class Parser:
                 return 11
             case TokenType.POV:
                 return 12
+            case TokenType.OPEN_PAREN:
+                return 13
             case _:
                 raise Exception("Unreachable")
 
@@ -733,6 +839,8 @@ class Parser:
                 node_type = NodeType.NODE_BIT_SHL
             case TokenType.BIT_SHR:
                 node_type = NodeType.NODE_BIT_SHR
+            case TokenType.OPEN_PAREN:
+                node_type = NodeType.NODE_CALL
             case _:
                 raise Exception("Unreachable")
 

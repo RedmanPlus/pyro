@@ -2,6 +2,7 @@ from textwrap import dedent
 
 import pytest
 
+from pyro_compiler.compiler.errors.message_registry import MessageRegistry
 from pyro_compiler.compiler.parsing import Parser
 from pyro_compiler.compiler.tokens import Token, Tokenizer, TokenType
 
@@ -301,7 +302,7 @@ def test_if_elif_else_statement(snapshot):
     snapshot.assert_match(core_node.pprint(), "if_elif_else_statement_parse")
 
 
-@pytest.mark.tokenizer
+@pytest.mark.parser
 def test_parse_logical_operators(snapshot):
     code = (
         "x = 1\n"
@@ -331,7 +332,7 @@ def test_parse_logical_operators(snapshot):
     snapshot.assert_match(core_node.pprint(), "parse_logical_operators")
 
 
-@pytest.mark.tokenizer
+@pytest.mark.parser
 def test_parse_while_statement(snapshot):
     code = (
         "x = 0\n"
@@ -353,7 +354,7 @@ def test_parse_while_statement(snapshot):
     snapshot.assert_match(core_node.pprint(), "parse_while_statement")
 
 
-@pytest.mark.tokenizer
+@pytest.mark.parser
 def test_parse_class_definitions(snapshot):
     code = dedent(
         """
@@ -376,3 +377,28 @@ def test_parse_class_definitions(snapshot):
     core_node = parser(tokens=tokens)
 
     snapshot.assert_match(core_node.pprint(), "parse_class_definitions")
+
+
+@pytest.mark.parser
+def test_parse_class_declarations(snapshot):
+    code = dedent(
+        """
+    class int:
+        value
+
+    class Point:
+        x: int
+        y: int
+
+    x = int(value=1)
+    y = int(2)
+    point = Point(x, y)
+    """
+    )
+    registry = MessageRegistry(code=code)
+    tokenizer = Tokenizer(message_registry=registry)
+    tokens = tokenizer(code=code)
+    parser = Parser(message_registry=registry)
+    core_node = parser(tokens=tokens)
+
+    snapshot.assert_match(core_node.pprint(), "parse_class_declarations")

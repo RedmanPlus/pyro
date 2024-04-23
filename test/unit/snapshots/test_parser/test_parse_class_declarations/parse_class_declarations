@@ -1,0 +1,109 @@
+NodeType.NODE_PROG {
+    NodeType.NODE_SCOPE {
+        NodeType.NODE_CLASS {
+            NodeType.NODE_TERM {
+                NodeType.NODE_IDENT: int {}
+            }
+
+            NodeType.NODE_SCOPE {
+                NodeType.NODE_TERM {
+                    NodeType.NODE_IDENT: value {}
+                }
+            }
+        }
+
+        NodeType.NODE_CLASS {
+            NodeType.NODE_TERM {
+                NodeType.NODE_IDENT: Point {}
+            }
+
+            NodeType.NODE_SCOPE {
+                NodeType.NODE_TERM {
+                    NodeType.NODE_IDENT: x {}
+
+                    NodeType.NODE_TERM {
+                        NodeType.NODE_IDENT: int {}
+                    }
+                }
+
+                NodeType.NODE_TERM {
+                    NodeType.NODE_IDENT: y {}
+
+                    NodeType.NODE_TERM {
+                        NodeType.NODE_IDENT: int {}
+                    }
+                }
+            }
+        }
+
+        NodeType.NODE_STMT {
+            NodeType.NODE_TERM {
+                NodeType.NODE_IDENT: x {}
+            }
+
+            NodeType.NODE_BIN_EXPR {
+                NodeType.NODE_TERM {
+                    NodeType.NODE_IDENT: int {}
+                }
+
+                NodeType.NODE_CALL {}
+
+                NodeType.NODE_PARAMS {
+                    NodeType.NODE_STMT {
+                        NodeType.NODE_TERM {
+                            NodeType.NODE_IDENT: value {}
+                        }
+
+                        NodeType.NODE_TERM {
+                            NodeType.NODE_VALUE: 1 {}
+                        }
+                    }
+                }
+            }
+        }
+
+        NodeType.NODE_STMT {
+            NodeType.NODE_TERM {
+                NodeType.NODE_IDENT: y {}
+            }
+
+            NodeType.NODE_BIN_EXPR {
+                NodeType.NODE_TERM {
+                    NodeType.NODE_IDENT: int {}
+                }
+
+                NodeType.NODE_CALL {}
+
+                NodeType.NODE_PARAMS {
+                    NodeType.NODE_TERM {
+                        NodeType.NODE_VALUE: 2 {}
+                    }
+                }
+            }
+        }
+
+        NodeType.NODE_STMT {
+            NodeType.NODE_TERM {
+                NodeType.NODE_IDENT: point {}
+            }
+
+            NodeType.NODE_BIN_EXPR {
+                NodeType.NODE_TERM {
+                    NodeType.NODE_IDENT: Point {}
+                }
+
+                NodeType.NODE_CALL {}
+
+                NodeType.NODE_PARAMS {
+                    NodeType.NODE_TERM {
+                        NodeType.NODE_IDENT: x {}
+                    }
+
+                    NodeType.NODE_TERM {
+                        NodeType.NODE_IDENT: y {}
+                    }
+                }
+            }
+        }
+    }
+}

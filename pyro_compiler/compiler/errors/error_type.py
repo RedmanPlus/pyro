@@ -18,6 +18,7 @@ class ErrorType(MessageType):
     MISSMATCH_TOKEN = auto()
     EMPTY_SCOPE = auto()
     UNKNOWN_VARIABLE = auto()
+    CALLABLE_ARGUMENT_ERROR = auto()
 
 
 error_to_message: dict[ErrorType, str] = {
@@ -33,6 +34,7 @@ error_to_message: dict[ErrorType, str] = {
     ErrorType.MISSMATCH_TOKEN: "Expected {expected_type} here, but got {got_type}",
     ErrorType.EMPTY_SCOPE: "Missing scope declarations for the {stmt_type} statement",
     ErrorType.UNKNOWN_VARIABLE: "Variable {varname} used before assignment",
+    ErrorType.CALLABLE_ARGUMENT_ERROR: "Cannot mix positional and keyword arguments, first positional, than keyword",
 }
 
 
