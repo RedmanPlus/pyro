@@ -207,14 +207,21 @@ class IRBuilder:
         class_fields = node.children[1]
         field_values: dict[str, str | int] = {}
         for field in class_fields.children:
-            field_name = field.children[0].value
+            if field.node_type == NodeType.NODE_TERM:
+                field_name = field.children[0].value
+            elif field.node_type == NodeType.NODE_STMT:
+                field_name = field.children[0].children[0].value
+                field = field.children[0]
+            else:
+                raise Exception("Unreachable")
             if field_name is None:
                 raise Exception("Unreachable")
             field_type: str | int
             try:
-                if field.children[1].children[0].value is None:
+                typedef = field.children[1]
+                if typedef.children[0].value is None:
                     raise Exception("Unreachable")
-                field_type = field.children[1].children[0].value
+                field_type = typedef.children[0].value
             except IndexError:
                 field_type = 0
 
