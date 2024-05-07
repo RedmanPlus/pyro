@@ -25,8 +25,8 @@ _start:
     cmp r8, r9
     jne main_if_0
     mov rdx, 0
-    mov rax, 2
-    mov rbx, QWORD [rsp + 24]
+    mov rax, QWORD [rsp + 24]
+    mov rbx, 2
     mul rbx
     mov r8, rax
     mov QWORD [rsp + 24], r8
@@ -37,22 +37,22 @@ main_if_0:
     cmp r8, r9
     jne main_elif_0
     mov rdx, 0
-    mov rax, 2
-    mov rbx, QWORD [rsp + 16]
+    mov rax, QWORD [rsp + 16]
+    mov rbx, 2
     mul rbx
     mov r8, rax
     mov QWORD [rsp + 16], r8
     jmp main_if_end_0
 main_elif_0:
     mov rdx, 0
-    mov rax, 2
-    mov rbx, QWORD [rsp + 24]
+    mov rax, QWORD [rsp + 24]
+    mov rbx, 2
     mul rbx
     mov r8, rax
     mov QWORD [rsp + 24], r8
     mov rdx, 0
-    mov rax, 2
-    mov rbx, QWORD [rsp + 16]
+    mov rax, QWORD [rsp + 16]
+    mov rbx, 2
     mul rbx
     mov r8, rax
     mov QWORD [rsp + 16], r8
@@ -80,8 +80,8 @@ main_if_end_0:
     mov r9, 1
     cmp r8, r9
     jne main_if_end_0_1
-    mov r8, 1
-    mov r9, QWORD [rsp + 16]
+    mov r8, QWORD [rsp + 16]
+    mov r9, 1
     sub r8, r9
     mov QWORD [rsp + 16], r8
     jmp main_if_end_0_1

@@ -61,13 +61,13 @@ NodeType.NODE_PROG {
 
                     NodeType.NODE_BIN_EXPR {
                         NodeType.NODE_TERM {
-                            NodeType.NODE_IDENT: y {}
+                            NodeType.NODE_IDENT: x {}
                         }
 
                         NodeType.NODE_PLUS {}
 
                         NodeType.NODE_TERM {
-                            NodeType.NODE_IDENT: x {}
+                            NodeType.NODE_IDENT: y {}
                         }
                     }
                 }

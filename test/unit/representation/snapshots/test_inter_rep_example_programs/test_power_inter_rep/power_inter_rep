@@ -22,15 +22,15 @@ main_while_begin_1:
    ESCALATE 
    r9 = FLOOR pov, 2
    number_of_muls = STORE r9
-   r8 = SUB number_of_muls, pov
+   r8 = SUB pov, number_of_muls
    pov = STORE r8
 main_while_begin_3:
    CMP number_of_muls, 0
    JLE main_while_end_3
    ESCALATE 
-   r9 = MUL target, intermediary
+   r9 = MUL intermediary, target
    intermediary = STORE r9
-   r8 = SUB 1, number_of_muls
+   r8 = SUB number_of_muls, 1
    number_of_muls = STORE r8
    DEESCALATE 
    JMP main_while_begin_3
@@ -41,7 +41,7 @@ main_if_2:
    ESCALATE 
    r8 = MUL target, target
    target = STORE r8
-   r8 = SUB 1, pov
+   r8 = SUB pov, 1
    pov = STORE r8
    DEESCALATE 
 main_if_end_2:

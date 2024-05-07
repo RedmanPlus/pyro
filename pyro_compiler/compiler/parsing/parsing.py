@@ -1,6 +1,5 @@
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import Optional
 
 from pyro_compiler.compiler.errors.error_type import ErrorType
 from pyro_compiler.compiler.errors.message_registry import MessageRegistry
@@ -54,7 +53,7 @@ class NodeType(Enum):
 class Node:
     node_type: NodeType
     children: list["Node"] = field(default_factory=list)
-    value: Optional[str] = None
+    value: str | None = None
     token: Token | None = None
 
     def __repr__(self) -> str:
@@ -133,15 +132,7 @@ class Parser:
 
             stmts = self._parse_stmts()
             if isinstance(stmts, Node) and stmts.node_type == NodeType.NODE_IF:
-                subscope = self._parse_scope(depth=depth + 1)
-                if len(subscope.children) == 0:
-                    self.registry.register_message(
-                        line=stmts.token.line,  # type: ignore
-                        pos=stmts.token.pos,  # type: ignore
-                        message_type=ErrorType.EMPTY_SCOPE,
-                        stmt_type="if",
-                    )
-                stmts.children.append(subscope)
+                stmts = self._parse_if_scope(statement=stmts, depth=depth)
                 node_scope.children.append(stmts)
                 if_started = True
             elif isinstance(stmts, Node) and stmts.node_type == NodeType.NODE_ELIF:
@@ -152,15 +143,7 @@ class Parser:
                         message_type=ErrorType.ILLEGAL_IF_CONSTRUCT,
                         reason="elif statement declared without if",
                     )
-                subscope = self._parse_scope(depth=depth + 1)
-                if len(subscope.children) == 0:
-                    self.registry.register_message(
-                        line=stmts.token.line,  # type: ignore
-                        pos=stmts.token.pos,  # type: ignore
-                        message_type=ErrorType.EMPTY_SCOPE,
-                        stmt_type="elif",
-                    )
-                stmts.children.append(subscope)
+                stmts = self._parse_if_scope(statement=stmts, depth=depth)
                 node_if = node_scope.children[-1]
                 if node_if.node_type != NodeType.NODE_IF:
                     self.registry.register_message(
@@ -207,7 +190,7 @@ class Parser:
                         line=stmts.token.line,  # type: ignore
                         pos=stmts.token.pos,  # type: ignore
                         message_type=ErrorType.EMPTY_SCOPE,
-                        stmt_type="while",
+                        stmt_type="class",
                     )
                 stmts.children.append(subscope)
                 node_scope.children.append(stmts)
@@ -216,15 +199,27 @@ class Parser:
                 NodeType.NODE_CONTINUE,
             ):
                 node_scope.children.append(stmts)
+            elif isinstance(stmts, Node):
+                node_scope.children.append(stmts)
             else:
                 node_scope.children += stmts  # type: ignore
 
         return node_scope
 
+    def _parse_if_scope(self, statement: Node, depth: int) -> Node:
+        subscope = self._parse_scope(depth=depth + 1)
+        if len(subscope.children) == 0:
+            self.registry.register_message(
+                line=statement.token.line,  # type: ignore
+                pos=statement.token.pos,  # type: ignore
+                message_type=ErrorType.EMPTY_SCOPE,
+                stmt_type="if",
+            )
+        statement.children.append(subscope)
+        return statement
+
     def _parse_stmts(self) -> list[Node] | Node:
         match self._peek(0).token_type:
-            case TokenType.IDENT:
-                return self._parse_assignment_stmts()
             case TokenType.IF:
                 return self._parse_if_stmt()
             case TokenType.ELIF:
@@ -240,32 +235,118 @@ class Parser:
             case TokenType.CONTINUE:
                 return self._parse_constant(constant_type=NodeType.NODE_CONTINUE)
             case _:
+                return self._parse_expressions()
+
+    def _parse_expressions(self) -> list[Node] | Node:
+        expr = self._parse_expression()
+        if expr is None:
+            self.registry.register_message(
+                line=self._peek(0).line,
+                pos=self._peek(0).pos,
+                message_type=ErrorType.UNKNOWN_TOKEN,
+                token=self._peek(0).token_type.name,
+            )
+            return Node(node_type=NodeType.NODE_TERM)
+
+        if self._peek(0).token_type == TokenType.COMMA:
+            if expr.node_type != NodeType.NODE_TERM:
                 self.registry.register_message(
                     line=self._peek(0).line,
                     pos=self._peek(0).pos,
                     message_type=ErrorType.ILLEGAL_DECLARATION,
-                    reason="Unknown statement",
+                    reason="cannot declare multiline definitions with already full statements",
                 )
-                raise StopExecution()
+                return expr
+            idents = [expr]
+            while expr is not None:
+                if self._is_assignment(self._peek(0)):
+                    break
+                self._consume()
+                expr = self._parse_leaf()
+                if expr is None:
+                    raise Exception("Unreachable")
+                if expr is not None:
+                    idents.append(expr)
 
-    def _parse_assignment_stmts(self, final: TokenType = TokenType.NEWLINE) -> list[Node]:
-        idents, assign_op = self._parse_idents()
-        if self._peek(0).token_type == final:
-            return idents
-        exprs = self._parse_exprs(assign_op=assign_op, ident=idents[0])
-        if len(idents) != len(exprs):
+            assign = self._consume()
+            if assign.token_type == TokenType.EQ:
+                exprs = self._parse_exprs()
+                if len(idents) != len(exprs):
+                    self.registry.register_message(
+                        line=self._peek(0).line,  # type: ignore
+                        pos=self._peek(0).pos,  # type: ignore
+                        message_type=ErrorType.ILLEGAL_DECLARATION,
+                        reason="cannot assign less expressions than values declared",
+                    )
+
+                stmts = [
+                    Node(node_type=NodeType.NODE_STMT, children=[ident, expr])
+                    for ident, expr in zip(idents, exprs, strict=True)
+                ]
+                return stmts
+            else:
+                self.registry.register_message(
+                    line=self._peek(0).line,  # type: ignore
+                    pos=self._peek(0).pos,  # type: ignore
+                    message_type=ErrorType.ILLEGAL_DECLARATION,
+                    reason="cannot use assignment operator with multiple definitions",
+                )
+                return idents
+
+        if self._peek(0).token_type != TokenType.NEWLINE:
             self.registry.register_message(
-                line=idents[0].token.line,  # type: ignore
-                pos=idents[0].token.pos,  # type: ignore
+                line=self._peek(0).line,
+                pos=self._peek(0).pos,
                 message_type=ErrorType.ILLEGAL_DECLARATION,
-                reason="cannot assign less expressions than values declared",
+                reason="cannot have two statements on the same line",
             )
 
-        stmts = [
-            Node(node_type=NodeType.NODE_STMT, children=[ident, expr])
-            for ident, expr in zip(idents, exprs)
-        ]
-        return stmts
+        return expr
+
+    def _parse_expression(self) -> Node | None:
+        current = self._peek(0)
+        if current.token_type == TokenType.IDENT:
+            next = self._peek(1)
+            if self._is_assignment(next):
+                term = self._parse_leaf()
+                if term is None:
+                    raise Exception("Unreachable")
+                eq = self._consume()
+                expr = self._parse_expr()
+                if eq.token_type != TokenType.EQ:
+                    assign_op = self._get_argument_assign_operator(eq)
+                    expr = self._make_binary(term, Node(node_type=assign_op), expr)
+                result = Node(node_type=NodeType.NODE_STMT, children=[term, expr])
+                return result
+            if next.token_type == TokenType.COLON:
+                term = self._parse_leaf()
+                if term is None:
+                    raise Exception("Unreachable")
+                self._consume()
+                typedef = self._parse_type_definition()
+                term.children.append(typedef)
+                if self._is_assignment(self._peek(0)):
+                    eq = self._consume()
+                    expr = self._parse_expr()
+                    if eq.token_type != TokenType.EQ:
+                        assign_op = self._get_argument_assign_operator(eq)
+                        expr = self._make_binary(term, Node(node_type=assign_op), expr)
+                    result = Node(node_type=NodeType.NODE_STMT, children=[term, expr])
+                    return result
+                else:
+                    result = Node(node_type=NodeType.NODE_STMT, children=[term])
+                    return result
+
+            self._consume()
+            return Node(
+                node_type=NodeType.NODE_TERM,
+                children=[Node(node_type=NodeType.NODE_IDENT, value=current.content)],
+            )
+
+        if current.token_type in (TokenType.NUMBER, TokenType.OPEN_PAREN):
+            return self._parse_expr()
+
+        return None
 
     def _parse_if_stmt(self) -> Node:
         token = self._consume()
@@ -362,81 +443,6 @@ class Parser:
     def _parse_constant(self, constant_type: NodeType) -> Node:
         token = self._consume()
         return Node(node_type=constant_type, token=token)
-
-    def _parse_idents(self) -> tuple[list[Node], Node | None]:
-        token_ident = self._consume()
-        if token_ident.token_type != TokenType.IDENT:
-            self.registry.register_message(
-                line=token_ident.line,
-                pos=token_ident.pos,
-                message_type=ErrorType.ILLEGAL_DECLARATION,
-                reason=f"can only assign to a variable name, got '{token_ident.content}'",
-            )
-            raise StopExecution()
-
-        typedef: Node | None
-        if self._peek(0).token_type == TokenType.COLON:
-            self._consume()
-            typedef = self._parse_type_definition()
-        else:
-            typedef = None
-
-        if self._is_assignment(self._peek(0)):
-            assign = self._consume()
-            term_children = [Node(node_type=NodeType.NODE_IDENT, value=token_ident.content)]
-            if typedef is not None:
-                term_children.append(typedef)
-            return [
-                Node(
-                    node_type=NodeType.NODE_TERM,
-                    children=term_children,
-                    token=token_ident,
-                )
-            ], Node(
-                node_type=self._get_argument_assign_operator(token=assign), token=assign
-            ) if assign.token_type != TokenType.EQ else None
-        elif self._peek(0).token_type == TokenType.COMMA:
-            self._consume()
-            idents, assign_op = self._parse_idents()
-            if assign_op is not None:
-                self.registry.register_message(
-                    line=token_ident.line,
-                    pos=token_ident.pos,
-                    message_type=ErrorType.ILLEGAL_DECLARATION,
-                    reason="single-line definition cannot be used with argument assignment operators",
-                )
-            term_children = [Node(node_type=NodeType.NODE_IDENT, value=token_ident.content)]
-            if typedef is not None:
-                term_children.append(typedef)
-            idents.insert(
-                0,
-                Node(
-                    node_type=NodeType.NODE_TERM,
-                    children=term_children,
-                    token=token_ident,
-                ),
-            )
-            return idents, None
-        elif self._peek(0).token_type == TokenType.NEWLINE:
-            term_children = [Node(node_type=NodeType.NODE_IDENT, value=token_ident.content)]
-            if typedef is not None:
-                term_children.append(typedef)
-            return [
-                Node(
-                    node_type=NodeType.NODE_TERM,
-                    children=term_children,
-                    token=token_ident,
-                )
-            ], None
-        else:
-            self.registry.register_message(
-                line=token_ident.line,
-                pos=token_ident.pos,
-                message_type=ErrorType.MISSING_TOKEN,
-                missing="=",
-                stmt_type="declaration",
-            )
-            return [], None
 
     def _parse_type_definition(self) -> Node:
         if self._peek(0).token_type != TokenType.IDENT:
@@ -574,85 +580,23 @@ class Parser:
 
     def _parse_call_parameters(self) -> Node:
         node_params = Node(node_type=NodeType.NODE_PARAMS)
-        kwargs: bool = False
-        while self._peek(0).token_type != TokenType.CLOSED_PAREN:
-            ident = self._consume()
-            if ident.token_type not in (TokenType.IDENT, TokenType.NUMBER):
-                self.registry.register_message(
-                    line=ident.line,
-                    pos=ident.pos,
-                    message_type=ErrorType.MISSMATCH_TOKEN,
-                    expected_type="ident",
-                    got_type=ident.token_type.name,
-                )
-            if self._peek(0).token_type == TokenType.COMMA and kwargs:
+        while True:
+            next_node = self._parse_expression()
+            if next_node is None:
+                break
+            if (
+                next_node.node_type == NodeType.NODE_STMT
+                and len(next_node.children[0].children) > 1
+            ):
                 self.registry.register_message(
                     line=self._peek(0).line,
                     pos=self._peek(0).pos,
-                    message_type=ErrorType.CALLABLE_ARGUMENT_ERROR,
+                    message_type=ErrorType.ILLEGAL_DECLARATION,
+                    reason="Cannot use type definitions when reciting arguments",
                 )
-                continue
-
-            arg_type: NodeType
-            if self._peek(0).token_type == TokenType.EQ:
-                kwargs = True
+            node_params.children.append(next_node)
+            if self._peek(0).token_type == TokenType.COMMA:
                 self._consume()
-                value = self._peek(0)
-                if value.token_type not in (TokenType.IDENT, TokenType.NUMBER):
-                    self.registry.register_message(
-                        line=ident.line,
-                        pos=ident.pos,
-                        message_type=ErrorType.MISSMATCH_TOKEN,
-                        expected_type="ident",
-                        got_type=ident.token_type.name,
-                    )
-                    arg_type = NodeType.NODE_IDENT
-                elif value.token_type == TokenType.IDENT:
-                    arg_type = NodeType.NODE_IDENT
-                else:
-                    arg_type = NodeType.NODE_VALUE
-                node_stmt = Node(
-                    node_type=NodeType.NODE_STMT,
-                    children=[
-                        Node(
-                            NodeType.NODE_TERM,
-                            children=[Node(node_type=NodeType.NODE_IDENT, value=ident.content)],
-                        ),
-                        Node(
-                            NodeType.NODE_TERM,
-                            children=[Node(node_type=arg_type, value=value.content)],
-                        ),
-                    ],
-                )
-                node_params.children.append(node_stmt)
-                self._consume()
-            elif self._peek(0).token_type in (TokenType.COMMA, TokenType.CLOSED_PAREN):
-                if ident.token_type == TokenType.IDENT:
-                    arg_type = NodeType.NODE_IDENT
-                elif ident.token_type == TokenType.NUMBER:
-                    arg_type = NodeType.NODE_VALUE
-                else:
-                    self.registry.register_message(
-                        line=ident.line,
-                        pos=ident.pos,
-                        message_type=ErrorType.MISSMATCH_TOKEN,
-                        expected_type="ident",
-                        got_type=ident.token_type.name,
-                    )
-                    arg_type = NodeType.NODE_IDENT
-
-                node_stmt = Node(NodeType.NODE_TERM, children=[Node(arg_type, value=ident.content)])
-                node_params.children.append(node_stmt)
-                if self._peek(0).token_type == TokenType.COMMA:
-                    self._consume()
-            else:
-                self.registry.register_message(
-                    line=self._peek(0).line,
-                    pos=self._peek(0).pos,
-                    message_type=ErrorType.MISSMATCH_TOKEN,
-                    expected_type="ident",
-                    got_type=self._peek(0).token_type.name,
-                )
 
         return node_params
 

@@ -11,7 +11,7 @@ main_while_begin_0:
    c = STORE r9
    a = STORE b
    b = STORE c
-   r8 = SUM 1, count
+   r8 = SUM count, 1
    count = STORE r8
    DEESCALATE 
    JMP main_while_begin_0

@@ -10,17 +10,17 @@ main_while_begin_0:
    CMP x, 0
    JNE main_if_end_1
    ESCALATE 
-   r10 = SUM 1, x
+   r10 = SUM x, 1
    x = STORE r10
-   r8 = SUM 1, count
+   r8 = SUM count, 1
    count = STORE r8
    JMP main_while_begin_0
    DEESCALATE 
    JMP main_if_end_1
 main_if_end_1:
-   r8 = MUL 2, x
+   r8 = MUL x, 2
    x = STORE r8
-   r8 = SUM 1, count
+   r8 = SUM count, 1
    count = STORE r8
    DEESCALATE 
    JMP main_while_begin_0

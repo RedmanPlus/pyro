@@ -5,7 +5,7 @@ from pyro_compiler.compiler.representation import IRBuilder
 from pyro_compiler.compiler.tokens import Tokenizer
 
 
-@pytest.mark.tokenizer
+@pytest.mark.example
 def test_fibonacci_inter_rep(snapshot):
     code = (
         "a, b = 0, 1\n"
@@ -26,7 +26,7 @@ def test_fibonacci_inter_rep(snapshot):
     snapshot.assert_match(rep.pprint_vars(), "fibonacci_vardump")
 
 
-@pytest.mark.tokenizer
+@pytest.mark.example
 def test_power_inter_rep(snapshot):
     code = (
         "target = 2\n"

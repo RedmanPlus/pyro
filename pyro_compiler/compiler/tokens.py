@@ -1,5 +1,4 @@
 from enum import Enum, auto
-from typing import Optional
 
 from pyro_compiler.compiler.errors.error_type import ErrorType
 from pyro_compiler.compiler.errors.message_registry import MessageRegistry
@@ -64,7 +63,7 @@ class Token:
         token_type: TokenType,
         line: int,
         pos: int,
-        content: Optional[str] = None,
+        content: str | None = None,
     ):
         self.token_type = token_type
         self.line = line

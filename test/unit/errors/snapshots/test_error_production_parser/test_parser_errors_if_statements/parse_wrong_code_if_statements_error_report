@@ -9,7 +9,7 @@ Missing ':' for the if statement[0m
 
     elif y <= 5:
 
-Missing scope declarations for the elif statement[0m
+Missing scope declarations for the if statement[0m
 
 [91mERROR:
 

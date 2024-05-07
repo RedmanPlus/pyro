@@ -57,7 +57,7 @@ skip = "__init__.py"
 
 [tool.ruff]
 line-length = 120
-target-version = "py39"
+target-version = "py311"
 ignore = ["E501"]
 fix = true
 select = [
@@ -104,11 +104,11 @@ markers = [
     "int_rep: intermediate representation tests",
     "gen: assembly generation",
     "errors: error reporting framework tests",
-    "integration: integration of multiple components"
+    "integration: integration of multiple components",
+    "example: example programs",
 ]
 python_files = "test_*.py"
 test_paths = "test"
-junit_duration_report = "total"
 
 [tool.ruff.mccabe]
 # Настройка максимальной сложности

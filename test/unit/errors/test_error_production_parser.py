@@ -1,3 +1,5 @@
+from textwrap import dedent
+
 import pytest
 
 from pyro_compiler.compiler.errors.message_registry import MessageRegistry
@@ -7,7 +9,13 @@ from pyro_compiler.compiler.tokens import Tokenizer
 
 @pytest.mark.errors
 def test_parser_errors_declaration(snapshot):
-    code = "x, y, z = 1, 2\n" "a, b += 2, 4\n" "1 = x"
+    code = dedent(
+        """
+    x, y, z = 1, 2
+    a, b += 2, 4
+    1 = x
+    """
+    )
     registry = MessageRegistry(code=code)
     tokenizer = Tokenizer(message_registry=registry)
     tokens = tokenizer(code=code)
@@ -20,7 +28,17 @@ def test_parser_errors_declaration(snapshot):
 
 @pytest.mark.errors
 def test_parser_errors_if_statements(snapshot):
-    code = "x = 1\n" "if x > 1\n" "    x *= 2\n" "y = 2\n" "elif y <= 5:\n" "else:\n" "    y = 5\n"
+    code = dedent(
+        """
+    x = 1
+    if x > 1
+        x *= 2
+    y = 2
+    elif y <= 5:
+    else:
+        y = 5
+    """
+    )
     registry = MessageRegistry(code=code)
     tokenizer = Tokenizer(message_registry=registry)
     tokens = tokenizer(code=code)
@@ -35,7 +53,15 @@ def test_parser_errors_if_statements(snapshot):
 
 @pytest.mark.errors
 def test_parser_errors_while_statements(snapshot):
-    code = "x = 1\n" "while x < 100\n" "    x += 1\n" "        x *= 2\n" "    y = x - 5\n"
+    code = dedent(
+        """
+    x = 1
+    while x < 100
+        x += 1
+            x *= 2
+        y = x - 5
+    """
+    )
     registry = MessageRegistry(code=code)
     tokenizer = Tokenizer(message_registry=registry)
     tokens = tokenizer(code=code)

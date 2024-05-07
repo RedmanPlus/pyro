@@ -12,13 +12,13 @@ main_if_0:
    CMP x, y
    JLE main_elif_0
    ESCALATE 
-   r10 = SUB y, x
+   r10 = SUB x, y
    x = STORE r10
    DEESCALATE 
    JMP main_if_end_0
 main_elif_0:
    ESCALATE 
-   r8 = SUM y, x
+   r8 = SUM x, y
    x = STORE r8
    DEESCALATE 
 main_if_end_0:
@@ -28,7 +28,7 @@ main_if_end_0:
    CMP z, r8
    JE main_if_0_1
    ESCALATE 
-   r9 = MUL 10, z
+   r9 = MUL z, 10
    z = STORE r9
    DEESCALATE 
    JMP main_if_end_0_1
@@ -46,7 +46,7 @@ main_if_0_1:
    JMP main_if_end_0_1
 main_elif_0_1:
    ESCALATE 
-   r9 = MUL 10, x
+   r9 = MUL x, 10
    x = STORE r9
    DEESCALATE 
 main_if_end_0_1:
