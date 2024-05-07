@@ -281,7 +281,7 @@ class Parser:
 
                 stmts = [
                     Node(node_type=NodeType.NODE_STMT, children=[ident, expr])
-                    for ident, expr in zip(idents, exprs, strict=True)
+                    for ident, expr in zip(idents, exprs)  # noqa B905
                 ]
                 return stmts
             else:
