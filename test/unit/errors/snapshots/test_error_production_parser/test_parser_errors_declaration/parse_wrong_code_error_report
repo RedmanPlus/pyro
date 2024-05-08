@@ -1,7 +1,7 @@
 Compilation stopped due to several messages:
 [91mERROR:
 
-    a, b += 2, 4
+    x, y, z = 1, 2
 
 Variable declaration set up incorrectly: cannot assign less expressions than values declared[0m
 
@@ -13,7 +13,7 @@ Variable declaration set up incorrectly: cannot use assignment operator with mul
 
 [91mERROR:
 
-    
+    1 = x
 
 Variable declaration set up incorrectly: cannot assign less expressions than values declared[0m
 

@@ -270,7 +270,14 @@ class Parser:
 
             assign = self._consume()
             if assign.token_type == TokenType.EQ:
-                exprs = self._parse_exprs()
+                exprs = []
+                while True:
+                    expr = self._parse_expression()
+                    if expr is None:
+                        break
+                    if self._peek(0).token_type == TokenType.COMMA:
+                        self._consume()
+                    exprs.append(expr)
                 if len(idents) != len(exprs):
                     self.registry.register_message(
                         line=self._peek(0).line,  # type: ignore
@@ -336,12 +343,14 @@ class Parser:
                 else:
                     result = Node(node_type=NodeType.NODE_STMT, children=[term])
                     return result
-
-            self._consume()
-            return Node(
-                node_type=NodeType.NODE_TERM,
-                children=[Node(node_type=NodeType.NODE_IDENT, value=current.content)],
-            )
+            if next.token_type in (TokenType.NEWLINE, TokenType.COMMA, TokenType.CLOSED_PAREN):
+                self._consume()
+                return Node(
+                    node_type=NodeType.NODE_TERM,
+                    children=[Node(node_type=NodeType.NODE_IDENT, value=current.content)],
+                )
+            if self._is_binop(next):
+                return self._parse_expr()
 
         if current.token_type in (TokenType.NUMBER, TokenType.OPEN_PAREN):
             return self._parse_expr()
@@ -458,30 +467,6 @@ class Parser:
             node_type=NodeType.NODE_TERM,
             children=[Node(node_type=NodeType.NODE_IDENT, value=self._consume().content)],
         )
-
-    def _parse_exprs(self, assign_op: Node | None = None, ident: Node | None = None) -> list[Node]:
-        node_expr = self._parse_expr()
-        if self._peek(0).token_type == TokenType.NEWLINE:
-            self._consume()
-            if assign_op is not None:
-                return [self._make_binary(node_expr, assign_op, ident)]
-            return [node_expr]
-        elif self._peek(0).token_type == TokenType.COMMA:
-            if assign_op is not None:
-                raise Exception("Unreachable")
-            self._consume()
-            exprs = self._parse_exprs()
-            exprs.insert(0, node_expr)
-            return exprs
-        else:
-            self.registry.register_message(
-                line=self._peek(0).line,
-                pos=self._peek(0).pos,
-                message_type=ErrorType.MISSING_TOKEN,
-                missing="newline",
-                stmt_type="declaration",
-            )
-            return []
 
     def _parse_expr(
         self, expected_final: tuple[TokenType, ...] = (TokenType.NEWLINE, TokenType.COMMA)
