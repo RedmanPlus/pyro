@@ -5,7 +5,6 @@ from pyro_compiler.compiler.representation.command import Command, CommandType
 from pyro_compiler.compiler.representation.label import Label
 from pyro_compiler.compiler.representation.pseudo_register import PseudoRegister
 from pyro_compiler.compiler.representation.representation import Representation
-from pyro_compiler.compiler.representation.stmt_meta import StatementMeta
 from pyro_compiler.compiler.representation.utils import (
     get_variable_type,
     optype_jump_mapping,
@@ -521,7 +520,7 @@ class IRBuilder:
 
             node <Node>: a Call params node to be parsed
         """
-        params: list[StatementMeta] = []
+        params = []
         for param_node in node.children:
             param = self._parse_stmt(param_node)
             params.append(param)
