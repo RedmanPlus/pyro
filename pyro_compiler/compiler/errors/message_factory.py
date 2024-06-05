@@ -16,7 +16,12 @@ from pyro_compiler.compiler.errors.error_type import (
 
 class MessageFactoryT(Protocol):
     def __call__(
-        self, line: int, pos: int, message_str: str, code_line: str, message_type: MessageType
+        self,
+        line: int,
+        pos: int,
+        message_str: str,
+        code_line: str,
+        message_type: MessageType,
     ) -> CompileTimeMessage:
         ...
 
@@ -30,9 +35,13 @@ def message_factory(
 ) -> CompileTimeMessage:
     message: CompileTimeMessage
     if isinstance(message_type, ErrorType):
-        message = ErrorMessage(line=line, pos=pos, message=message_str, code_line=code_line)
+        message = ErrorMessage(
+            line=line, pos=pos, message=message_str, code_line=code_line
+        )
     elif isinstance(message_type, WarningType):
-        message = WarningMessage(line=line, pos=pos, message=message_str, code_line=code_line)
+        message = WarningMessage(
+            line=line, pos=pos, message=message_str, code_line=code_line
+        )
     else:
         raise Exception("Unreachable")
     return message

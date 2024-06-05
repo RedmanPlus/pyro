@@ -23,7 +23,9 @@ def test_parser_errors_declaration(snapshot):
     core_node = parser(tokens=tokens)
 
     snapshot.assert_match(core_node.pprint(), "parse_wrong_code_nodes")
-    snapshot.assert_match(registry.display_messages(), "parse_wrong_code_error_report")
+    snapshot.assert_match(
+        registry.display_messages(), "parse_wrong_code_error_report"
+    )
 
 
 @pytest.mark.errors
@@ -45,9 +47,12 @@ def test_parser_errors_if_statements(snapshot):
     parser = Parser(message_registry=registry)
     core_node = parser(tokens=tokens)
 
-    snapshot.assert_match(core_node.pprint(), "parse_wrong_code_if_statements_nodes")
     snapshot.assert_match(
-        registry.display_messages(), "parse_wrong_code_if_statements_error_report"
+        core_node.pprint(), "parse_wrong_code_if_statements_nodes"
+    )
+    snapshot.assert_match(
+        registry.display_messages(),
+        "parse_wrong_code_if_statements_error_report",
     )
 
 
@@ -68,7 +73,10 @@ def test_parser_errors_while_statements(snapshot):
     parser = Parser(message_registry=registry)
     core_node = parser(tokens=tokens)
 
-    snapshot.assert_match(core_node.pprint(), "parse_wrong_code_while_statements_nodes")
     snapshot.assert_match(
-        registry.display_messages(), "parse_wrong_code_while_statements_error_report"
+        core_node.pprint(), "parse_wrong_code_while_statements_nodes"
+    )
+    snapshot.assert_match(
+        registry.display_messages(),
+        "parse_wrong_code_while_statements_error_report",
     )

@@ -19,6 +19,8 @@ class ErrorType(MessageType):
     EMPTY_SCOPE = auto()
     UNKNOWN_VARIABLE = auto()
     CALLABLE_ARGUMENT_ERROR = auto()
+    DOES_NOT_EXIST = auto()
+    UNKNOWN_CALL_PARAMETER = auto()
 
 
 error_to_message: dict[ErrorType, str] = {
@@ -35,6 +37,8 @@ error_to_message: dict[ErrorType, str] = {
     ErrorType.EMPTY_SCOPE: "Missing scope declarations for the {stmt_type} statement",
     ErrorType.UNKNOWN_VARIABLE: "Variable {varname} used before assignment",
     ErrorType.CALLABLE_ARGUMENT_ERROR: "Cannot mix positional and keyword arguments, first positional, than keyword",
+    ErrorType.DOES_NOT_EXIST: "{missing_type} does not exist",
+    ErrorType.UNKNOWN_CALL_PARAMETER: "Unknown call parameter by the name {param_name} was supplied to the {callable}",
 }
 
 
@@ -42,4 +46,6 @@ class WarningType(MessageType):
     TEST_WARNING = auto()
 
 
-warning_to_message: dict[WarningType, str] = {WarningType.TEST_WARNING: "This is a test warning"}
+warning_to_message: dict[WarningType, str] = {
+    WarningType.TEST_WARNING: "This is a test warning"
+}

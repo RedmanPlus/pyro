@@ -27,6 +27,9 @@ class Structure:
     def calculate_size(self) -> int:
         return len(self.names)
 
+    def get_name_order(self, name: str) -> int:
+        return self.names.index(name)
+
     def pprint(self) -> str:
         header = f"Structure {self.decl_name}:\n"
         name_to_types: list[tuple[str, Structure | str]] = list(

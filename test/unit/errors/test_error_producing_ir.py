@@ -18,4 +18,6 @@ def test_parser_errors_declaration(snapshot):
     rep = ir_builder(core_node)
 
     snapshot.assert_match(rep.pprint(), "build_ir_wrong_code_nodes")
-    snapshot.assert_match(registry.display_messages(), "build_ir_wrong_code_error_report")
+    snapshot.assert_match(
+        registry.display_messages(), "build_ir_wrong_code_error_report"
+    )

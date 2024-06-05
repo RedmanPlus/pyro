@@ -13,7 +13,10 @@ class Scope:
     variable_table: dict[str, Variable] = field(default_factory=dict)
 
     def register_var(
-        self, varname: str, value: str | None = None, var_type: VarType | Structure = VarType.INT
+        self,
+        varname: str,
+        value: str | None = None,
+        var_type: VarType | Structure = VarType.INT,
     ) -> Variable:
         variable = Variable(name=varname, value=value, var_type=var_type)
         self.variable_table[varname] = variable

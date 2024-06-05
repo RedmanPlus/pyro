@@ -18,7 +18,9 @@ def test_declaration_with_fields(snapshot):
             "b": 0,
         },
     )
-    snapshot.assert_match(declaration.pprint(), "declaration_structure_with_fields")
+    snapshot.assert_match(
+        declaration.pprint(), "declaration_structure_with_fields"
+    )
 
 
 @pytest.mark.int_rep
@@ -30,5 +32,7 @@ def test_nested_declaration(snapshot):
             "b": 0,
         },
     )
-    declaration = Structure(decl_name="Foo", fields={"a": nested, "b": nested, "c": 0})
+    declaration = Structure(
+        decl_name="Foo", fields={"a": nested, "b": nested, "c": 0}
+    )
     snapshot.assert_match(declaration.pprint(), "nested_declaration_structure")

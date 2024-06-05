@@ -11,9 +11,13 @@ class CLI:
         )
         for argument in arguments:
             if isinstance(argument.name_or_flags, list):
-                self.parser.add_argument(*argument.name_or_flags, **argument.to_args())
+                self.parser.add_argument(
+                    *argument.name_or_flags, **argument.to_args()
+                )
             elif isinstance(argument.name_or_flags, str):
-                self.parser.add_argument(argument.name_or_flags, **argument.to_args())
+                self.parser.add_argument(
+                    argument.name_or_flags, **argument.to_args()
+                )
             else:
                 raise Exception("Unreachable")
 

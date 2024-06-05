@@ -1,7 +1,9 @@
 import json
 from dataclasses import dataclass, field
 
-from pyro_compiler.compiler.errors.compile_time_message import CompileTimeMessage
+from pyro_compiler.compiler.errors.compile_time_message import (
+    CompileTimeMessage,
+)
 from pyro_compiler.compiler.errors.error_type import MessageType
 from pyro_compiler.compiler.errors.message_factory import (
     GetMessageT,
@@ -9,7 +11,10 @@ from pyro_compiler.compiler.errors.message_factory import (
     get_message,
     message_factory,
 )
-from pyro_compiler.compiler.errors.utils import IsBlockingMessageT, is_blocking_message
+from pyro_compiler.compiler.errors.utils import (
+    IsBlockingMessageT,
+    is_blocking_message,
+)
 
 
 @dataclass
@@ -21,11 +26,15 @@ class MessageRegistry:
     message_factory: MessageFactoryT = message_factory
     is_blocking_message: IsBlockingMessageT = is_blocking_message
 
-    def register_message(self, line: int, pos: int, message_type: MessageType, **kwargs: str):
+    def register_message(
+        self, line: int, pos: int, message_type: MessageType, **kwargs: str
+    ):
         code_lines = self.code.split("\n")
         code_line = code_lines[line - 1]
         if not self.is_blocking_compilation:
-            self.is_blocking_compilation = self.is_blocking_message(message_type=message_type)
+            self.is_blocking_compilation = self.is_blocking_message(
+                message_type=message_type
+            )
         message_str = self.get_message(message_type=message_type)
         if kwargs:
             message_str = message_str.format(**kwargs)

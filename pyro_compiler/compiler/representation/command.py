@@ -4,7 +4,9 @@ from enum import Enum, auto
 from pyro_compiler.compiler.parsing import Node
 from pyro_compiler.compiler.representation.label import Label
 from pyro_compiler.compiler.representation.pseudo_register import PseudoRegister
-from pyro_compiler.compiler.representation.struct_declaration import StructDeclaration
+from pyro_compiler.compiler.representation.struct_declaration import (
+    StructDeclaration,
+)
 from pyro_compiler.compiler.representation.variable import Variable, VarType
 
 
@@ -79,10 +81,17 @@ class Command:
             ]
             and target is None
         ):
-            raise Exception(f"target cannot be None for operation {operation.name}")
+            raise Exception(
+                f"target cannot be None for operation {operation.name}"
+            )
 
-        if isinstance(operand_a, StructDeclaration) and operation != CommandType.STORE:
-            raise Exception("Cannot use structure declaration aside command STORE")
+        if (
+            isinstance(operand_a, StructDeclaration)
+            and operation != CommandType.STORE
+        ):
+            raise Exception(
+                "Cannot use structure declaration aside command STORE"
+            )
 
         if isinstance(operand_b, VarType) and operation != CommandType.CONVERT:
             raise Exception("Cannot use type as operand in not CONVERT command")
@@ -105,12 +114,14 @@ class Command:
             raise Exception("Unreachable")
         command_str = f"{self.operation.name} {operand_a_text}"
         if self.target is not None:
-            target = self.target if isinstance(self.target, str) else self.target.name
+            target = (
+                self.target
+                if isinstance(self.target, str)
+                else self.target.name
+            )
             command_str = target + " = " + command_str
         if self.operand_b is not None:
-            command_str += (
-                f", {self.operand_b if isinstance(self.operand_b, str) else self.operand_b.name}"
-            )
+            command_str += f", {self.operand_b if isinstance(self.operand_b, str) else self.operand_b.name}"
 
         return command_str
 

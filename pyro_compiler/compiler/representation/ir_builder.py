@@ -5,17 +5,25 @@ from pyro_compiler.compiler.representation.command import Command, CommandType
 from pyro_compiler.compiler.representation.label import Label
 from pyro_compiler.compiler.representation.pseudo_register import PseudoRegister
 from pyro_compiler.compiler.representation.representation import Representation
-from pyro_compiler.compiler.representation.utils import get_variable_type, optype_jump_mapping
+from pyro_compiler.compiler.representation.stmt_meta import StatementMeta
+from pyro_compiler.compiler.representation.utils import (
+    get_variable_type,
+    optype_jump_mapping,
+)
 from pyro_compiler.compiler.representation.variable import Variable, VarType
 
 
 class IRBuilder:
-    def __init__(self, registry: MessageRegistry | None = None, ast: Node | None = None):
+    def __init__(
+        self, registry: MessageRegistry | None = None, ast: Node | None = None
+    ):
         self.ast: Node | None = ast
         self.commands: Representation = Representation(block_name="main")
         self.label_names: list[str] = []
         self.used_register_count: int = 8
-        self.registry = registry if registry is not None else MessageRegistry(code="")
+        self.registry = (
+            registry if registry is not None else MessageRegistry(code="")
+        )
 
     def __call__(self, ast: Node) -> Representation:
         if self.ast is None:
@@ -40,11 +48,16 @@ class IRBuilder:
         break_label: str | None = None,
         continue_label: str | None = None,
     ):
-        scope_name = self._get_scope_name_from_depth(scope_depth=scope_depth, scope_type=scope_type)
-        self.commands.add_scope(
-            scope_name=scope_name, scope_beginning_line=len(self.commands.commands)
+        scope_name = self._get_scope_name_from_depth(
+            scope_depth=scope_depth, scope_type=scope_type
         )
-        self.commands.append(command=Command(operation=CommandType.ESCALATE, operand_a=""))
+        self.commands.add_scope(
+            scope_name=scope_name,
+            scope_beginning_line=len(self.commands.commands),
+        )
+        self.commands.append(
+            command=Command(operation=CommandType.ESCALATE, operand_a="")
+        )
         for child in node.children:
             match child.node_type:
                 case NodeType.NODE_STMT:
@@ -70,8 +83,12 @@ class IRBuilder:
                     self._parse_continue(child, label_to_return=continue_label)
                 case _:
                     raise Exception("Unreachable")
-        self.commands.append(Command(operation=CommandType.DEESCALATE, operand_a=""))
-        self.commands.close_current_scope(ending_line=len(self.commands.commands))
+        self.commands.append(
+            Command(operation=CommandType.DEESCALATE, operand_a="")
+        )
+        self.commands.close_current_scope(
+            ending_line=len(self.commands.commands)
+        )
 
     def _parse_stmt(self, node: Node):
         node_term: Node = node.children[0]
@@ -86,7 +103,9 @@ class IRBuilder:
                 self.commands.append(command_expr)
                 if node_term.children[0].value is None:
                     raise Exception("Unreachable")
-                var_type: VarType | None = get_variable_type(operation_type=command_expr.operation)
+                var_type: VarType | None = get_variable_type(
+                    operation_type=command_expr.operation
+                )
                 if var_type is None:
                     raise Exception("Unreachable")
                 var = self.commands.register_var(
@@ -106,31 +125,54 @@ class IRBuilder:
                     raise Exception("Unreachable")
                 operand_a: str | Variable | None
                 if node_dec.children[0].node_type == NodeType.NODE_IDENT:
-                    operand_a = self.commands.get_var(node_dec.children[0].value)
+                    operand_a = self.commands.get_var(
+                        node_dec.children[0].value
+                    )
                     if operand_a is None:
                         raise Exception("Unreachable")
                 elif node_dec.children[0].node_type == NodeType.NODE_VALUE:
                     operand_a = node_dec.children[0].value
                 else:
                     raise Exception("Unreachable")
-                var = self.commands.register_var(varname=node_term.children[0].value)
+                var = self.commands.register_var(
+                    varname=node_term.children[0].value
+                )
                 command_declare = Command(
-                    operation=CommandType.STORE, target=var, operand_a=operand_a, node=node
+                    operation=CommandType.STORE,
+                    target=var,
+                    operand_a=operand_a,
+                    node=node,
                 )
                 self.commands.append(command_declare)
 
     def _parse_if(
-        self, node: Node, scope_depth: int, break_label: str | None, continue_label: str | None
+        self,
+        node: Node,
+        scope_depth: int,
+        break_label: str | None,
+        continue_label: str | None,
     ):
         jump_type = self._parse_condition(node)
-        if_label_name = self._generate_label_name(optype="if", scope_depth=scope_depth)
-        if_end_label_name = self._generate_label_name(optype="if_end", scope_depth=scope_depth)
+        if_label_name = self._generate_label_name(
+            optype="if", scope_depth=scope_depth
+        )
+        if_end_label_name = self._generate_label_name(
+            optype="if_end", scope_depth=scope_depth
+        )
         if len(node.children) <= 2:
             self.commands.append(
-                Command(operation=jump_type, operand_a=Label(name=if_end_label_name), node=node)
+                Command(
+                    operation=jump_type,
+                    operand_a=Label(name=if_end_label_name),
+                    node=node,
+                )
             )
         else:
-            self.commands.append(Command(operation=jump_type, operand_a=Label(name=if_label_name)))
+            self.commands.append(
+                Command(
+                    operation=jump_type, operand_a=Label(name=if_label_name)
+                )
+            )
         if_scope_node = node.children[1]
         self._parse_scope(
             if_scope_node,
@@ -140,7 +182,10 @@ class IRBuilder:
             continue_label=continue_label,
         )
         self.commands.append(
-            Command(operation=CommandType.JMP, operand_a=Label(name=if_end_label_name))
+            Command(
+                operation=CommandType.JMP,
+                operand_a=Label(name=if_end_label_name),
+            )
         )
         if len(node.children) == 2:
             self.commands.add_label(if_end_label_name)
@@ -153,9 +198,15 @@ class IRBuilder:
                 if i == len(node.children[2:]) - 1:
                     last_label = if_end_label_name
                 else:
-                    last_label = self._generate_label_name(optype="elif", scope_depth=scope_depth)
+                    last_label = self._generate_label_name(
+                        optype="elif", scope_depth=scope_depth
+                    )
                 self.commands.append(
-                    Command(operation=jump_type, operand_a=Label(name=last_label), node=child)
+                    Command(
+                        operation=jump_type,
+                        operand_a=Label(name=last_label),
+                        node=child,
+                    )
                 )
                 self._parse_scope(
                     elif_scope_node,
@@ -165,9 +216,15 @@ class IRBuilder:
                     continue_label=continue_label,
                 )
                 self.commands.append(
-                    Command(operation=CommandType.JMP, operand_a=Label(name=if_end_label_name))
+                    Command(
+                        operation=CommandType.JMP,
+                        operand_a=Label(name=if_end_label_name),
+                    )
                 )
-            if child.node_type == NodeType.NODE_SCOPE and i == len(node.children[2:]) - 1:
+            if (
+                child.node_type == NodeType.NODE_SCOPE
+                and i == len(node.children[2:]) - 1
+            ):
                 self.commands.add_label(last_label)
                 self._parse_scope(
                     child,
@@ -176,18 +233,27 @@ class IRBuilder:
                     break_label=break_label,
                     continue_label=continue_label,
                 )
-            if child.node_type == NodeType.NODE_SCOPE and i != len(node.children[2:]) - 1:
+            if (
+                child.node_type == NodeType.NODE_SCOPE
+                and i != len(node.children[2:]) - 1
+            ):
                 raise Exception("cannot have else before elif")
         if len(node.children) > 2:
             self.commands.add_label(if_end_label_name)
 
     def _parse_while(self, node: Node, scope_depth: int):
-        while_begin_label = self._generate_label_name(optype="while_begin", scope_depth=scope_depth)
-        while_end_label = self._generate_label_name(optype="while_end", scope_depth=scope_depth)
+        while_begin_label = self._generate_label_name(
+            optype="while_begin", scope_depth=scope_depth
+        )
+        while_end_label = self._generate_label_name(
+            optype="while_end", scope_depth=scope_depth
+        )
         self.commands.add_label(while_begin_label)
         node_scope = node.children[1]
         jump_type = self._parse_condition(node)
-        self.commands.append(Command(operation=jump_type, operand_a=Label(name=while_end_label)))
+        self.commands.append(
+            Command(operation=jump_type, operand_a=Label(name=while_end_label))
+        )
         self._parse_scope(
             node=node_scope,
             scope_type="while",
@@ -196,7 +262,10 @@ class IRBuilder:
             continue_label=while_begin_label,
         )
         self.commands.append(
-            Command(operation=CommandType.JMP, operand_a=Label(name=while_begin_label))
+            Command(
+                operation=CommandType.JMP,
+                operand_a=Label(name=while_begin_label),
+            )
         )
         self.commands.add_label(while_end_label)
 
@@ -227,14 +296,16 @@ class IRBuilder:
 
             field_values[field_name] = field_type
 
-        self.commands.add_declaration(decl_name=class_name, fields=field_values)
+        self.commands.add_definition(decl_name=class_name, fields=field_values)
 
     def _parse_break(self, node: Node, label_to_return: str):
         if node.node_type != NodeType.NODE_BREAK:
             raise Exception("Unreachable")
 
         self.commands.append(
-            Command(operation=CommandType.JMP, operand_a=Label(name=label_to_return))
+            Command(
+                operation=CommandType.JMP, operand_a=Label(name=label_to_return)
+            )
         )
 
     def _parse_continue(self, node: Node, label_to_return: str):
@@ -242,7 +313,9 @@ class IRBuilder:
             raise Exception("Unreachable")
 
         self.commands.append(
-            Command(operation=CommandType.JMP, operand_a=Label(name=label_to_return))
+            Command(
+                operation=CommandType.JMP, operand_a=Label(name=label_to_return)
+            )
         )
 
     def _parse_condition(self, node: Node) -> CommandType:
@@ -310,7 +383,10 @@ class IRBuilder:
 
     def _parse_bin_expr(self, node: Node) -> Command:
         node_term_a: Node = node.children[0]
-        if node_term_a.node_type not in [NodeType.NODE_TERM, NodeType.NODE_BIN_EXPR]:
+        if node_term_a.node_type not in [
+            NodeType.NODE_TERM,
+            NodeType.NODE_BIN_EXPR,
+        ]:
             return self._make_unary(node)
         command_a: Command | None = None
         operand_a: str | PseudoRegister | Variable | None = None
@@ -356,6 +432,22 @@ class IRBuilder:
                     operand_b = var
                 else:
                     operand_b = node_term_b.children[0].value
+            case NodeType.NODE_PARAMS:
+                if node_op.node_type != NodeType.NODE_CALL:
+                    self.registry.register_message(
+                        line=node_op.token.line,  # type: ignore
+                        pos=node_op.token.pos,  # type: ignore
+                        message_type=ErrorType.ILLEGAL_DECLARATION,
+                        reason="Cannot supply params to the binary expression - expression is not a call",
+                    )
+
+                params = self._parse_call_parameters(node=node_term_b)
+                if node_term_a.children[0].value is None:
+                    raise Exception("Unreachable")
+                self.commands.add_declaration(
+                    node_term_a.children[0].value, params=params
+                )
+
             case _:
                 raise Exception("Unreachable")
 
@@ -395,6 +487,51 @@ class IRBuilder:
             self.used_register_count -= 1
         return command_expr
 
+    def _parse_call_parameters(
+        self, node: Node
+    ) -> dict[str, PseudoRegister | Variable | str]:
+        """Parses call parameters and creates a call command or a `StructDeclaration` object
+        Call parameters can come in several patterns.
+        Given the function `foo`:
+        ```python
+        def foo(x: int, y: int, z: int, a: float) -> Foo
+        ```
+        Arguments can be passed:
+        1) Sequentially as positional
+        ```python
+        foo(1, 2, 3, 1.0)
+        ```
+        2) Sequentially as keyword
+        ```python
+        foo(x=1, y=2, z=3, a=1.0)
+        ```
+        3) Randomly as keyword
+        ```python
+        foo(a=1.0, y=2, z=3, x=1)
+        ```
+        4) Sequentially as positional at first, then arbitrary as keyword
+        ```python
+        foo(1, 2, a=1.0, z=3)
+        ```
+        all of these patterns must be accomodated when registering a call, because
+        unregistered behavior may result in bugs that don't appear in regular python
+        implementation
+
+        Parameters:
+
+            node <Node>: a Call params node to be parsed
+        """
+        params: list[StatementMeta] = []
+        for param_node in node.children:
+            param = self._parse_stmt(param_node)
+            params.append(param)
+
+        param_dict = {
+            param.to_declaration_arg()[0]: param.to_declaration_arg()[1]
+            for param in params
+        }
+        return param_dict
+
     def _make_unary(self, node: Node) -> Command:
         operation = self._parse_operand(node.children[0])
         node_term = node.children[1]
@@ -428,7 +565,9 @@ class IRBuilder:
         return Command(target=target, operation=operation, operand_a=operand, node=node)  # type: ignore
 
     def _process_operands_for_boolean_only_operations(
-        self, operand_a: PseudoRegister | Variable | str, operand_b: PseudoRegister | Variable | str
+        self,
+        operand_a: PseudoRegister | Variable | str,
+        operand_b: PseudoRegister | Variable | str,
     ):
         conversion_commands_a = self._convert_operand_to_bool(operand=operand_a)
         conversion_commands_b = self._convert_operand_to_bool(operand=operand_b)
@@ -437,7 +576,9 @@ class IRBuilder:
         if conversion_commands_b is not None:
             self.commands.append(conversion_commands_b)
 
-    def _convert_operand_to_bool(self, operand: PseudoRegister | Variable | str) -> Command | None:
+    def _convert_operand_to_bool(
+        self, operand: PseudoRegister | Variable | str
+    ) -> Command | None:
         if not isinstance(operand, Variable) or operand.var_type != bool:
             command_compare = Command(
                 target=operand
@@ -513,7 +654,11 @@ class IRBuilder:
         )
 
     def _is_only_boolean(self, node: Node) -> bool:
-        return node.node_type in (NodeType.NODE_AND, NodeType.NODE_OR, NodeType.NODE_NOT)
+        return node.node_type in (
+            NodeType.NODE_AND,
+            NodeType.NODE_OR,
+            NodeType.NODE_NOT,
+        )
 
     def _generate_label_name(self, optype: str, scope_depth: int) -> str:
         label_name = f"{self.commands.block_name}_{optype}_{scope_depth}"
@@ -532,5 +677,7 @@ class IRBuilder:
         self.label_names.append(label_name)
         return label_name
 
-    def _get_scope_name_from_depth(self, scope_depth: int, scope_type: str) -> str:
+    def _get_scope_name_from_depth(
+        self, scope_depth: int, scope_type: str
+    ) -> str:
         return f"scope_{scope_type}_{scope_depth}"

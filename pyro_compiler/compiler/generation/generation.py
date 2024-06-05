@@ -20,7 +20,9 @@ from pyro_compiler.compiler.representation.label import Label
 from pyro_compiler.compiler.representation.pseudo_register import PseudoRegister
 from pyro_compiler.compiler.representation.representation import Representation
 from pyro_compiler.compiler.representation.scope import Scope
-from pyro_compiler.compiler.representation.struct_declaration import StructDeclaration
+from pyro_compiler.compiler.representation.struct_declaration import (
+    StructDeclaration,
+)
 from pyro_compiler.compiler.representation.utils import (
     is_operand_a_register,
     is_operand_a_value,
@@ -31,7 +33,9 @@ from pyro_compiler.compiler.utils import OperandAT
 
 
 class Generation:
-    def __init__(self, representation: Representation | None = None, debug: bool = False):
+    def __init__(
+        self, representation: Representation | None = None, debug: bool = False
+    ):
         self.debug = debug
         self.representation = representation
         self.code_chunks: list[ASMInstruction] = []
@@ -134,28 +138,44 @@ class Generation:
                     instructions = self._generate_cmp(command)
                     self.code_chunks += instructions
                 case CommandType.JMP:
-                    instructions = self._generate_jump(command, jump_type=InstructionType.JMP)
+                    instructions = self._generate_jump(
+                        command, jump_type=InstructionType.JMP
+                    )
                     self.code_chunks += instructions
                 case CommandType.JE:
-                    instructions = self._generate_jump(command, jump_type=InstructionType.JE)
+                    instructions = self._generate_jump(
+                        command, jump_type=InstructionType.JE
+                    )
                     self.code_chunks += instructions
                 case CommandType.JNE:
-                    instructions = self._generate_jump(command, jump_type=InstructionType.JNE)
+                    instructions = self._generate_jump(
+                        command, jump_type=InstructionType.JNE
+                    )
                     self.code_chunks += instructions
                 case CommandType.JZ:
-                    instructions = self._generate_jump(command, jump_type=InstructionType.JZ)
+                    instructions = self._generate_jump(
+                        command, jump_type=InstructionType.JZ
+                    )
                     self.code_chunks += instructions
                 case CommandType.JG:
-                    instructions = self._generate_jump(command, jump_type=InstructionType.JG)
+                    instructions = self._generate_jump(
+                        command, jump_type=InstructionType.JG
+                    )
                     self.code_chunks += instructions
                 case CommandType.JGE:
-                    instructions = self._generate_jump(command, jump_type=InstructionType.JGE)
+                    instructions = self._generate_jump(
+                        command, jump_type=InstructionType.JGE
+                    )
                     self.code_chunks += instructions
                 case CommandType.JL:
-                    instructions = self._generate_jump(command, jump_type=InstructionType.JL)
+                    instructions = self._generate_jump(
+                        command, jump_type=InstructionType.JL
+                    )
                     self.code_chunks += instructions
                 case CommandType.JLE:
-                    instructions = self._generate_jump(command, jump_type=InstructionType.JLE)
+                    instructions = self._generate_jump(
+                        command, jump_type=InstructionType.JLE
+                    )
                     self.code_chunks += instructions
                 case CommandType.CONVERT:
                     instructions = self._generate_convert(command)
@@ -163,7 +183,9 @@ class Generation:
                 case CommandType.ESCALATE:
                     self.memory_manager.escalate()
                 case CommandType.DEESCALATE:
-                    if self.debug and not self.representation.is_last_command(command):
+                    if self.debug and not self.representation.is_last_command(
+                        command
+                    ):
                         instructions = self.memory_manager.deescalate()
                         self.code_chunks += instructions
                     if not self.debug:
@@ -178,10 +200,16 @@ class Generation:
 
         if self.debug:
             self.code_chunks += self.memory_manager.debug_memory()
-        asm_body: str = asm_header + "\n".join(chunk.to_asm() for chunk in self.code_chunks)
+        asm_body: str = asm_header + "\n".join(
+            chunk.to_asm() for chunk in self.code_chunks
+        )
         exit_chunk: list[ASMInstruction]
         if self.debug:
-            exit_chunk = [CallInstruction(instruction_type=InstructionType.CALL, callee="exit")]
+            exit_chunk = [
+                CallInstruction(
+                    instruction_type=InstructionType.CALL, callee="exit"
+                )
+            ]
         else:
             exit_chunk = [
                 DataMoveInstruction(
@@ -196,9 +224,13 @@ class Generation:
                 ),
                 CallInstruction(instruction_type=InstructionType.SYSCALL),
             ]
-        result_asm: str = asm_body + "\n" + "\n".join(chunk.to_asm() for chunk in exit_chunk)
+        result_asm: str = (
+            asm_body + "\n" + "\n".join(chunk.to_asm() for chunk in exit_chunk)
+        )
         if self.debug:
-            result_asm += "\n\n\nsection .data\n    formatString: db '%llu', 10, 0\n"
+            result_asm += (
+                "\n\n\nsection .data\n    formatString: db '%llu', 10, 0\n"
+            )
         return result_asm
 
     def _generate_store(self, command: Command) -> list[ASMInstruction]:
@@ -210,9 +242,13 @@ class Generation:
         variable_position = self.memory_manager.get_region_index(target.name)
         if variable_position is None:
             if isinstance(saved_value, str | PseudoRegister | Variable):
-                instructions += self.memory_manager.store_region(name=target.name, val=saved_value)
+                instructions += self.memory_manager.store_region(
+                    name=target.name, val=saved_value
+                )
             if isinstance(saved_value, StructDeclaration):
-                instructions += self.memory_manager.store_declaration(target.name, saved_value)
+                instructions += self.memory_manager.store_declaration(
+                    target.name, saved_value
+                )
             return instructions
         else:
             if isinstance(saved_value, str | PseudoRegister | Variable):
@@ -220,14 +256,20 @@ class Generation:
                     name=target.name, val=saved_value, destination=target
                 )
             if isinstance(saved_value, StructDeclaration):
-                raise Exception("Cannot reallocate memory for the variable of a different dtype")
+                raise Exception(
+                    "Cannot reallocate memory for the variable of a different dtype"
+                )
             return instructions
 
-    def _generate_logical_operation(self, command: Command) -> list[ASMInstruction]:
+    def _generate_logical_operation(
+        self, command: Command
+    ) -> list[ASMInstruction]:
         if not isinstance(command.target, PseudoRegister):
             raise Exception("Unreachable")
         cmp_command = Command(
-            operation=CommandType.CMP, operand_a=command.operand_a, operand_b=command.operand_b
+            operation=CommandType.CMP,
+            operand_a=command.operand_a,
+            operand_b=command.operand_b,
         )
         cmp_instructions = self._generate_cmp(cmp_command)
         boolean_value_register = PseudoRegister(order=2)
@@ -238,7 +280,9 @@ class Generation:
             data="0",
         )
         save_comparison = MathLogicInstruction(
-            instruction_type=self._get_setcc_instruction(command_type=command.operation),
+            instruction_type=self._get_setcc_instruction(
+                command_type=command.operation
+            ),
             registers=(X86_64_REGISTER_SCHEMA[bitshift_register.name],),
         )
         move_to_target = DataMoveInstruction(
@@ -254,10 +298,14 @@ class Generation:
         return result
 
     def _generate_sum(self, command: Command) -> list[ASMInstruction]:
-        return self._generate_binop(command=command, math_op_type=InstructionType.ADD)
+        return self._generate_binop(
+            command=command, math_op_type=InstructionType.ADD
+        )
 
     def _generate_sub(self, command: Command) -> list[ASMInstruction]:
-        return self._generate_binop(command=command, math_op_type=InstructionType.SUB)
+        return self._generate_binop(
+            command=command, math_op_type=InstructionType.SUB
+        )
 
     def _generate_mul(self, command: Command) -> list[ASMInstruction]:
         actual_target = command.target
@@ -314,13 +362,19 @@ class Generation:
         return instructions
 
     def _generate_and(self, command: Command) -> list[ASMInstruction]:
-        return self._generate_binop(command=command, math_op_type=InstructionType.AND)
+        return self._generate_binop(
+            command=command, math_op_type=InstructionType.AND
+        )
 
     def _generate_or(self, command: Command) -> list[ASMInstruction]:
-        return self._generate_binop(command=command, math_op_type=InstructionType.OR)
+        return self._generate_binop(
+            command=command, math_op_type=InstructionType.OR
+        )
 
     def _generate_not(self, command: Command) -> list[ASMInstruction]:
-        return self._generate_binop(command=command, math_op_type=InstructionType.NOT)
+        return self._generate_binop(
+            command=command, math_op_type=InstructionType.NOT
+        )
 
     def _generate_eq(self, command: Command) -> list[ASMInstruction]:
         return self._generate_logical_operation(command=command)
@@ -341,22 +395,34 @@ class Generation:
         return self._generate_logical_operation(command=command)
 
     def _generate_bit_and(self, command: Command) -> list[ASMInstruction]:
-        return self._generate_binop(command=command, math_op_type=InstructionType.AND)
+        return self._generate_binop(
+            command=command, math_op_type=InstructionType.AND
+        )
 
     def _generate_bit_or(self, command: Command) -> list[ASMInstruction]:
-        return self._generate_binop(command=command, math_op_type=InstructionType.OR)
+        return self._generate_binop(
+            command=command, math_op_type=InstructionType.OR
+        )
 
     def _generate_bit_xor(self, command: Command) -> list[ASMInstruction]:
-        return self._generate_binop(command=command, math_op_type=InstructionType.XOR)
+        return self._generate_binop(
+            command=command, math_op_type=InstructionType.XOR
+        )
 
     def _generate_bit_not(self, command: Command) -> list[ASMInstruction]:
-        return self._generate_binop(command=command, math_op_type=InstructionType.NOT)
+        return self._generate_binop(
+            command=command, math_op_type=InstructionType.NOT
+        )
 
     def _generate_bit_shl(self, command: Command) -> list[ASMInstruction]:
-        return self._generate_binop(command=command, math_op_type=InstructionType.SHL)
+        return self._generate_binop(
+            command=command, math_op_type=InstructionType.SHL
+        )
 
     def _generate_bit_shr(self, command: Command) -> list[ASMInstruction]:
-        return self._generate_binop(command=command, math_op_type=InstructionType.SHR)
+        return self._generate_binop(
+            command=command, math_op_type=InstructionType.SHR
+        )
 
     def _generate_convert(self, command: Command) -> list[ASMInstruction]:
         if isinstance(command.operand_a, str | Label | StructDeclaration):
@@ -373,13 +439,17 @@ class Generation:
         self, command: Command, math_op_type: InstructionType
     ) -> list[ASMInstruction]:
         if command.operand_b is None:
-            return self._generate_unary(command=command, math_op_type=math_op_type)
+            return self._generate_unary(
+                command=command, math_op_type=math_op_type
+            )
         instructions: list[ASMInstruction] = []
         register_a, register_b = get_register_for_command(command)
         is_operand_a, is_operand_b = get_register_reassignment(command)
         if command.operand_a is None or command.operand_b is None:
             raise Exception("Unreachable")
-        if isinstance(command.operand_a, VarType) or isinstance(command.operand_b, VarType):
+        if isinstance(command.operand_a, VarType) or isinstance(
+            command.operand_b, VarType
+        ):
             raise Exception("Unreachable")
         instruction_a = self._process_operand(
             command.operand_a, register_a, register_b, is_operand_b=is_operand_a
@@ -387,7 +457,9 @@ class Generation:
         instruction_b = self._process_operand(
             command.operand_b, register_a, register_b, is_operand_b=is_operand_b
         )
-        inctruction_c = self._process_op_type(math_op_type, register_a, register_b)
+        inctruction_c = self._process_op_type(
+            math_op_type, register_a, register_b
+        )
         if instruction_a is not None:
             instructions.append(instruction_a)
         if instruction_b is not None:
@@ -399,31 +471,43 @@ class Generation:
         self, command: Command, math_op_type: InstructionType
     ) -> list[ASMInstruction]:
         instructions: list[ASMInstruction] = [
-            DataMoveInstruction(instruction_type=InstructionType.MOV, register="rdx", data="0")
+            DataMoveInstruction(
+                instruction_type=InstructionType.MOV, register="rdx", data="0"
+            )
         ]
         # argument extraction
         register_a, register_b = get_register_for_carried_command(command)
         if register_a != "rax":
             instructions.append(
                 DataMoveInstruction(
-                    instruction_type=InstructionType.MOV, register="rax", data=register_a
+                    instruction_type=InstructionType.MOV,
+                    register="rax",
+                    data=register_a,
                 )
             )
         else:
-            operation = self._process_operand(command.operand_a, "rax", "rbx", False)
+            operation = self._process_operand(
+                command.operand_a, "rax", "rbx", False
+            )
             if operation is None:
                 raise Exception("Unreachable")
             instructions.append(operation)
         if register_b != "rbx":
             instructions.append(
                 DataMoveInstruction(
-                    instruction_type=InstructionType.MOV, register="rbx", data=register_b
+                    instruction_type=InstructionType.MOV,
+                    register="rbx",
+                    data=register_b,
                 )
             )
         else:
-            if command.operand_b is None or isinstance(command.operand_b, VarType):
+            if command.operand_b is None or isinstance(
+                command.operand_b, VarType
+            ):
                 raise Exception("Unreachable")
-            operation = self._process_operand(command.operand_b, "rax", "rbx", True)
+            operation = self._process_operand(
+                command.operand_b, "rax", "rbx", True
+            )
             if operation is None:
                 raise Exception("Unreachable")
             instructions.append(operation)
@@ -440,7 +524,10 @@ class Generation:
         )  # type: ignore
 
         instruction_a = self._process_operand(
-            operand=command.operand_a, register_a=register, register_b="", is_operand_b=False
+            operand=command.operand_a,
+            register_a=register,
+            register_b="",
+            is_operand_b=False,
         )
         instruction_b = MathLogicInstruction(
             instruction_type=math_op_type,
@@ -451,7 +538,11 @@ class Generation:
         return [instruction_a, instruction_b]
 
     def _generate_label(self, label: Label) -> list[ASMInstruction]:
-        return [LabelInstruction(instruction_type=InstructionType.LABEL, label_name=label.name)]
+        return [
+            LabelInstruction(
+                instruction_type=InstructionType.LABEL, label_name=label.name
+            )
+        ]
 
     def _generate_cmp(self, command: Command) -> list[ASMInstruction]:
         command.target = PseudoRegister(order=8)
@@ -480,14 +571,22 @@ class Generation:
 
         return instruction
 
-    def _generate_jump(self, command: Command, jump_type: InstructionType) -> list[ASMInstruction]:
+    def _generate_jump(
+        self, command: Command, jump_type: InstructionType
+    ) -> list[ASMInstruction]:
         if not isinstance(command.operand_a, Label):
             raise Exception("cannot jump to anything but label")
         resulting_target = command.operand_a
 
-        return [ControllFlowInstruction(instruction_type=jump_type, data=(resulting_target.name,))]
+        return [
+            ControllFlowInstruction(
+                instruction_type=jump_type, data=(resulting_target.name,)
+            )
+        ]
 
-    def _get_setcc_instruction(self, command_type: CommandType) -> InstructionType:
+    def _get_setcc_instruction(
+        self, command_type: CommandType
+    ) -> InstructionType:
         match command_type:
             case CommandType.EQ:
                 return InstructionType.SETE
@@ -532,10 +631,15 @@ class Generation:
         raise Exception("Unreachable")
 
     def _process_op_type(
-        self, math_op_type: InstructionType, register_a: str, register_b: str | None = None
+        self,
+        math_op_type: InstructionType,
+        register_a: str,
+        register_b: str | None = None,
     ) -> ASMInstruction:
         if register_b is None:
-            return MathLogicInstruction(instruction_type=math_op_type, registers=(register_a,))
+            return MathLogicInstruction(
+                instruction_type=math_op_type, registers=(register_a,)
+            )
         return MathLogicInstruction(
             instruction_type=math_op_type,
             registers=(register_a, register_b),

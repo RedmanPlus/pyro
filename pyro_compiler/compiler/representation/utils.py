@@ -1,4 +1,7 @@
-from pyro_compiler.compiler.representation.command import CommandType, operation_result_type
+from pyro_compiler.compiler.representation.command import (
+    CommandType,
+    operation_result_type,
+)
 from pyro_compiler.compiler.representation.pseudo_register import PseudoRegister
 from pyro_compiler.compiler.representation.variable import Variable, VarType
 from pyro_compiler.compiler.utils import OperandANullT

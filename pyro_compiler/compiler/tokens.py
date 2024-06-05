@@ -75,7 +75,9 @@ class Token:
 
 
 class Tokenizer:
-    def __init__(self, message_registry: MessageRegistry | None = None, code: str = ""):
+    def __init__(
+        self, message_registry: MessageRegistry | None = None, code: str = ""
+    ):
         self.code = code
         self.tokens: list[Token] = []
         self.line: int = 1
@@ -145,18 +147,26 @@ class Tokenizer:
                 self._process_exclam()
             if current_char == ":":
                 self._process_colon()
-        self.tokens.append(Token(token_type=TokenType.NEWLINE, line=self.line, pos=self.pos))
+        self.tokens.append(
+            Token(token_type=TokenType.NEWLINE, line=self.line, pos=self.pos)
+        )
 
     def _process_alnum(self):
         char_buff: list[str] = []
         pos, line = self.pos, self.line
-        while self._peek(0) is not None and self._peek(0).isalnum() or self._peek(0) == "_":
+        while (
+            self._peek(0) is not None
+            and self._peek(0).isalnum()
+            or self._peek(0) == "_"
+        ):
             current_char = self._consume()
             char_buff.append(current_char)
         value = "".join(char_buff)
         is_buildin = self._process_build_ins(value=value)
         if not is_buildin:
-            token = Token(token_type=TokenType.IDENT, content=value, line=line, pos=pos)
+            token = Token(
+                token_type=TokenType.IDENT, content=value, line=line, pos=pos
+            )
             self.tokens.append(token)
 
     def _process_build_ins(self, value: str) -> bool:
@@ -180,32 +190,50 @@ class Tokenizer:
             )
 
         value = "".join(char_buff)
-        token = Token(token_type=TokenType.NUMBER, content=value, line=line, pos=pos)
+        token = Token(
+            token_type=TokenType.NUMBER, content=value, line=line, pos=pos
+        )
         self.tokens.append(token)
 
     def _process_eq(self):
         self._consume()
         if self._peek(0) == "=":
             self._consume()
-            self.tokens.append(Token(token_type=TokenType.EQUALS, line=self.line, pos=self.pos))
+            self.tokens.append(
+                Token(token_type=TokenType.EQUALS, line=self.line, pos=self.pos)
+            )
         else:
-            self.tokens.append(Token(token_type=TokenType.EQ, line=self.line, pos=self.pos))
+            self.tokens.append(
+                Token(token_type=TokenType.EQ, line=self.line, pos=self.pos)
+            )
 
     def _process_plus(self):
         self._consume()
         if self._peek(0) == "=":
             self._consume()
-            self.tokens.append(Token(token_type=TokenType.EQ_PLUS, line=self.line, pos=self.pos))
+            self.tokens.append(
+                Token(
+                    token_type=TokenType.EQ_PLUS, line=self.line, pos=self.pos
+                )
+            )
         else:
-            self.tokens.append(Token(token_type=TokenType.PLUS, line=self.line, pos=self.pos))
+            self.tokens.append(
+                Token(token_type=TokenType.PLUS, line=self.line, pos=self.pos)
+            )
 
     def _process_minus(self):
         self._consume()
         if self._peek(0) == "=":
             self._consume()
-            self.tokens.append(Token(token_type=TokenType.EQ_MINUS, line=self.line, pos=self.pos))
+            self.tokens.append(
+                Token(
+                    token_type=TokenType.EQ_MINUS, line=self.line, pos=self.pos
+                )
+            )
         else:
-            self.tokens.append(Token(token_type=TokenType.MINUS, line=self.line, pos=self.pos))
+            self.tokens.append(
+                Token(token_type=TokenType.MINUS, line=self.line, pos=self.pos)
+            )
 
     def _process_mul(self):
         self._consume()
@@ -241,7 +269,9 @@ class Tokenizer:
             self._consume()
             self.tokens.append(
                 Token(
-                    token_type=TokenType.EQ_DIV_FLOOR if is_floor else TokenType.EQ_DIV,
+                    token_type=TokenType.EQ_DIV_FLOOR
+                    if is_floor
+                    else TokenType.EQ_DIV,
                     line=self.line,
                     pos=self.pos,
                 )
@@ -249,7 +279,9 @@ class Tokenizer:
         else:
             self.tokens.append(
                 Token(
-                    token_type=TokenType.DIV_FLOOR if is_floor else TokenType.DIV,
+                    token_type=TokenType.DIV_FLOOR
+                    if is_floor
+                    else TokenType.DIV,
                     line=self.line,
                     pos=self.pos,
                 )
@@ -259,41 +291,77 @@ class Tokenizer:
         self._consume()
         if self._peek(0) == "=":
             self._consume()
-            self.tokens.append(Token(token_type=TokenType.EQ_REMAIN, line=self.line, pos=self.pos))
+            self.tokens.append(
+                Token(
+                    token_type=TokenType.EQ_REMAIN, line=self.line, pos=self.pos
+                )
+            )
         else:
-            self.tokens.append(Token(token_type=TokenType.REMAIN, line=self.line, pos=self.pos))
+            self.tokens.append(
+                Token(token_type=TokenType.REMAIN, line=self.line, pos=self.pos)
+            )
 
     def _process_comma(self):
         self._consume()
-        self.tokens.append(Token(token_type=TokenType.COMMA, line=self.line, pos=self.pos))
+        self.tokens.append(
+            Token(token_type=TokenType.COMMA, line=self.line, pos=self.pos)
+        )
 
     def _process_bit_and(self):
         self._consume()
         if self._peek(0) == "=":
             self._consume()
-            self.tokens.append(Token(token_type=TokenType.EQ_BIT_AND, line=self.line, pos=self.pos))
+            self.tokens.append(
+                Token(
+                    token_type=TokenType.EQ_BIT_AND,
+                    line=self.line,
+                    pos=self.pos,
+                )
+            )
         else:
-            self.tokens.append(Token(token_type=TokenType.BIT_AND, line=self.line, pos=self.pos))
+            self.tokens.append(
+                Token(
+                    token_type=TokenType.BIT_AND, line=self.line, pos=self.pos
+                )
+            )
 
     def _process_bit_or(self):
         self._consume()
         if self._peek(0) == "=":
             self._consume()
-            self.tokens.append(Token(token_type=TokenType.EQ_BIT_OR, line=self.line, pos=self.pos))
+            self.tokens.append(
+                Token(
+                    token_type=TokenType.EQ_BIT_OR, line=self.line, pos=self.pos
+                )
+            )
         else:
-            self.tokens.append(Token(token_type=TokenType.BIT_OR, line=self.line, pos=self.pos))
+            self.tokens.append(
+                Token(token_type=TokenType.BIT_OR, line=self.line, pos=self.pos)
+            )
 
     def _process_bit_xor(self):
         self._consume()
         if self._peek(0) == "=":
             self._consume()
-            self.tokens.append(Token(token_type=TokenType.EQ_BIT_XOR, line=self.line, pos=self.pos))
+            self.tokens.append(
+                Token(
+                    token_type=TokenType.EQ_BIT_XOR,
+                    line=self.line,
+                    pos=self.pos,
+                )
+            )
         else:
-            self.tokens.append(Token(token_type=TokenType.BIT_XOR, line=self.line, pos=self.pos))
+            self.tokens.append(
+                Token(
+                    token_type=TokenType.BIT_XOR, line=self.line, pos=self.pos
+                )
+            )
 
     def _process_bit_not(self):
         self._consume()
-        self.tokens.append(Token(token_type=TokenType.BIT_NOT, line=self.line, pos=self.pos))
+        self.tokens.append(
+            Token(token_type=TokenType.BIT_NOT, line=self.line, pos=self.pos)
+        )
 
     def _process_bit_shl(self):
         self._consume()
@@ -302,17 +370,29 @@ class Tokenizer:
             if self._peek(0) == "=":
                 self._consume()
                 self.tokens.append(
-                    Token(token_type=TokenType.EQ_BIT_SHL, line=self.line, pos=self.pos)
+                    Token(
+                        token_type=TokenType.EQ_BIT_SHL,
+                        line=self.line,
+                        pos=self.pos,
+                    )
                 )
             else:
                 self.tokens.append(
-                    Token(token_type=TokenType.BIT_SHL, line=self.line, pos=self.pos)
+                    Token(
+                        token_type=TokenType.BIT_SHL,
+                        line=self.line,
+                        pos=self.pos,
+                    )
                 )
         elif self._peek(0) == "=":
             self._consume()
-            self.tokens.append(Token(token_type=TokenType.LTE, line=self.line, pos=self.pos))
+            self.tokens.append(
+                Token(token_type=TokenType.LTE, line=self.line, pos=self.pos)
+            )
         else:
-            self.tokens.append(Token(token_type=TokenType.LT, line=self.line, pos=self.pos))
+            self.tokens.append(
+                Token(token_type=TokenType.LT, line=self.line, pos=self.pos)
+            )
 
     def _process_bit_shr(self):
         self._consume()
@@ -321,29 +401,49 @@ class Tokenizer:
             if self._peek(0) == "=":
                 self._consume()
                 self.tokens.append(
-                    Token(token_type=TokenType.EQ_BIT_SHR, line=self.line, pos=self.pos)
+                    Token(
+                        token_type=TokenType.EQ_BIT_SHR,
+                        line=self.line,
+                        pos=self.pos,
+                    )
                 )
             else:
                 self.tokens.append(
-                    Token(token_type=TokenType.BIT_SHR, line=self.line, pos=self.pos)
+                    Token(
+                        token_type=TokenType.BIT_SHR,
+                        line=self.line,
+                        pos=self.pos,
+                    )
                 )
         elif self._peek(0) == "=":
             self._consume()
-            self.tokens.append(Token(token_type=TokenType.GTE, line=self.line, pos=self.pos))
+            self.tokens.append(
+                Token(token_type=TokenType.GTE, line=self.line, pos=self.pos)
+            )
         else:
-            self.tokens.append(Token(token_type=TokenType.GT, line=self.line, pos=self.pos))
+            self.tokens.append(
+                Token(token_type=TokenType.GT, line=self.line, pos=self.pos)
+            )
 
     def _process_open_paren(self):
         self._consume()
-        self.tokens.append(Token(token_type=TokenType.OPEN_PAREN, line=self.line, pos=self.pos))
+        self.tokens.append(
+            Token(token_type=TokenType.OPEN_PAREN, line=self.line, pos=self.pos)
+        )
 
     def _process_closed_paren(self):
         self._consume()
-        self.tokens.append(Token(token_type=TokenType.CLOSED_PAREN, line=self.line, pos=self.pos))
+        self.tokens.append(
+            Token(
+                token_type=TokenType.CLOSED_PAREN, line=self.line, pos=self.pos
+            )
+        )
 
     def _process_colon(self):
         self._consume()
-        self.tokens.append(Token(token_type=TokenType.COLON, line=self.line, pos=self.pos))
+        self.tokens.append(
+            Token(token_type=TokenType.COLON, line=self.line, pos=self.pos)
+        )
 
     def _process_exclam(self):
         self._consume()
@@ -356,7 +456,9 @@ class Tokenizer:
             )
             return
         self._consume()
-        self.tokens.append(Token(token_type=TokenType.NOT_EQUALS, line=self.line, pos=self.pos))
+        self.tokens.append(
+            Token(token_type=TokenType.NOT_EQUALS, line=self.line, pos=self.pos)
+        )
 
     def _peek(self, position: int) -> str | None:
         if self.code:
@@ -376,11 +478,21 @@ class Tokenizer:
                 old_pos = self.pos
                 self.line += 1
                 self.pos = 1
-                self.tokens.append(Token(token_type=TokenType.NEWLINE, line=old_line, pos=old_pos))
+                self.tokens.append(
+                    Token(
+                        token_type=TokenType.NEWLINE, line=old_line, pos=old_pos
+                    )
+                )
             if self.pos == 1:
                 self.indent = True
             if self.indent and self.pos % 4 == 0:
-                self.tokens.append(Token(token_type=TokenType.INDENT, line=self.line, pos=self.pos))
+                self.tokens.append(
+                    Token(
+                        token_type=TokenType.INDENT,
+                        line=self.line,
+                        pos=self.pos,
+                    )
+                )
             self._consume()
         self.indent = False
 

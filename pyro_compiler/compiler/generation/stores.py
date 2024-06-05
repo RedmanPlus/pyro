@@ -32,11 +32,15 @@ def store_from_register(
     return instructions
 
 
-def store_from_string(value: str, destination_offset: int | None = None) -> list[ASMInstruction]:
+def store_from_string(
+    value: str, destination_offset: int | None = None
+) -> list[ASMInstruction]:
     instructions: list[ASMInstruction] = []
 
     instructions += [
-        DataMoveInstruction(instruction_type=InstructionType.MOV, register="rax", data=value),
+        DataMoveInstruction(
+            instruction_type=InstructionType.MOV, register="rax", data=value
+        ),
     ]
     if destination_offset is not None:
         instructions += [
@@ -47,12 +51,18 @@ def store_from_string(value: str, destination_offset: int | None = None) -> list
             ),
         ]
     else:
-        instructions += [DataMoveInstruction(instruction_type=InstructionType.PUSH, register="rax")]
+        instructions += [
+            DataMoveInstruction(
+                instruction_type=InstructionType.PUSH, register="rax"
+            )
+        ]
 
     return instructions
 
 
-def store_from_variable(value: str, destination_offset: int | None) -> list[ASMInstruction]:
+def store_from_variable(
+    value: str, destination_offset: int | None
+) -> list[ASMInstruction]:
     instructions: list[ASMInstruction] = []
 
     instructions += [
@@ -71,6 +81,10 @@ def store_from_variable(value: str, destination_offset: int | None) -> list[ASMI
             )
         ]
     else:
-        instructions += [DataMoveInstruction(instruction_type=InstructionType.PUSH, register="rax")]
+        instructions += [
+            DataMoveInstruction(
+                instruction_type=InstructionType.PUSH, register="rax"
+            )
+        ]
 
     return instructions

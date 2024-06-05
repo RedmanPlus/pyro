@@ -8,7 +8,9 @@ class PseudoRegister:
 
     def __init__(self, order: int, size: int = 8):
         if size not in register_order.keys():
-            raise Exception("Register size must be one of the following values: 1, 2, 3, 4, 8")
+            raise Exception(
+                "Register size must be one of the following values: 1, 2, 3, 4, 8"
+            )
         self.size = size
         max_register_order = self._calculate_max_register_order()
 

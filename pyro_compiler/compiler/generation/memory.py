@@ -14,7 +14,9 @@ from pyro_compiler.compiler.generation.utils import (
     dereference_offset,
 )
 from pyro_compiler.compiler.representation.pseudo_register import PseudoRegister
-from pyro_compiler.compiler.representation.struct_declaration import StructDeclaration
+from pyro_compiler.compiler.representation.struct_declaration import (
+    StructDeclaration,
+)
 from pyro_compiler.compiler.representation.structure import Structure
 from pyro_compiler.compiler.representation.variable import Variable
 
@@ -85,9 +87,13 @@ class MemoryManager:
         else:
             destination_offset = None
         if isinstance(val, PseudoRegister):
-            instructions += store_from_register(value=val, destination_offset=destination_offset)
+            instructions += store_from_register(
+                value=val, destination_offset=destination_offset
+            )
         if isinstance(val, str):
-            instructions += store_from_string(value=val, destination_offset=destination_offset)
+            instructions += store_from_string(
+                value=val, destination_offset=destination_offset
+            )
         if isinstance(val, Variable):
             var_id = self.get_region_index(val.name)
             if var_id is None:
@@ -102,7 +108,10 @@ class MemoryManager:
             region = self.register_memory_region(
                 name=name,
                 structure=val.var_type
-                if (isinstance(val, Variable) and isinstance(val.var_type, Structure))
+                if (
+                    isinstance(val, Variable)
+                    and isinstance(val.var_type, Structure)
+                )
                 else "BASE_64",
                 is_pointer=is_pointer,
             )
@@ -114,28 +123,41 @@ class MemoryManager:
         self, decl_name: str, declaration: StructDeclaration
     ) -> list[ASMInstruction]:
         instructions: list[ASMInstruction] = []
-        parent_region = self.register_memory_region(name=decl_name, structure=declaration.structure)
+        parent_region = self.register_memory_region(
+            name=decl_name, structure=declaration.structure
+        )
         for field_value, field_name in zip(
             declaration.field_values, declaration.structure.names, strict=True
         ):
-            if isinstance(field_value, Variable) and isinstance(field_value.var_type, Structure):
-                insts, pointer_register = self.calculate_pointer(val=field_value)
+            if isinstance(field_value, Variable) and isinstance(
+                field_value.var_type, Structure
+            ):
+                insts, pointer_register = self.calculate_pointer(
+                    val=field_value
+                )
                 instructions += insts
                 instructions += self.store_region(
-                    name=decl_name, val=pointer_register, store_to_main=False, is_pointer=True
+                    name=decl_name,
+                    val=pointer_register,
+                    store_to_main=False,
+                    is_pointer=True,
                 )
             else:
                 instructions += self.store_region(
                     name=decl_name, val=field_value, store_to_main=False
                 )
-            child_region = MemoryRegion(name=field_name, size_t=1, is_pointer=True, addr=-1)
+            child_region = MemoryRegion(
+                name=field_name, size_t=1, is_pointer=True, addr=-1
+            )
             parent_region.nest_memory(child_region)
 
         self.region.append(parent_region)
 
         return instructions
 
-    def calculate_pointer(self, val: Variable) -> tuple[list[ASMInstruction], PseudoRegister]:
+    def calculate_pointer(
+        self, val: Variable
+    ) -> tuple[list[ASMInstruction], PseudoRegister]:
         instructions: list[ASMInstruction] = []
         var_index = self.get_region_index(varname=val.name)
         if var_index is None:
@@ -148,7 +170,8 @@ class MemoryManager:
                 data="rsp",
             ),
             MathLogicInstruction(
-                instruction_type=InstructionType.ADD, registers=("rax", str(offset))
+                instruction_type=InstructionType.ADD,
+                registers=("rax", str(offset)),
             ),
         ]
         pointer_register = PseudoRegister(order=0, size=8)
@@ -171,7 +194,8 @@ class MemoryManager:
         instructions: list[ASMInstruction] = []
         instructions += [
             MathLogicInstruction(
-                instruction_type=InstructionType.ADD, registers=("rsp", str(region.size_t * 8))
+                instruction_type=InstructionType.ADD,
+                registers=("rsp", str(region.size_t * 8)),
             )
         ]
 
@@ -186,11 +210,15 @@ class MemoryManager:
             size_t = 0
         else:
             size_t = 1
-        return MemoryRegion(name=name, addr=current_index, size_t=size_t, is_pointer=is_pointer)
+        return MemoryRegion(
+            name=name, addr=current_index, size_t=size_t, is_pointer=is_pointer
+        )
 
     def get_region_index(self, varname: str) -> int | None:
         try:
-            variable_position = list(filter(lambda n: n.name == varname, self.region))[0]
+            variable_position = list(
+                filter(lambda n: n.name == varname, self.region)
+            )[0]
             return variable_position.addr
         except IndexError:
             return None
@@ -220,9 +248,17 @@ class MemoryManager:
                 DataMoveInstruction(
                     instruction_type=InstructionType.MOV,
                     register="rsi",
-                    data=dereference_offset(self.calculate_region_offset(variable_id)),
+                    data=dereference_offset(
+                        self.calculate_region_offset(variable_id)
+                    ),
                 ),
-                DataMoveInstruction(instruction_type=InstructionType.MOV, register="rax", data="0"),
-                CallInstruction(instruction_type=InstructionType.CALL, callee="printf"),
+                DataMoveInstruction(
+                    instruction_type=InstructionType.MOV,
+                    register="rax",
+                    data="0",
+                ),
+                CallInstruction(
+                    instruction_type=InstructionType.CALL, callee="printf"
+                ),
             ]
         return instructions

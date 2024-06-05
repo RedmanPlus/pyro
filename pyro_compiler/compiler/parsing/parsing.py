@@ -79,7 +79,9 @@ class Node:
 
 class Parser:
     def __init__(
-        self, message_registry: MessageRegistry | None = None, tokens: list[Token] | None = None
+        self,
+        message_registry: MessageRegistry | None = None,
+        tokens: list[Token] | None = None,
     ):
         if tokens is None:
             tokens = []
@@ -87,7 +89,9 @@ class Parser:
         self.core_node = Node(node_type=NodeType.NODE_PROG, children=[])
         self.parens: int = 0
         self.registry = (
-            message_registry if message_registry is not None else MessageRegistry(code="")
+            message_registry
+            if message_registry is not None
+            else MessageRegistry(code="")
         )
 
     def __call__(self, tokens: list[Token]) -> Node:
@@ -135,7 +139,10 @@ class Parser:
                 stmts = self._parse_if_scope(statement=stmts, depth=depth)
                 node_scope.children.append(stmts)
                 if_started = True
-            elif isinstance(stmts, Node) and stmts.node_type == NodeType.NODE_ELIF:
+            elif (
+                isinstance(stmts, Node)
+                and stmts.node_type == NodeType.NODE_ELIF
+            ):
                 if not if_started:
                     self.registry.register_message(
                         line=stmts.token.line,  # type: ignore
@@ -153,7 +160,10 @@ class Parser:
                         reason="elif statement declared without if",
                     )
                 node_if.children.append(stmts)
-            elif isinstance(stmts, Node) and stmts.node_type == NodeType.NODE_ELSE:
+            elif (
+                isinstance(stmts, Node)
+                and stmts.node_type == NodeType.NODE_ELSE
+            ):
                 subscope = self._parse_scope(depth=depth + 1)
                 if len(subscope.children) == 0:
                     self.registry.register_message(
@@ -172,7 +182,10 @@ class Parser:
                     )
                 node_if.children.append(subscope)
                 if_started = False
-            elif isinstance(stmts, Node) and stmts.node_type == NodeType.NODE_WHILE:
+            elif (
+                isinstance(stmts, Node)
+                and stmts.node_type == NodeType.NODE_WHILE
+            ):
                 subscope = self._parse_scope(depth=depth + 1)
                 if len(subscope.children) == 0:
                     self.registry.register_message(
@@ -183,7 +196,10 @@ class Parser:
                     )
                 stmts.children.append(subscope)
                 node_scope.children.append(stmts)
-            elif isinstance(stmts, Node) and stmts.node_type == NodeType.NODE_CLASS:
+            elif (
+                isinstance(stmts, Node)
+                and stmts.node_type == NodeType.NODE_CLASS
+            ):
                 subscope = self._parse_scope(depth=depth + 1)
                 if len(subscope.children) == 0:
                     self.registry.register_message(
@@ -233,7 +249,9 @@ class Parser:
             case TokenType.BREAK:
                 return self._parse_constant(constant_type=NodeType.NODE_BREAK)
             case TokenType.CONTINUE:
-                return self._parse_constant(constant_type=NodeType.NODE_CONTINUE)
+                return self._parse_constant(
+                    constant_type=NodeType.NODE_CONTINUE
+                )
             case _:
                 return self._parse_expressions()
 
@@ -322,8 +340,12 @@ class Parser:
                 expr = self._parse_expr()
                 if eq.token_type != TokenType.EQ:
                     assign_op = self._get_argument_assign_operator(eq)
-                    expr = self._make_binary(term, Node(node_type=assign_op), expr)
-                result = Node(node_type=NodeType.NODE_STMT, children=[term, expr])
+                    expr = self._make_binary(
+                        term, Node(node_type=assign_op), expr
+                    )
+                result = Node(
+                    node_type=NodeType.NODE_STMT, children=[term, expr]
+                )
                 return result
             if next.token_type == TokenType.COLON:
                 term = self._parse_leaf()
@@ -337,17 +359,29 @@ class Parser:
                     expr = self._parse_expr()
                     if eq.token_type != TokenType.EQ:
                         assign_op = self._get_argument_assign_operator(eq)
-                        expr = self._make_binary(term, Node(node_type=assign_op), expr)
-                    result = Node(node_type=NodeType.NODE_STMT, children=[term, expr])
+                        expr = self._make_binary(
+                            term, Node(node_type=assign_op), expr
+                        )
+                    result = Node(
+                        node_type=NodeType.NODE_STMT, children=[term, expr]
+                    )
                     return result
                 else:
                     result = Node(node_type=NodeType.NODE_STMT, children=[term])
                     return result
-            if next.token_type in (TokenType.NEWLINE, TokenType.COMMA, TokenType.CLOSED_PAREN):
+            if next.token_type in (
+                TokenType.NEWLINE,
+                TokenType.COMMA,
+                TokenType.CLOSED_PAREN,
+            ):
                 self._consume()
                 return Node(
                     node_type=NodeType.NODE_TERM,
-                    children=[Node(node_type=NodeType.NODE_IDENT, value=current.content)],
+                    children=[
+                        Node(
+                            node_type=NodeType.NODE_IDENT, value=current.content
+                        )
+                    ],
                 )
             if self._is_binop(next):
                 return self._parse_expr()
@@ -435,9 +469,15 @@ class Parser:
             )
         node_class_name = Node(
             node_type=NodeType.NODE_TERM,
-            children=[Node(node_type=NodeType.NODE_IDENT, value=class_name.content)],
+            children=[
+                Node(node_type=NodeType.NODE_IDENT, value=class_name.content)
+            ],
         )
-        node_class = Node(node_type=NodeType.NODE_CLASS, token=token, children=[node_class_name])
+        node_class = Node(
+            node_type=NodeType.NODE_CLASS,
+            token=token,
+            children=[node_class_name],
+        )
         if self._peek(0).token_type != TokenType.COLON:
             self.registry.register_message(
                 line=token.line,
@@ -465,11 +505,19 @@ class Parser:
             return Node(node_type=NodeType.NODE_TERM)
         return Node(
             node_type=NodeType.NODE_TERM,
-            children=[Node(node_type=NodeType.NODE_IDENT, value=self._consume().content)],
+            children=[
+                Node(
+                    node_type=NodeType.NODE_IDENT, value=self._consume().content
+                )
+            ],
         )
 
     def _parse_expr(
-        self, expected_final: tuple[TokenType, ...] = (TokenType.NEWLINE, TokenType.COMMA)
+        self,
+        expected_final: tuple[TokenType, ...] = (
+            TokenType.NEWLINE,
+            TokenType.COMMA,
+        ),
     ) -> Node:
         if self._peek(1).token_type in expected_final:
             node = self._parse_leaf()
@@ -505,7 +553,9 @@ class Parser:
 
         return left_operand
 
-    def _parse_increasing_precedence(self, left_operand: Node | None, min_prec: int) -> Node | None:
+    def _parse_increasing_precedence(
+        self, left_operand: Node | None, min_prec: int
+    ) -> Node | None:
         next = self._peek(0)
         if not self._is_binop(next):
             return left_operand
@@ -522,7 +572,9 @@ class Parser:
             if left_operand is None:
                 raise Exception("Unreachable")
             return self._make_binary(
-                left_operand=left_operand, operator=self._to_operator(next), right_operand=params
+                left_operand=left_operand,
+                operator=self._to_operator(next),
+                right_operand=params,
             )
 
         next_prec = self._get_precedence(next)
@@ -542,7 +594,9 @@ class Parser:
             self._consume()
         if left_operand is None:
             return self._make_unary(self._to_operator(next), right_operand)
-        return self._make_binary(left_operand, self._to_operator(next), right_operand)
+        return self._make_binary(
+            left_operand, self._to_operator(next), right_operand
+        )
 
     def _parse_leaf(self) -> Node | None:
         if self._peek(0).token_type not in [TokenType.IDENT, TokenType.NUMBER]:
@@ -596,7 +650,9 @@ class Parser:
             self._consume()
 
     @staticmethod
-    def _make_binary(left_operand: Node, operator: Node, right_operand: Node | None) -> Node:
+    def _make_binary(
+        left_operand: Node, operator: Node, right_operand: Node | None
+    ) -> Node:
         if right_operand is None:
             raise Exception("Unreachable")
         return Node(
@@ -612,7 +668,9 @@ class Parser:
     def _make_unary(operator: Node, right_operand: Node | None) -> Node:
         if right_operand is None:
             raise Exception("Unreachable")
-        return Node(node_type=NodeType.NODE_BIN_EXPR, children=[operator, right_operand])
+        return Node(
+            node_type=NodeType.NODE_BIN_EXPR, children=[operator, right_operand]
+        )
 
     @staticmethod
     def _is_binop(token: Token) -> bool:

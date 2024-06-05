@@ -31,7 +31,9 @@ class ErrorMessage(CompileTimeMessage):
     color_code: Color = Color.RED
 
     def to_message(self) -> str:
-        message = f"ERROR:\n" "\n" f"    {self.code_line}" "\n" "\n" f"{self.message}"
+        message = (
+            f"ERROR:\n" "\n" f"    {self.code_line}" "\n" "\n" f"{self.message}"
+        )
         return self._apply_color(message=message)
 
 
@@ -44,5 +46,12 @@ class WarningMessage(CompileTimeMessage):
     color_code: Color = Color.YELLOW
 
     def to_message(self) -> str:
-        message = f"WARNING:\n" "\n" f"    {self.code_line}" "\n" "\n" f"{self.message}"
+        message = (
+            f"WARNING:\n"
+            "\n"
+            f"    {self.code_line}"
+            "\n"
+            "\n"
+            f"{self.message}"
+        )
         return self._apply_color(message=message)

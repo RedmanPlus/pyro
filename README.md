@@ -10,7 +10,7 @@ python main.py <filename.py> <filename>
 
 ## What is it?
 
-This is a compiler for a subset python programming language with a goal to make it more low-level.
+This is a compiler for a subset of python programming language.
 
 ### Why a subset?
 

@@ -41,7 +41,14 @@ def test_tokenize_comma_expr():
 
 @pytest.mark.tokenizer
 def test_tokenize_bitwise_ops(snapshot):
-    code = "x = 1 & 1\n" "y = 1 | 1\n" "z = 1 ^ 1\n" "a = ~1\n" "b = 1 << 1\n" "c = 1 >> 1\n"
+    code = (
+        "x = 1 & 1\n"
+        "y = 1 | 1\n"
+        "z = 1 ^ 1\n"
+        "a = ~1\n"
+        "b = 1 << 1\n"
+        "c = 1 >> 1\n"
+    )
     tokenizer = Tokenizer()
     tokenizer(code=code)
     snapshot.assert_match(tokenizer.pprint(), "tokenize_bitwise_operations")
@@ -94,7 +101,15 @@ def test_tokenize_if_else_statement(snapshot):
 
 @pytest.mark.tokenizer
 def test_tokenize_if_elif_else_statement(snapshot):
-    code = "x = 1\n" "if 1:\n" "    x = 2\n" "elif 1:\n" "    x = 3\n" "else:\n" "    x = 1\n"
+    code = (
+        "x = 1\n"
+        "if 1:\n"
+        "    x = 2\n"
+        "elif 1:\n"
+        "    x = 3\n"
+        "else:\n"
+        "    x = 1\n"
+    )
     tokenizer = Tokenizer()
     tokenizer(code=code)
     snapshot.assert_match(tokenizer.pprint(), "tokenize_if_elif_else")

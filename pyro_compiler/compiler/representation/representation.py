@@ -1,9 +1,14 @@
 from builtins import StopIteration
 from dataclasses import dataclass, field
 
+from pyro_compiler.compiler.errors.error_type import ErrorType
 from pyro_compiler.compiler.representation.command import Command
 from pyro_compiler.compiler.representation.label import Label
+from pyro_compiler.compiler.representation.pseudo_register import PseudoRegister
 from pyro_compiler.compiler.representation.scope import Scope
+from pyro_compiler.compiler.representation.struct_declaration import (
+    StructDeclaration,
+)
 from pyro_compiler.compiler.representation.structure import Structure
 from pyro_compiler.compiler.representation.variable import Variable, VarType
 
@@ -37,7 +42,10 @@ class Representation:
         self.commands.append(command)
 
     def register_var(
-        self, varname: str, value: str | None = None, var_type: VarType | Structure = VarType.INT
+        self,
+        varname: str,
+        value: str | None = None,
+        var_type: VarType | Structure = VarType.INT,
     ) -> Variable:
         var = self.scopes[self.current_scope_id].register_var(
             varname=varname, var_type=var_type, value=value
@@ -54,10 +62,12 @@ class Representation:
         return label
 
     def add_scope(self, scope_name: str, scope_beginning_line: int):
-        self.scopes.append(Scope(scope_name=scope_name, beginning_line=scope_beginning_line))
+        self.scopes.append(
+            Scope(scope_name=scope_name, beginning_line=scope_beginning_line)
+        )
         self.current_scope_id += 1
 
-    def add_declaration(self, decl_name: str, fields: dict[str, str | int]):
+    def add_definition(self, decl_name: str, fields: dict[str, str | int]):
         decl_fields: dict[str, Structure | int] = {}
         for key, decl_field in fields.items():
             if isinstance(decl_field, str):
@@ -70,6 +80,34 @@ class Representation:
 
         declaration = Structure(decl_name=decl_name, fields=decl_fields)
         self.declarations[decl_name] = declaration
+
+    def add_declaration(
+        self, def_name: str, params: dict[str, PseudoRegister | Variable | str]
+    ) -> StructDeclaration | ErrorType:
+        structure = self.get_declaration_by_name(def_name)
+        if structure is None:
+            return ErrorType.DOES_NOT_EXIST
+
+        call_parameters: list[dict] = []
+
+        for param_name, param_source in params.items():
+            param_position = structure.get_name_order(param_name)
+            if param_position < 0:
+                return ErrorType.UNKNOWN_CALL_PARAMETER
+
+            call_parameters.append(
+                {"id": param_position, "param": param_source}
+            )
+
+        param_list = [
+            param["param"]
+            for param in sorted(call_parameters, key=lambda n: n["id"])
+        ]
+
+        declaration = StructDeclaration(
+            struct=structure, field_values=param_list
+        )
+        return declaration
 
     def close_current_scope(self, ending_line: int):
         self.scopes[self.current_scope_id].ending_line = ending_line
@@ -87,7 +125,9 @@ class Representation:
         for label_name, label in labels_to_delete:
             del self.labels[label_name]
             existing_label = self._get_label_by_id(label.position)
-            self.replace_label_in_commands(old_label=label, new_label=existing_label)
+            self.replace_label_in_commands(
+                old_label=label, new_label=existing_label
+            )
 
     def get_var(self, varname: str) -> Variable | None:
         checked_scope = self.current_scope_id
