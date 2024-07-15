@@ -1,0 +1,17 @@
+Structure int:
+    value<BASE_64> -> 0
+
+Structure Point:
+    x<<int>> -> 0
+    y<<int>> -> 1
+
+
+main: 
+   ESCALATE 
+   r8 = STORE int(value=1)
+   x = STORE r8
+   r8 = STORE int(value=2)
+   y = STORE r8
+   r8 = STORE Point(x=x: <int>, y=y: <int>)
+   point = STORE r8
+   DEESCALATE 

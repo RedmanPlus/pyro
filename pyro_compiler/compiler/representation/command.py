@@ -42,6 +42,7 @@ class CommandType(Enum):
     JGE = auto()
     JL = auto()
     JLE = auto()
+    CALL = auto()
     CONVERT = auto()
     ESCALATE = auto()
     DEESCALATE = auto()

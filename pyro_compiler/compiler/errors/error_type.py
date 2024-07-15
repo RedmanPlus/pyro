@@ -21,6 +21,7 @@ class ErrorType(MessageType):
     CALLABLE_ARGUMENT_ERROR = auto()
     DOES_NOT_EXIST = auto()
     UNKNOWN_CALL_PARAMETER = auto()
+    INCORRECT_ARG_ORDER = auto()
 
 
 error_to_message: dict[ErrorType, str] = {
@@ -39,6 +40,7 @@ error_to_message: dict[ErrorType, str] = {
     ErrorType.CALLABLE_ARGUMENT_ERROR: "Cannot mix positional and keyword arguments, first positional, than keyword",
     ErrorType.DOES_NOT_EXIST: "{missing_type} does not exist",
     ErrorType.UNKNOWN_CALL_PARAMETER: "Unknown call parameter by the name {param_name} was supplied to the {callable}",
+    ErrorType.INCORRECT_ARG_ORDER: "Incorrect order of positional and keyword arguments - positional argument found after keyword arg",
 }
 
 

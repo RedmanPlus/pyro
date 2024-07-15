@@ -396,9 +396,6 @@ def test_parse_class_declarations(snapshot):
     class int:
         value
 
-        def __add__(self, other: int) -> int:
-            ...
-
     class Point:
         x: int
         y: int

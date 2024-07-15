@@ -1,0 +1,6 @@
+main scopes:
+scope scope_main_0 variables:
+    value: INT
+    x: <int>
+    y: <int>
+    point: <Point>

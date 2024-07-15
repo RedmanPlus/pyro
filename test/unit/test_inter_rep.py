@@ -235,3 +235,30 @@ def test_class_definitions_inter_rep(snapshot):
     rep = int_rep(ast=node)
     snapshot.assert_match(rep.pprint(), "class_definitions_inter_rep")
     snapshot.assert_match(rep.pprint_vars(), "class_definitions_vardump")
+
+
+@pytest.mark.int_rep
+def test_parse_class_declarations(snapshot):
+    code = dedent(
+        """
+    class int:
+        value
+
+    class Point:
+        x: int
+        y: int
+
+    x = int(value=1)
+    y = int(2)
+    point = Point(x, y)
+    """
+    )
+    tokenizer = Tokenizer()
+    tokens = tokenizer(code=code)
+    parser = Parser()
+    node = parser(tokens=tokens)
+
+    int_rep = IRBuilder()
+    rep = int_rep(ast=node)
+    snapshot.assert_match(rep.pprint(), "class_declarations_inter_rep")
+    snapshot.assert_match(rep.pprint_vars(), "class_declarations_vardump")

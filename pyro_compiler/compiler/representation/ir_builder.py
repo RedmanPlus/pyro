@@ -5,8 +5,17 @@ from pyro_compiler.compiler.representation.command import Command, CommandType
 from pyro_compiler.compiler.representation.label import Label
 from pyro_compiler.compiler.representation.pseudo_register import PseudoRegister
 from pyro_compiler.compiler.representation.representation import Representation
+from pyro_compiler.compiler.representation.stmt_meta import (
+    StatementMeta,
+    StatementType,
+    get_statement_type,
+)
+from pyro_compiler.compiler.representation.struct_declaration import (
+    StructDeclaration,
+)
+from pyro_compiler.compiler.representation.structure import Structure
 from pyro_compiler.compiler.representation.utils import (
-    get_variable_type,
+    get_native_variable_type,
     optype_jump_mapping,
 )
 from pyro_compiler.compiler.representation.variable import Variable, VarType
@@ -89,60 +98,124 @@ class IRBuilder:
             ending_line=len(self.commands.commands)
         )
 
-    def _parse_stmt(self, node: Node):
-        node_term: Node = node.children[0]
-        if node_term.node_type != NodeType.NODE_TERM:
-            raise Exception("Unreachable")
-
-        node_dec: Node = node.children[1]
-        match node_dec.node_type:
-            case NodeType.NODE_BIN_EXPR:
+    def _parse_stmt(
+        self, node: Node, push_declaration_commands: bool = True
+    ) -> StatementMeta:
+        statement_type = get_statement_type(node)
+        match statement_type:
+            case StatementType.SINGLE_TERM_STATEMENT:
+                node_term = node.children[0]
+                variable = self.commands.get_var(node_term.children[0].value)  # type: ignore
+                if variable is None:
+                    self.registry.register_message(
+                        message_type=ErrorType.UNKNOWN_VARIABLE,
+                        line=node_term.children[0].token.line,  # type: ignore
+                        pos=node_term.children[0].token.pos,  # type: ignore
+                        varname=node_term.children[0].value,  # type: ignore
+                    )
+                return StatementMeta(
+                    statement_type=statement_type,
+                    assign_term=variable,  # type: ignore
+                    assigned_value=None,
+                )
+            case StatementType.SINGLE_VALUE_STATEMENT:
+                node_term = node.children[0]
+                return StatementMeta(
+                    statement_type=statement_type,
+                    assign_term=node_term.children[0].value,  # type: ignore
+                    assigned_value=None,
+                )
+            case StatementType.SINGLE_EXPRESSION_STATEMENT:
+                node_term = node.children[0]
+                command_expr = self._parse_bin_expr(node_term)
+                self.commands.append(command_expr)
+                target_register = command_expr.target
+                return StatementMeta(
+                    statement_type=statement_type,
+                    assign_term=target_register,  # type: ignore
+                    assigned_value=None,
+                )
+            case StatementType.SINGLE_TERM_ASSINGMENT:
+                node_term = node.children[0]
+                node_dec = node.children[1]
+                operand_a = node_dec.children[0].value
+                var = self.commands.register_var(
+                    varname=node_term.children[0].value  # type: ignore
+                )
+                if push_declaration_commands:
+                    command_declare = Command(
+                        operation=CommandType.STORE,
+                        target=var,
+                        operand_a=operand_a,  # type: ignore
+                        node=node,
+                    )
+                    self.commands.append(command_declare)
+                return StatementMeta(
+                    statement_type=statement_type,
+                    assign_term=var,
+                    assigned_value=operand_a,
+                )
+            case StatementType.SINGLE_TERM_REASSINGMENT:
+                node_term = node.children[0]
+                node_dec = node.children[1]
+                operand_a = self.commands.get_var(node_dec.children[0].value)  # type: ignore
+                if operand_a is None:
+                    self.registry.register_message(
+                        message_type=ErrorType.UNKNOWN_VARIABLE,
+                        line=node_dec.token.line,  # type: ignore
+                        pos=node_dec.token.pos,  # type: ignore
+                        varname=node_dec.children[0].value,  # type: ignore
+                    )
+                    operand_a = Variable("NOVAR")  # type: ignore
+                var = self.commands.register_var(
+                    varname=node_term.children[0].value  # type: ignore
+                )
+                if push_declaration_commands:
+                    command_declare = Command(
+                        operation=CommandType.STORE,
+                        target=var,
+                        operand_a=operand_a,  # type: ignore
+                        node=node,
+                    )
+                    self.commands.append(command_declare)
+                return StatementMeta(
+                    statement_type=statement_type,
+                    assign_term=var,
+                    assigned_value=operand_a,
+                )
+            case StatementType.SINGLE_EXPRESSION_ASSIGNMENT:
+                node_term = node.children[0]
+                node_dec = node.children[1]
                 command_expr = self._parse_bin_expr(node_dec)
                 self.used_register_count = 8
                 self.commands.append(command_expr)
                 if node_term.children[0].value is None:
                     raise Exception("Unreachable")
-                var_type: VarType | None = get_variable_type(
+                var_type: VarType | Structure | None = get_native_variable_type(
                     operation_type=command_expr.operation
                 )
                 if var_type is None:
-                    raise Exception("Unreachable")
+                    var_type = self.commands.get_declaration_by_name(
+                        node_dec.children[0].children[0].value  # type: ignore
+                    )
+                    if var_type is None:
+                        raise Exception("Unreachable")
                 var = self.commands.register_var(
                     varname=node_term.children[0].value, var_type=var_type
                 )
-                command_declare = Command(
-                    operation=CommandType.STORE,
-                    target=var,
-                    operand_a=command_expr.target,  # type: ignore
-                    node=node,
-                )
-                self.commands.append(command_declare)
-            case NodeType.NODE_TERM:
-                if node_term.children[0].value is None:
-                    raise Exception("Unreachable")
-                if node_dec.children[0].value is None:
-                    raise Exception("Unreachable")
-                operand_a: str | Variable | None
-                if node_dec.children[0].node_type == NodeType.NODE_IDENT:
-                    operand_a = self.commands.get_var(
-                        node_dec.children[0].value
+                if push_declaration_commands:
+                    command_declare = Command(
+                        operation=CommandType.STORE,
+                        target=var,
+                        operand_a=command_expr.target,  # type: ignore
+                        node=node,
                     )
-                    if operand_a is None:
-                        raise Exception("Unreachable")
-                elif node_dec.children[0].node_type == NodeType.NODE_VALUE:
-                    operand_a = node_dec.children[0].value
-                else:
-                    raise Exception("Unreachable")
-                var = self.commands.register_var(
-                    varname=node_term.children[0].value
+                    self.commands.append(command_declare)
+                return StatementMeta(
+                    statement_type=statement_type,
+                    assign_term=var,
+                    assigned_value=command_expr.target,
                 )
-                command_declare = Command(
-                    operation=CommandType.STORE,
-                    target=var,
-                    operand_a=operand_a,
-                    node=node,
-                )
-                self.commands.append(command_declare)
 
     def _parse_if(
         self,
@@ -380,6 +453,21 @@ class IRBuilder:
 
         return jump_type
 
+    def _get_var_or_declaration(self, node: Node) -> Structure | Variable:
+        var = self.commands.get_var(node.children[0].value)  # type: ignore
+        if var is not None:
+            return var
+        decl = self.commands.get_declaration_by_name(node.children[0].value)  # type: ignore
+        if decl is not None:
+            return decl
+        self.registry.register_message(
+            line=node.children[0].token.line,  # type: ignore
+            pos=node.children[0].token.pos,  # type: ignore
+            message_type=ErrorType.UNKNOWN_VARIABLE,
+            varname=node.children[0].value,  # type: ignore
+        )
+        return Variable("NOVAR")
+
     def _parse_bin_expr(self, node: Node) -> Command:
         node_term_a: Node = node.children[0]
         if node_term_a.node_type not in [
@@ -388,23 +476,17 @@ class IRBuilder:
         ]:
             return self._make_unary(node)
         command_a: Command | None = None
-        operand_a: str | PseudoRegister | Variable | None = None
+        operand_a: str | PseudoRegister | Variable | StructDeclaration | None = (
+            None
+        )
         match node_term_a.node_type:
             case NodeType.NODE_BIN_EXPR:
                 command_a = self._parse_bin_expr(node_term_a)
                 operand_a = command_a.target
             case NodeType.NODE_TERM:
                 if node_term_a.children[0].node_type == NodeType.NODE_IDENT:
-                    var = self.commands.get_var(node_term_a.children[0].value)  # type: ignore
-                    if var is None:
-                        self.registry.register_message(
-                            line=node_term_a.children[0].token.line,  # type: ignore
-                            pos=node_term_a.children[0].token.pos,  # type: ignore
-                            message_type=ErrorType.UNKNOWN_VARIABLE,
-                            varname=node_term_a.children[0].value,  # type: ignore
-                        )
-                        var = Variable("NOVAR")
-                    operand_a = var
+                    var = self._get_var_or_declaration(node_term_a)
+                    operand_a = var if isinstance(var, Variable) else None
                 else:
                     operand_a = node_term_a.children[0].value
             case _:
@@ -428,7 +510,7 @@ class IRBuilder:
                             varname=node_term_b.children[0].value,  # type: ignore
                         )
                         var = Variable("NOVAR")
-                    operand_b = var
+                    operand_b = var  # type: ignore
                 else:
                     operand_b = node_term_b.children[0].value
             case NodeType.NODE_PARAMS:
@@ -443,9 +525,18 @@ class IRBuilder:
                 params = self._parse_call_parameters(node=node_term_b)
                 if node_term_a.children[0].value is None:
                     raise Exception("Unreachable")
-                self.commands.add_declaration(
+                declaration = self.commands.add_declaration(
                     node_term_a.children[0].value, params=params
                 )
+                if isinstance(declaration, ErrorType):
+                    self.registry.register_message(  # type: ignore
+                        declaration,  # type: ignore
+                        line=node_op.token.line,  # type: ignore
+                        pos=node_op.token.pos,  # type: ignore
+                    )
+                    operand_a = Variable("NOVAR")
+                else:
+                    operand_a = declaration
 
             case _:
                 raise Exception("Unreachable")
@@ -459,7 +550,7 @@ class IRBuilder:
             if operand_a is None or operand_b is None:
                 raise Exception("Unreachable")
             self._process_operands_for_boolean_only_operations(
-                operand_a=operand_a, operand_b=operand_b
+                operand_a=operand_a, operand_b=operand_b  # type: ignore
             )
 
         target: str | PseudoRegister | None
@@ -471,11 +562,12 @@ class IRBuilder:
             target = PseudoRegister(order=self.used_register_count)
 
         if target is None or operand_a is None or operand_b is None:
-            raise Exception("Unreachable")
+            if node_op.node_type != NodeType.NODE_CALL:
+                raise Exception("Unreachable")
         command_expr: Command = Command(
             operation=self._parse_operand(node_op),
             target=target,  # type: ignore
-            operand_a=operand_a,
+            operand_a=operand_a,  # type: ignore
             operand_b=operand_b,
             node=node,
         )
@@ -488,7 +580,7 @@ class IRBuilder:
 
     def _parse_call_parameters(
         self, node: Node
-    ) -> dict[str, PseudoRegister | Variable | str]:
+    ) -> dict[str | int, PseudoRegister | Variable | str]:
         """Parses call parameters and creates a call command or a `StructDeclaration` object
         Call parameters can come in several patterns.
         Given the function `foo`:
@@ -518,18 +610,32 @@ class IRBuilder:
 
         Parameters:
 
-            node <Node>: a Call params node to be parsed
+            node<Node>: a Call params node to be parsed
         """
-        params = []
-        for param_node in node.children:
-            param = self._parse_stmt(param_node)
-            params.append(param)
+        params: dict[str | int, PseudoRegister | Variable | str] = {}
+        arg_kwarg_border = False
+        for i, param_node in enumerate(node.children):
+            if param_node.node_type != NodeType.NODE_STMT:
+                param_node = Node(
+                    node_type=NodeType.NODE_STMT, children=[param_node]
+                )
+            param = self._parse_stmt(
+                param_node, push_declaration_commands=False
+            )
+            param_key, param_value = param.to_declaration_arg()
+            if param_key is None:
+                if arg_kwarg_border:
+                    self.registry.register_message(
+                        message_type=ErrorType.INCORRECT_ARG_ORDER,
+                        line=param_node.token.line,  # type: ignore
+                        pos=param_node.token.pos,  # type: ignore
+                    )
+                params[i] = param_value
+            else:
+                params[param_key] = param_value
+                arg_kwarg_border = True
 
-        param_dict = {
-            param.to_declaration_arg()[0]: param.to_declaration_arg()[1]
-            for param in params
-        }
-        return param_dict
+        return params
 
     def _make_unary(self, node: Node) -> Command:
         operation = self._parse_operand(node.children[0])
@@ -636,6 +742,8 @@ class IRBuilder:
                 return CommandType.BIT_SHL
             case NodeType.NODE_BIT_SHR:
                 return CommandType.BIT_SHR
+            case NodeType.NODE_CALL:
+                return CommandType.STORE
             case _:
                 raise Exception("Unreachable")
 

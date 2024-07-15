@@ -6,8 +6,10 @@ NodeType.NODE_PROG {
             }
 
             NodeType.NODE_SCOPE {
-                NodeType.NODE_TERM {
-                    NodeType.NODE_IDENT: value {}
+                NodeType.NODE_STMT {
+                    NodeType.NODE_TERM {
+                        NodeType.NODE_IDENT: value {}
+                    }
                 }
             }
         }

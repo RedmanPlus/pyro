@@ -234,6 +234,14 @@ class Generation:
         return result_asm
 
     def _generate_store(self, command: Command) -> list[ASMInstruction]:
+        if isinstance(command.target, Variable):
+            return self._store_variable(command)
+        if isinstance(command.target, PseudoRegister):
+            return self._store_to_register(command)
+
+        raise Exception("Unreachable")
+
+    def _store_variable(self, command: Command) -> list[ASMInstruction]:
         instructions: list[ASMInstruction] = []
         saved_value: OperandAT = command.operand_a
         target = command.target
@@ -260,6 +268,21 @@ class Generation:
                     "Cannot reallocate memory for the variable of a different dtype"
                 )
             return instructions
+
+    def _store_to_register(self, command: Command) -> list[ASMInstruction]:
+        instructions: list[ASMInstruction] = []
+        saved_value: OperandAT = command.operand_a
+        target = command.target
+        if not isinstance(target, PseudoRegister):
+            raise Exception("Unreachable")
+        if isinstance(saved_value, StructDeclaration):
+            instructions += self.memory_manager.store_declaration(
+                f"{saved_value.structure.decl_name} at {target.name}",
+                saved_value,
+            )
+        if isinstance(saved_value, str | PseudoRegister | Variable):
+            raise NotImplementedError()
+        return instructions
 
     def _generate_logical_operation(
         self, command: Command

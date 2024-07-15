@@ -20,7 +20,7 @@ comparison_jump_mapping: dict[CommandType, CommandType] = {
 }
 
 
-def get_variable_type(operation_type: CommandType) -> VarType | None:
+def get_native_variable_type(operation_type: CommandType) -> VarType | None:
     return operation_result_type.get(operation_type, None)
 
 

@@ -215,6 +215,12 @@ class Parser:
                 NodeType.NODE_CONTINUE,
             ):
                 node_scope.children.append(stmts)
+            elif isinstance(stmts, Node) and (
+                stmts.node_type in (NodeType.NODE_BIN_EXPR, NodeType.NODE_TERM)
+            ):
+                node_scope.children.append(
+                    Node(node_type=NodeType.NODE_STMT, children=[stmts])
+                )
             elif isinstance(stmts, Node):
                 node_scope.children.append(stmts)
             else:

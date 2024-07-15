@@ -82,7 +82,9 @@ class Representation:
         self.declarations[decl_name] = declaration
 
     def add_declaration(
-        self, def_name: str, params: dict[str, PseudoRegister | Variable | str]
+        self,
+        def_name: str,
+        params: dict[str | int, PseudoRegister | Variable | str],
     ) -> StructDeclaration | ErrorType:
         structure = self.get_declaration_by_name(def_name)
         if structure is None:
@@ -91,7 +93,10 @@ class Representation:
         call_parameters: list[dict] = []
 
         for param_name, param_source in params.items():
-            param_position = structure.get_name_order(param_name)
+            if isinstance(param_name, str):
+                param_position = structure.get_name_order(param_name)
+            else:
+                param_position = param_name
             if param_position < 0:
                 return ErrorType.UNKNOWN_CALL_PARAMETER
 
